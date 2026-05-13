@@ -30,7 +30,6 @@ if 'pokedex' not in st.session_state:
     st.session_state.pokedex = set()
 
 # ================= 3. 建立動物靜態資料庫 =================
-# 小提醒：未來可以將圖片網址替換為上傳到 Github 的真實照片檔名 (例如: "beibei.jpg")
 ANIMALS_DB = {
     "貝貝": {"type": "dog", "img": "https://images.unsplash.com/photo-1543466835-00a7907e9de1", "desc": "溫柔可愛的狗狗，喜歡在村莊裡散步！"},
     "牧耳": {"type": "dog", "img": "https://images.unsplash.com/photo-1517849845537-4d257902454a", "desc": "充滿活力的狗狗夥伴，巡邏是牠的任務。"},
@@ -51,9 +50,9 @@ if mode == "🌿 尋找植物":
     if picture:
         st.info("🔍 魔法放大鏡辨識中，請稍候...")
         
-        # PlantNet API 辨識設定
-        API_KEY = st.secrets["PLANTNET_API_KEY"]
-       api_url = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
+        # PlantNet API 辨識設定 (網址已修正)
+        API_KEY = "2b1004UqTrbWJn4mj5hqcaZN"
+        api_url = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
         files = [('images', (picture.name, picture.getvalue(), picture.type))]
         
         try:
@@ -88,6 +87,7 @@ if mode == "🌿 尋找植物":
             else:
                 st.error("辨識失敗，這株植物太神秘了，請換個角度再拍一次看看！")
         except Exception as e:
+            # 顯示真實錯誤以利後續除錯
             st.error(f"系統錯誤詳細資訊：{e}")
 
 # ================= 路線 B：認識動物 =================
@@ -133,7 +133,7 @@ st.write(f"目前已收集：{len(st.session_state.pokedex)} 種驚喜！")
 if len(st.session_state.pokedex) > 0:
     st.write("、".join(list(st.session_state.pokedex)))
 
-# 達成目標觸發隱藏彩蛋 (例如集滿 3 種動植物)
+# 達成目標觸發隱藏彩蛋 (集滿 3 種動植物)
 if len(st.session_state.pokedex) >= 3:
     st.balloons()
     st.success("🎉 恭喜達成探險目標！解鎖隱藏彩蛋！")
