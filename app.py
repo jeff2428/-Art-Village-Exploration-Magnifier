@@ -135,7 +135,7 @@ def load_custom_css():
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { 
             content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); 
             width: 320px; height: 320px; border-radius: 50%; 
-            background: radial-gradient(ellipse at 65% 25%, rgba(255,255,230,0.3) 0%, rgba(255,255,255,0) 50%); /* 帶有一點點暖黃的反光 */
+            background: radial-gradient(ellipse at 65% 25%, rgba(255,255,230,0.3) 0%, rgba(255,255,255,0) 50%); 
             pointer-events: none; z-index: 15; 
         }
 
@@ -193,6 +193,89 @@ def load_custom_css():
         .stRadio > div { background: rgba(255,255,255,0.5); padding: 8px 15px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.6); }
         </style>
     """, unsafe_allow_html=True)
+
+def init_session_state():
+    """初始化全域狀態變數"""
+    if 'pokedex' not in st.session_state:
+        st.session_state.pokedex = set()
+    if 'active_pet' not in st.session_state:
+        st.session_state.active_pet = None
+
+def render_plant_explorer():
+    """渲染路線 A：尋找植物介面"""
+    picture = st.camera_input("")
+    
+    if picture:
+        with st.status("💎 正在進行光學與圖鑑比對...", expanded=False) as status:
+            plant_data = identify_plant_from_api(picture)
+            
+            if plant_data["success"]:
+                status.update(label="✨ 分析完成", state="complete")
+                
+                # 渲染結果卡片
+                st.markdown(f"""
+                    <div class="result-card">
+                        <h2 style='color:#33691E; margin-top:0; border-bottom: 1px solid rgba(141,110,99,0.2); padding-bottom: 10px;'>🌱 {plant_data['zh_name']}</h2>
+                        <p style='color:#5D4037; margin-top: 15px;'><b>🇬🇧 英文俗名：</b> {plant_data['eng_name']}</p>
+                        <p style='color:#5D4037;'><b>🔬 拉丁學名：</b> <i>{plant_data['sci_name']}</i></p>
+                        <div style='background: rgba(255,255,255,0.5); padding: 15px; border-radius: 12px; margin-top: 15px;'>
+                            <p style='line-height:1.8; font-size: 1rem; margin:0;'>{plant_data['desc']}</p>
+                        </div>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                # 存入圖鑑
+                st.session_state.pokedex.add(plant_data['zh_name'])
+            else:
+                status.update(label="❌ 分析失敗", state="error")
+                st.error(plant_data["error"])
+
+def render_animal_explorer():
+    """渲染路線 B：認識動物介面"""
+    st.write("<br>", unsafe_allow_html=True)
+    tabs = st.tabs(["🐶 狗狗小隊", "🐱 貓咪軍團"])
+    
+    with tabs[0]:
+        cols = st.columns(2)
+        dogs = {k: v for k, v in ANIMALS_DB.items() if v["type"] == "dog"}
+        for i, (name, data) in enumerate(dogs.items()):
+            with cols[i % 2]:
+                if st.button(f"{data['emoji']} {name}", key=f"dog_{name}"):
+                    st.session_state.active_pet = name
+
+    with tabs[1]:
+        cols = st.columns(2)
+        cats = {k: v for k, v in ANIMALS_DB.items() if v["type"] == "cat"}
+        for i, (name, data) in enumerate(cats.items()):
+            with cols[i % 2]:
+                if st.button(f"{data['emoji']} {name}", key=f"cat_{name}"):
+                    st.session_state.active_pet = name
+
+    if st.session_state.active_pet:
+        pet = ANIMALS_DB[st.session_state.active_pet]
+        st.markdown(f"""
+            <div class="result-card">
+                <h3 style='color:#33691E; margin-top:0;'>✨ 遇見了 {st.session_state.active_pet}！</h3>
+                <div style='background: rgba(255,255,255,0.5); padding: 15px; border-radius: 12px; margin-top: 15px;'>
+                    <p style='font-size: 1.1rem; line-height: 1.6; margin:0; color:#4E342E;'>{pet['desc']}</p>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+        st.session_state.pokedex.add(st.session_state.active_pet)
+
+def render_pokedex():
+    """渲染底部成就圖鑑"""
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    with st.expander("🎒 我的探險圖鑑", expanded=False):
+        if st.session_state.pokedex:
+            count = len(st.session_state.pokedex)
+            st.markdown(f"🌟 **已收集 {count} 種生物**")
+            st.progress(min(count / 10, 1.0))
+            st.write("，".join(st.session_state.pokedex))
+            if count >= 3:
+                st.balloons()
+        else:
+            st.write("圖鑑尚無紀錄，開始探索藝素村吧！")
 
 # ==========================================
 # 4. 主程式流程 (Main Execution)
