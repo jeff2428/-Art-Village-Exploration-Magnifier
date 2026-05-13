@@ -62,129 +62,75 @@ def identify_plant_from_api(image_file):
 # 3. 介面渲染模組 (UI Components)
 # ==========================================
 def load_custom_css():
-    """載入自訂義的 CSS 樣式 (極致放大鏡框 + 森林主題)"""
     st.markdown("""
         <style>
-        /* 背景漸層 */
+        /* 1. 動態森林漸層背景 */
         .stApp { 
             background: linear-gradient(-45deg, #F9FBE7, #E8F5E9, #DCEDC8); 
             background-size: 400% 400%; 
             animation: gradientBG 15s ease infinite; 
-            color: #33691E; 
             font-family: '微軟正黑體', sans-serif; 
         }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-        /* 放大鏡整體佈局 */
-        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) { 
-            display: flex; 
-            justify-content: center; 
-            position: relative; 
-            margin-top: 40px; 
-            margin-bottom: 140px !important; 
-            z-index: 10; 
+        /* ================= 顏色強制覆蓋區 (解決文字反白問題) ================= */
+        /* 強制選項按鈕與所有標籤的文字為深苔蘚綠色 */
+        div[role="radiogroup"] label, div[role="radiogroup"] div, div[role="radiogroup"] p {
+            color: #2E7D32 !important; 
+            font-weight: 800 !important;
+            font-size: 1rem !important;
+        }
+        /* 選項按鈕容器底色加深，增加對比 */
+        .stRadio > div { 
+            background: rgba(255,255,255,0.85) !important; 
+            padding: 10px 20px; 
+            border-radius: 30px; 
+            border: 2px solid rgba(141,110,99,0.3) !important; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        /* 強制全局普通文字為深咖啡色 */
+        .stMarkdown p, .stMarkdown span, .stMarkdown div {
+            color: #4E342E !important;
         }
 
-        /* 鏡頭外框設計 (重點優化) */
+        /* 2. 放大鏡本體與外框 */
+        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) { display: flex; justify-content: center; position: relative; margin-top: 40px; margin-bottom: 140px !important; z-index: 10; }
         [data-testid="stCameraInput"] { 
-            width: 320px !important; 
-            height: 320px !important; 
-            border-radius: 50% !important; 
-            /* 複合式鏡框：由內而外為 象牙白、金屬環、木質邊緣 */
+            width: 320px !important; height: 320px !important; border-radius: 50% !important; 
             border: 12px solid #FFF8E1 !important; 
-            box-shadow: 
-                0 0 0 2px #A1887F, /* 細金屬環 */
-                0 0 0 10px #5D4037, /* 厚實胡桃木外框 */
-                0 25px 50px rgba(94, 53, 17, 0.3), /* 外部重力感投影 */
-                inset 0 0 30px rgba(0,0,0,0.8) !important; /* 鏡筒內部深度感 */
-            overflow: hidden !important; 
-            background-color: #000 !important; 
-            position: relative !important; 
-            margin: 0 auto !important; 
-            padding: 0 !important; 
+            box-shadow: 0 0 0 2px #A1887F, 0 0 0 10px #5D4037, 0 25px 50px rgba(94, 53, 17, 0.3), inset 0 0 30px rgba(0,0,0,0.8) !important; 
+            overflow: hidden !important; background-color: #000 !important; position: relative !important; margin: 0 auto !important; padding: 0 !important; 
         }
+        [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { object-fit: cover !important; width: 100% !important; height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; }
 
-        /* 畫面完全填滿鏡面 */
-        [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { 
-            object-fit: cover !important; 
-            width: 100% !important; 
-            height: 100% !important; 
-            position: absolute !important; 
-            top: 0 !important; 
-            left: 0 !important; 
-        }
-
-        /* 拍照與切換按鈕美化 */
+        /* 3. 相機按鈕強化 (解決 Take Photo 字不清楚的問題) */
         [data-testid="stCameraInput"] button { 
-            background: rgba(141, 110, 99, 0.75) !important; 
+            background: rgba(93, 64, 55, 0.85) !important; /* 加深木棕色底色 */
             backdrop-filter: blur(8px) !important; 
-            border: 1px solid rgba(255, 255, 255, 0.4) !important; 
+            border: 2px solid rgba(255, 255, 255, 0.6) !important; 
             z-index: 50 !important; 
-            color: white !important;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
         }
-
-        /* 真正的原生「切換鏡頭」按鈕：固定在右上角圓弧內 */
-        [data-testid="stCameraInput"] button:has(svg) {
-            position: absolute !important; 
-            top: 25px !important; 
-            right: 25px !important; 
-            border-radius: 50% !important; 
-            width: 46px !important;
-            height: 46px !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        [data-testid="stCameraInput"] button p, [data-testid="stCameraInput"] button div {
+            color: #FFFFFF !important; /* 強制純白字體 */
+            font-weight: 900 !important;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; /* 加入黑色文字陰影增加銳利度 */
+            letter-spacing: 1px !important;
         }
+        [data-testid="stCameraInput"] button:has(svg) { position: absolute !important; top: 25px !important; right: 25px !important; border-radius: 50% !important; width: 46px !important; height: 46px !important; display: flex; align-items: center; justify-content: center; }
+        [data-testid="stCameraInput"] button:not(:has(svg)) { position: absolute !important; bottom: 30px !important; left: 50% !important; transform: translateX(-50%) !important; border-radius: 30px !important; padding: 10px 35px !important; }
 
-        /* 「拍照」按鈕：置底藥丸型 */
-        [data-testid="stCameraInput"] button:not(:has(svg)) {
-            position: absolute !important; 
-            bottom: 30px !important; 
-            left: 50% !important; 
-            transform: translateX(-50%) !important; 
-            border-radius: 30px !important; 
-            padding: 8px 30px !important; 
-        }
+        /* 4. 鏡面反光與握把 */
+        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%); pointer-events: none; z-index: 15; }
+        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after { content: ''; position: absolute; top: 312px; left: 50%; transform: translateX(-50%); width: 44px; height: 110px; background: linear-gradient(to right, #4E342E, #8D6E63, #4E342E); border-radius: 0 0 25px 25px; box-shadow: 0 15px 30px rgba(94, 53, 17, 0.4), inset 0 -5px 15px rgba(0,0,0,0.3); z-index: 5; }
 
-        /* 鏡面高光反光 (陽光折射感) */
-        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { 
-            content: ''; 
-            position: absolute; 
-            top: 0; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            width: 320px; 
-            height: 320px; 
-            border-radius: 50%; 
-            background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 60%); 
-            pointer-events: none; 
-            z-index: 15; 
-        }
+        /* 5. 資訊卡片 */
+        .result-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; border: 1px solid rgba(141, 110, 99, 0.3); color: #4E342E; margin-top: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .pokedex-card { background: rgba(255, 255, 255, 0.7); border-radius: 15px; padding: 15px; text-align: center; border: 2px solid rgba(141, 110, 99, 0.2); transition: all 0.3s ease; cursor: pointer; color: #4E342E !important; font-weight: bold; }
+        .pokedex-card:hover { background: rgba(255, 255, 255, 0.95); transform: translateY(-5px); border-color: #8D6E63; }
 
-        /* 放大鏡握把 (木質質感) */
-        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after { 
-            content: ''; 
-            position: absolute; 
-            top: 312px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            width: 44px; 
-            height: 110px; 
-            background: linear-gradient(to right, #4E342E, #8D6E63, #4E342E); 
-            border-radius: 0 0 25px 25px; 
-            box-shadow: 0 15px 30px rgba(94, 53, 17, 0.4), inset 0 -5px 15px rgba(0,0,0,0.3); 
-            z-index: 5; 
-        }
-
-        /* 資訊卡片 */
-        .result-card { background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.8); color: #4E342E; margin-top: 20px; }
-        
-        /* 圖庫卡片 */
-        .pokedex-card { background: rgba(255, 255, 255, 0.5); border-radius: 15px; padding: 15px; text-align: center; border: 1px solid rgba(141, 110, 99, 0.2); transition: all 0.3s ease; cursor: pointer; }
-        .pokedex-card:hover { background: rgba(255, 255, 255, 0.8); transform: translateY(-5px); }
-
-        h1 { text-align: center; background: -webkit-linear-gradient(45deg, #33691E 0%, #7CB342 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
+        /* 主標題 */
+        h1 { text-align: center; background: -webkit-linear-gradient(45deg, #2E7D32 0%, #7CB342 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; letter-spacing: 2px; text-shadow: 0px 4px 10px rgba(46, 125, 50, 0.2); margin-bottom: 20px; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -197,7 +143,7 @@ def show_detail_dialog(item_data):
             <p style='color:#5D4037;'><b>🇬🇧 英文名稱：</b> {item_data.get('eng_name', 'N/A')}</p>
             <p style='color:#5D4037;'><b>🔬 拉丁學名：</b> <i>{item_data.get('sci_name', 'N/A')}</i></p>
             <hr style='border: 0.5px solid rgba(141,110,99,0.2);'>
-            <p style='line-height:1.6; font-size: 1rem;'>{item_data['desc']}</p>
+            <p style='line-height:1.6; font-size: 1rem; color:#4E342E !important;'>{item_data['desc']}</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -217,8 +163,8 @@ def render_plant_explorer():
                 st.markdown(f"""
                     <div class="result-card">
                         <h2 style='color:#33691E; margin-top:0;'>🌱 {plant_data['zh_name']}</h2>
-                        <p style='line-height:1.6;'>{plant_data['desc']}</p>
-                        <p style='font-size:0.8rem; color:#8D6E63;'>已自動加入下方探險圖庫</p>
+                        <p style='line-height:1.6; color:#4E342E !important;'>{plant_data['desc']}</p>
+                        <p style='font-size:0.8rem; color:#8D6E63; margin-top:10px;'>✔️ 已自動加入下方探險圖庫</p>
                     </div>
                 """, unsafe_allow_html=True)
                 st.session_state.pokedex[plant_data['zh_name']] = plant_data
@@ -234,6 +180,7 @@ def render_animal_explorer():
             pets = {k: v for k, v in ANIMALS_DB.items() if v["type"] == p_type}
             for i, (name, data) in enumerate(pets.items()):
                 with cols[i % 2]:
+                    # 將按鈕文字強制加上 HTML 標籤確保不被反白
                     if st.button(f"{data['emoji']} {name}", key=f"pet_{name}"):
                         st.session_state.active_pet = name
     
@@ -246,10 +193,10 @@ def render_animal_explorer():
             "type": "animal"
         }
         st.session_state.pokedex[st.session_state.active_pet] = animal_info
-        st.markdown(f"<div class='result-card'><h3>✨ 遇見了 {st.session_state.active_pet}！</h3><p>{pet['desc']}</p></div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='result-card'><h3>✨ 遇見了 {st.session_state.active_pet}！</h3><p style='color:#4E342E !important;'>{pet['desc']}</p></div>", unsafe_allow_html=True)
 
 def render_pokedex_gallery():
-    st.markdown("<br><br><h2 style='text-align:center; color:#5D4037;'>🎒 探險圖庫</h2>", unsafe_allow_html=True)
+    st.markdown("<br><br><h2 style='text-align:center; color:#5D4037; font-weight:800;'>🎒 探險圖庫</h2>", unsafe_allow_html=True)
     if not st.session_state.pokedex:
         st.info("圖庫目前空空如也，快點擊上方「模式」開始探索！")
         return
@@ -266,13 +213,14 @@ def render_pokedex_gallery():
                 name, data = items[i + j]
                 with cols[j]:
                     icon = "🌿" if data.get("type") == "plant" else data.get("emoji", "🐾")
-                    if st.button(f"{icon}\n\n{name}", key=f"gallery_{name}"):
+                    if st.button(f"{icon} {name}", key=f"gallery_{name}", use_container_width=True):
                         show_detail_dialog(data)
 
 # ==========================================
 # 4. 主程式流程 (Main Execution)
 # ==========================================
 def main():
+    st.set_page_config(page_title="藝素村探險放大鏡", page_icon="🔍", layout="centered")
     load_custom_css()
     init_session_state()
 
