@@ -3,9 +3,15 @@ import requests
 from opencc import OpenCC
 
 # ==========================================
-# 1. 系統常數與設定 (Config & Constants)
+# 1. 系統常數與資安設定 (Config & Security)
 # ==========================================
-PLANTNET_API_KEY = "2b1004UqTrbWJn4mj5hqcaZN"
+# 【資安優化】：不再將密碼寫死在程式碼中，改由 Streamlit Secrets 安全讀取
+try:
+    PLANTNET_API_KEY = st.secrets["PLANTNET_API_KEY"]
+except KeyError:
+    st.error("⚠️ 系統設定錯誤：遺失 API 授權金鑰。請管理員至 Secrets 中設定。")
+    st.stop() # 阻斷程式繼續執行，保護系統
+
 CC_CONVERTER = OpenCC('s2t')
 
 ANIMALS_DB = {
@@ -24,9 +30,12 @@ def identify_plant_from_api(image_file):
     files = [('images', (image_file.name, image_file.getvalue(), image_file.type))]
     
     try:
-        response = requests.post(api_url, files=files)
-        if response.status_code != 200:
-            return {"success": False, "error": "辨識失敗，請確認圖片清晰度或網路狀態。"}
+        response = requests.post(api_url, files=files, timeout=15) # 【資安優化】：加入 Timeout 防禦長時間掛起攻擊
+        
+        if response.status_code == 401 or response.status_code == 403:
+            return {"success": False, "error": "驗證失敗，請確認圖鑑系統授權狀態。"}
+        elif response.status_code != 200:
+            return {"success": False, "error": "魔法放大鏡暫時失去焦點，請稍後再試。"}
 
         result = response.json()
         if not result.get('results'):
@@ -42,10 +51,11 @@ def identify_plant_from_api(image_file):
 
         description = "這是一株神秘的植物，百科中暫時找不到詳細故事。"
         try:
-            wiki_res = requests.get(f"https://zh.wikipedia.org/api/rest_v1/page/summary/{zh_name}?redirect=true", headers={'Accept-Language': 'zh-tw'})
+            wiki_res = requests.get(f"https://zh.wikipedia.org/api/rest_v1/page/summary/{zh_name}?redirect=true", headers={'Accept-Language': 'zh-tw'}, timeout=5)
             if wiki_res.status_code == 200:
                 description = CC_CONVERTER.convert(wiki_res.json().get('extract', description))
-        except: pass
+        except:
+            pass # 維基百科異常時，靜默失敗，不影響主功能
 
         return {
             "success": True,
@@ -55,8 +65,9 @@ def identify_plant_from_api(image_file):
             "desc": description,
             "type": "plant"
         }
-    except Exception as e:
-        return {"success": False, "error": f"連線異常：{e}"}
+    except Exception:
+        # 【資安優化】：移除直接拋出 Exception as e 的做法，改為模糊友善訊息，避免暴露後端函式庫細節
+        return {"success": False, "error": "系統網路通訊異常，請確認連線狀態後重試。"}
 
 # ==========================================
 # 3. 介面渲染模組 (UI Components)
@@ -64,108 +75,41 @@ def identify_plant_from_api(image_file):
 def load_custom_css():
     st.markdown("""
         <style>
-        /* 1. 動態森林漸層背景 */
-        .stApp { 
-            background: linear-gradient(-45deg, #F9FBE7, #E8F5E9, #DCEDC8); 
-            background-size: 400% 400%; 
-            animation: gradientBG 15s ease infinite; 
-            font-family: '微軟正黑體', sans-serif; 
-        }
+        .stApp { background: linear-gradient(-45deg, #F9FBE7, #E8F5E9, #DCEDC8); background-size: 400% 400%; animation: gradientBG 15s ease infinite; font-family: '微軟正黑體', sans-serif; }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-        /* ================= 顏色強制覆蓋區 (解決所有文字反白問題) ================= */
-        
-        /* 選項按鈕 (尋找植物/認識動物) */
-        div[role="radiogroup"] label, div[role="radiogroup"] div, div[role="radiogroup"] p {
-            color: #2E7D32 !important; 
-            font-weight: 800 !important;
-            font-size: 1rem !important;
-        }
-        .stRadio > div { 
-            background: rgba(255,255,255,0.85) !important; 
-            padding: 10px 20px; 
-            border-radius: 30px; 
-            border: 2px solid rgba(141,110,99,0.3) !important; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
+        div[role="radiogroup"] label, div[role="radiogroup"] div, div[role="radiogroup"] p { color: #2E7D32 !important; font-weight: 800 !important; font-size: 1rem !important; }
+        .stRadio > div { background: rgba(255,255,255,0.85) !important; padding: 10px 20px; border-radius: 30px; border: 2px solid rgba(141,110,99,0.3) !important; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
 
-        /* 標籤頁 Tabs (狗狗小隊/貓咪軍團) 強制顯色 */
-        button[data-baseweb="tab"] p, button[data-baseweb="tab"] span {
-            color: #4E342E !important; /* 未選取時深咖啡色 */
-            font-weight: 800 !important;
-            font-size: 1.1rem !important;
-        }
-        button[data-baseweb="tab"][aria-selected="true"] p, button[data-baseweb="tab"][aria-selected="true"] span {
-            color: #2E7D32 !important; /* 選取時變綠色 */
-        }
-        div[data-baseweb="tab-highlight"] {
-            background-color: #2E7D32 !important; /* 選取時底部線條變綠色 */
-        }
+        button[data-baseweb="tab"] p, button[data-baseweb="tab"] span { color: #4E342E !important; font-weight: 800 !important; font-size: 1.1rem !important; }
+        button[data-baseweb="tab"][aria-selected="true"] p, button[data-baseweb="tab"][aria-selected="true"] span { color: #2E7D32 !important; }
+        div[data-baseweb="tab-highlight"] { background-color: #2E7D32 !important; }
 
-        /* 全局普通按鈕 (動物大頭貼按鈕、圖庫按鈕) */
-        div.stButton > button { 
-            background: rgba(255, 255, 255, 0.85) !important; 
-            color: #4E342E !important; 
-            border: 2px solid rgba(141, 110, 99, 0.3) !important; 
-            border-radius: 20px !important; 
-            font-weight: 800 !important; 
-            transition: all 0.3s ease !important;
-        }
-        div.stButton > button:hover {
-            background: rgba(255, 255, 255, 1) !important;
-            border-color: #8D6E63 !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important;
-        }
+        div.stButton > button { background: rgba(255, 255, 255, 0.85) !important; color: #4E342E !important; border: 2px solid rgba(141, 110, 99, 0.3) !important; border-radius: 20px !important; font-weight: 800 !important; transition: all 0.3s ease !important; }
+        div.stButton > button:hover { background: rgba(255, 255, 255, 1) !important; border-color: #8D6E63 !important; transform: translateY(-2px) !important; box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important; }
 
-        /* 全局普通文字 (內文) */
-        .stMarkdown p, .stMarkdown span, .stMarkdown div {
-            color: #4E342E !important;
-        }
-
-        /* ================= 放大鏡與相機樣式區 ================= */
+        .stMarkdown p, .stMarkdown span, .stMarkdown div { color: #4E342E !important; }
 
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) { display: flex; justify-content: center; position: relative; margin-top: 40px; margin-bottom: 140px !important; z-index: 10; }
-        [data-testid="stCameraInput"] { 
-            width: 320px !important; height: 320px !important; border-radius: 50% !important; 
-            border: 12px solid #FFF8E1 !important; 
-            box-shadow: 0 0 0 2px #A1887F, 0 0 0 10px #5D4037, 0 25px 50px rgba(94, 53, 17, 0.3), inset 0 0 30px rgba(0,0,0,0.8) !important; 
-            overflow: hidden !important; background-color: #000 !important; position: relative !important; margin: 0 auto !important; padding: 0 !important; 
-        }
+        [data-testid="stCameraInput"] { width: 320px !important; height: 320px !important; border-radius: 50% !important; border: 12px solid #FFF8E1 !important; box-shadow: 0 0 0 2px #A1887F, 0 0 0 10px #5D4037, 0 25px 50px rgba(94, 53, 17, 0.3), inset 0 0 30px rgba(0,0,0,0.8) !important; overflow: hidden !important; background-color: #000 !important; position: relative !important; margin: 0 auto !important; padding: 0 !important; }
         [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { object-fit: cover !important; width: 100% !important; height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; }
 
-        /* 相機專屬按鈕 (確保不被全局 Button 影響) */
-        [data-testid="stCameraInput"] button { 
-            background: rgba(93, 64, 55, 0.85) !important; 
-            backdrop-filter: blur(8px) !important; 
-            border: 2px solid rgba(255, 255, 255, 0.6) !important; 
-            z-index: 50 !important; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
-        }
-        [data-testid="stCameraInput"] button p, [data-testid="stCameraInput"] button div {
-            color: #FFFFFF !important; 
-            font-weight: 900 !important;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; 
-            letter-spacing: 1px !important;
-        }
+        [data-testid="stCameraInput"] button { background: rgba(93, 64, 55, 0.85) !important; backdrop-filter: blur(8px) !important; border: 2px solid rgba(255, 255, 255, 0.6) !important; z-index: 50 !important; box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important; }
+        [data-testid="stCameraInput"] button p, [data-testid="stCameraInput"] button div { color: #FFFFFF !important; font-weight: 900 !important; text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; letter-spacing: 1px !important; }
         [data-testid="stCameraInput"] button:has(svg) { position: absolute !important; top: 25px !important; right: 25px !important; border-radius: 50% !important; width: 46px !important; height: 46px !important; display: flex; align-items: center; justify-content: center; }
         [data-testid="stCameraInput"] button:not(:has(svg)) { position: absolute !important; bottom: 30px !important; left: 50% !important; transform: translateX(-50%) !important; border-radius: 30px !important; padding: 10px 35px !important; }
 
-        /* 鏡面反光與握把 */
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%); pointer-events: none; z-index: 15; }
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after { content: ''; position: absolute; top: 312px; left: 50%; transform: translateX(-50%); width: 44px; height: 110px; background: linear-gradient(to right, #4E342E, #8D6E63, #4E342E); border-radius: 0 0 25px 25px; box-shadow: 0 15px 30px rgba(94, 53, 17, 0.4), inset 0 -5px 15px rgba(0,0,0,0.3); z-index: 5; }
 
-        /* ================= 資訊卡片 ================= */
         .result-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; border: 1px solid rgba(141, 110, 99, 0.3); color: #4E342E; margin-top: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         .pokedex-card { background: rgba(255, 255, 255, 0.7); border-radius: 15px; padding: 15px; text-align: center; border: 2px solid rgba(141, 110, 99, 0.2); transition: all 0.3s ease; cursor: pointer; color: #4E342E !important; font-weight: bold; }
         .pokedex-card:hover { background: rgba(255, 255, 255, 0.95); transform: translateY(-5px); border-color: #8D6E63; }
 
-        /* 主標題 */
         h1 { text-align: center; background: -webkit-linear-gradient(45deg, #2E7D32 0%, #7CB342 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; letter-spacing: 2px; text-shadow: 0px 4px 10px rgba(46, 125, 50, 0.2); margin-bottom: 20px; }
         </style>
     """, unsafe_allow_html=True)
 
-# 彈出視窗介紹卡片
 @st.dialog("🌿 探險圖鑑詳情")
 def show_detail_dialog(item_data):
     st.markdown(f"""
