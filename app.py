@@ -1,120 +1,121 @@
 import streamlit as st
 import requests
 
-# ================= 1. 視覺風格設定 =================
+# ================= 1. 網頁基本與視覺風格設定 =================
 st.set_page_config(page_title="藝素村探險放大鏡", page_icon="🔍", layout="centered")
 
 st.markdown("""
     <style>
-    .stApp { background-color: #F7F3E8; color: #4A3F35; font-family: '微軟正黑體', sans-serif; }
-    div.stButton > button { background-color: #8DA399; color: white; border-radius: 20px; font-weight: bold; }
+    .stApp {
+        background-color: #F7F3E8; /* 柔和米黃畫紙底色 */
+        color: #4A3F35; /* 溫暖深棕色文字 */
+        font-family: '微軟正黑體', 'Apple LiGothic Medium', sans-serif;
+    }
+    div.stButton > button {
+        background-color: #8DA399; /* 莫蘭迪綠 */
+        color: white;
+        border-radius: 20px;
+        border: 2px solid #738A7F;
+        padding: 10px 24px;
+        font-weight: bold;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🌿 藝素村探險放大鏡 🔍")
+st.write("拿起你的放大鏡，在藝素村開啟一段與自然對話的探險吧！")
 
-# 初始化圖鑑
+# ================= 2. 初始化探險圖鑑記錄 =================
 if 'pokedex' not in st.session_state:
     st.session_state.pokedex = set()
 
-# 動物資料庫
+# ================= 3. 建立動物靜態資料庫 =================
 ANIMALS_DB = {
-    "貝貝": {"type": "dog", "img": "https://images.unsplash.com/photo-1543466835-00a7907e9de1", "desc": "溫柔可愛的狗狗。"},
-    "牧耳": {"type": "dog", "img": "https://images.unsplash.com/photo-1517849845537-4d257902454a", "desc": "充滿活力的狗狗。"},
-    "小飛俠": {"type": "cat", "img": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba", "desc": "身手敏捷的貓咪。"},
-    "嘿皮": {"type": "cat", "img": "https://images.unsplash.com/photo-1495360010541-f48722b34f7d", "desc": "愛撒嬌的貓咪。"},
-    "冬瓜": {"type": "cat", "img": "https://images.unsplash.com/photo-1573865526739-10659fec78a5", "desc": "圓滾滾的橘貓。"}
+    "貝貝": {"type": "dog", "img": "https://images.unsplash.com/photo-1543466835-00a7907e9de1", "desc": "溫柔可愛的狗狗，喜歡在村莊裡散步！"},
+    "牧耳": {"type": "dog", "img": "https://images.unsplash.com/photo-1517849845537-4d257902454a", "desc": "充滿活力的狗狗夥伴，巡邏是牠的任務。"},
+    "小飛俠": {"type": "cat", "img": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba", "desc": "身手敏捷，像飛俠一樣穿梭在村莊的各個角落。"},
+    "嘿皮": {"type": "cat", "img": "https://images.unsplash.com/photo-1495360010541-f48722b34f7d", "desc": "總是開開心心的貓咪，聽到名字就會看著你。"},
+    "冬瓜": {"type": "cat", "img": "https://images.unsplash.com/photo-1573865526739-10659fec78a5", "desc": "圓滾滾又慵懶，最喜歡在溫暖的地方曬太陽。"}
 }
 
-mode = st.radio("探索模式", ["🌿 尋找植物", "🐾 認識動物"], horizontal=True)
+# ================= 4. 模式切換 =================
+mode = st.radio("你想探索什麼呢？", ["🌿 尋找植物", "🐾 認識動物"], horizontal=True)
+st.divider()
 
-# ================= 路線 A：尋找植物 (繁體中文特化版) =================
+# ================= 路線 A：尋找植物 =================
 if mode == "🌿 尋找植物":
-    picture = st.camera_input("📷 拍下植物")
+    picture = st.camera_input("📷 拍下眼前的植物")
     
     if picture:
-        st.info("🔍 魔法放大鏡正在翻閱中文百科...")
+        st.info("🔍 魔法放大鏡辨識中，請稍候...")
+        
         API_KEY = "2b1004UqTrbWJn4mj5hqcaZN"
-        # 直接在 PlantNet 端就強制要求 zh 語系
         api_url = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}&lang=zh"
         files = [('images', (picture.name, picture.getvalue(), picture.type))]
         
         try:
             response = requests.post(api_url, files=files)
-            result = response.json()
-            
-            if response.status_code == 200 and result.get('results'):
+            if response.status_code == 200:
+                result = response.json()
                 best_match = result['results'][0]
                 sci_name = best_match['species']['scientificNameWithoutAuthor']
                 
-                # 預設名稱
-                display_name = ""
-                
-                # 1. 第一優先：抓取 PlantNet 直接給的中文俗名
+                # --- 中文化邏輯 ---
+                display_name = sci_name
                 common_names = best_match['species'].get('commonNames', [])
-                if common_names:
-                    # 過濾掉非中文的俗名（簡單判斷有無中文字）
-                    for name in common_names:
-                        if any('\u4e00' <= char <= '\u9fff' for char in name):
-                            display_name = name
-                            break
+                for name in common_names:
+                    if any('\u4e00' <= char <= '\u9fff' for char in name): # 優先選包含中文的名字
+                        display_name = name
+                        break
                 
-                # 2. 第二優先：如果沒中文，去 Wikidata 強力檢索
-                if not display_name:
+                # 如果還是學名，呼叫 Wikidata 進行翻譯
+                if display_name == sci_name:
                     wd_url = f"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={sci_name}&language=en&format=json"
                     wd_data = requests.get(wd_url).json()
                     if wd_data.get('search'):
                         q_id = wd_data['search'][0]['id']
-                        # 廣泛抓取所有中文變體標籤
-                        label_url = f"https://www.wikidata.org/w/api.php?action=wbgetentities&ids={q_id}&props=labels&languages=zh-tw|zh-hk|zh-hant|zh-hans|zh&format=json"
+                        label_url = f"https://www.wikidata.org/w/api.php?action=wbgetentities&ids={q_id}&props=labels&languages=zh-tw|zh-hant|zh&format=json"
                         labels = requests.get(label_url).json().get('entities', {}).get(q_id, {}).get('labels', {})
-                        for lang in ['zh-tw', 'zh-hant', 'zh-hk', 'zh', 'zh-hans']:
+                        for lang in ['zh-tw', 'zh-hant', 'zh']:
                             if lang in labels:
                                 display_name = labels[lang]['value']
                                 break
 
-                # 3. 第三優先：若都失敗才用學名
-                if not display_name:
-                    display_name = sci_name
+                st.success(f"辨識成功！這是：{display_name}")
 
-                st.success(f"辨識成功！這株植物是：{display_name}")
-
-                # --- 抓取維基百科 (針對繁體中文標題優化) ---
-                description = "這是藝素村美麗的植物夥伴！目前詳細中文百科還在編寫中..."
-                aliases_str = ""
-                
-                # 使用繁體中文維基接口
-                wiki_api = f"https://zh.wikipedia.org/w/api.php?action=query&prop=extracts|redirects&exintro&explaintext&titles={display_name}&format=json&redirects=1&variant=zh-tw"
-                wiki_data = requests.get(wiki_api).json().get('query', {}).get('pages', {})
-                
-                for pg_id, pg_info in wiki_data.items():
-                    if pg_id != "-1":
-                        description = pg_info.get('extract', description)[:250] + "..."
-                        reds = pg_info.get('redirects', [])
-                        if reds:
-                            aliases_str = "、".join([r['title'] for r in reds if ":" not in r['title']][:5])
+                # --- 獲取百科介紹 (加入防崩潰檢查) ---
+                description = "這是一株神秘的植物，百科中暫時找不到詳細的中文故事，但它依然是村莊裡美麗的存在！"
+                try:
+                    # 使用 Wikipedia Summary API 並指定繁體中文
+                    wiki_url = f"https://zh.wikipedia.org/api/rest_v1/page/summary/{display_name}?redirect=true"
+                    wiki_res = requests.get(wiki_url)
+                    if wiki_res.status_code == 200:
+                        wiki_data = wiki_res.json()
+                        description = wiki_data.get('extract', description)
+                except:
+                    pass
 
                 st.markdown(f"### 🌿 {display_name}")
-                if aliases_str:
-                    st.caption(f"💡 **別名**：{aliases_str}")
                 st.write(description)
                 st.session_state.pokedex.add(display_name)
             else:
-                st.error("拍得不夠清楚，再試一次吧！")
+                st.error(f"連線異常，請確認網路或 API 額度 (錯誤代碼: {response.status_code})")
         except Exception as e:
-            st.error(f"連線異常：{e}")
+            st.error(f"系統忙碌中，請再拍一次看看！(錯誤資訊: {e})")
 
 # ================= 路線 B：認識動物 =================
 elif mode == "🐾 認識動物":
     st.subheader("點擊大頭貼，看看你遇到的是誰？")
-    for pet_type, emoji in [("dog", "🐶 狗狗"), ("cat", "🐱 貓咪")]:
-        st.markdown(f"#### {emoji}夥伴")
+    
+    for pet_type, emoji in [("dog", "🐶 狗狗夥伴"), ("cat", "🐱 貓咪夥伴")]:
+        st.markdown(f"#### {emoji}")
         cols = st.columns(3)
         pets = {k: v for k, v in ANIMALS_DB.items() if v["type"] == pet_type}
         for idx, (name, data) in enumerate(pets.items()):
             with cols[idx % 3]:
                 if st.button(f"{name}", key=f"btn_{name}"):
                     st.session_state.selected_animal = name
+
     if 'selected_animal' in st.session_state:
         st.divider()
         name = st.session_state.selected_animal
@@ -123,11 +124,13 @@ elif mode == "🐾 認識動物":
         st.write(ANIMALS_DB[name]["desc"])
         st.session_state.pokedex.add(name)
 
-# ================= 圖鑑機制 =================
+# ================= 探險圖鑑 =================
 st.divider()
 st.subheader("🎒 你的探險圖鑑")
 st.write(f"目前已收集：{len(st.session_state.pokedex)} 種驚喜！")
 if st.session_state.pokedex:
     st.write("、".join(list(st.session_state.pokedex)))
+
 if len(st.session_state.pokedex) >= 3:
     st.balloons()
+    st.success("🎉 恭喜達成探險目標！你已經是藝素村的植物小達人了！")
