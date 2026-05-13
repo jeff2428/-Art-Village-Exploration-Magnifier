@@ -62,40 +62,128 @@ def identify_plant_from_api(image_file):
 # 3. 介面渲染模組 (UI Components)
 # ==========================================
 def load_custom_css():
+    """載入自訂義的 CSS 樣式 (極致放大鏡框 + 森林主題)"""
     st.markdown("""
         <style>
-        .stApp { background: linear-gradient(-45deg, #F9FBE7, #E8F5E9, #DCEDC8); background-size: 400% 400%; animation: gradientBG 15s ease infinite; color: #33691E; font-family: '微軟正黑體', sans-serif; }
+        /* 背景漸層 */
+        .stApp { 
+            background: linear-gradient(-45deg, #F9FBE7, #E8F5E9, #DCEDC8); 
+            background-size: 400% 400%; 
+            animation: gradientBG 15s ease infinite; 
+            color: #33691E; 
+            font-family: '微軟正黑體', sans-serif; 
+        }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-        
-        /* 放大鏡與相機樣式 (延用森林主題) */
-        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) { display: flex; justify-content: center; position: relative; margin-top: 30px; margin-bottom: 130px !important; z-index: 10; }
-        [data-testid="stCameraInput"] { width: 320px !important; height: 320px !important; border-radius: 50% !important; border: 10px solid #FFF8E1 !important; box-shadow: 0 0 0 6px #8D6E63, 0 20px 40px rgba(94, 53, 17, 0.2), inset 0 0 25px rgba(0,0,0,0.6) !important; overflow: hidden !important; background-color: #000 !important; position: relative !important; margin: 0 auto !important; }
-        [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { object-fit: cover !important; width: 100% !important; height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; }
-        
-        /* 相機按鈕修復 */
-        [data-testid="stCameraInput"] button { background: rgba(141, 110, 99, 0.7) !important; backdrop-filter: blur(5px) !important; border: 1px solid rgba(255, 255, 255, 0.5) !important; z-index: 50 !important; color: white !important; }
-        [data-testid="stCameraInput"] button:has(svg) { position: absolute !important; top: 25px !important; right: 25px !important; border-radius: 50% !important; width: 45px !important; height: 45px !important; }
-        [data-testid="stCameraInput"] button:not(:has(svg)) { position: absolute !important; bottom: 30px !important; left: 50% !important; transform: translateX(-50%) !important; border-radius: 30px !important; padding: 5px 25px !important; }
 
-        /* 圖鑑卡片樣式 */
-        .pokedex-card {
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 15px;
-            padding: 15px;
-            text-align: center;
-            border: 1px solid rgba(141, 110, 99, 0.2);
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        .pokedex-card:hover {
-            background: rgba(255, 255, 255, 0.8);
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        /* 放大鏡整體佈局 */
+        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) { 
+            display: flex; 
+            justify-content: center; 
+            position: relative; 
+            margin-top: 40px; 
+            margin-bottom: 140px !important; 
+            z-index: 10; 
         }
 
-        /* 資訊卡片 (彈窗或結果) */
-        .result-card { background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.8); color: #4E342E; }
+        /* 鏡頭外框設計 (重點優化) */
+        [data-testid="stCameraInput"] { 
+            width: 320px !important; 
+            height: 320px !important; 
+            border-radius: 50% !important; 
+            /* 複合式鏡框：由內而外為 象牙白、金屬環、木質邊緣 */
+            border: 12px solid #FFF8E1 !important; 
+            box-shadow: 
+                0 0 0 2px #A1887F, /* 細金屬環 */
+                0 0 0 10px #5D4037, /* 厚實胡桃木外框 */
+                0 25px 50px rgba(94, 53, 17, 0.3), /* 外部重力感投影 */
+                inset 0 0 30px rgba(0,0,0,0.8) !important; /* 鏡筒內部深度感 */
+            overflow: hidden !important; 
+            background-color: #000 !important; 
+            position: relative !important; 
+            margin: 0 auto !important; 
+            padding: 0 !important; 
+        }
+
+        /* 畫面完全填滿鏡面 */
+        [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { 
+            object-fit: cover !important; 
+            width: 100% !important; 
+            height: 100% !important; 
+            position: absolute !important; 
+            top: 0 !important; 
+            left: 0 !important; 
+        }
+
+        /* 拍照與切換按鈕美化 */
+        [data-testid="stCameraInput"] button { 
+            background: rgba(141, 110, 99, 0.75) !important; 
+            backdrop-filter: blur(8px) !important; 
+            border: 1px solid rgba(255, 255, 255, 0.4) !important; 
+            z-index: 50 !important; 
+            color: white !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+        }
+
+        /* 真正的原生「切換鏡頭」按鈕：固定在右上角圓弧內 */
+        [data-testid="stCameraInput"] button:has(svg) {
+            position: absolute !important; 
+            top: 25px !important; 
+            right: 25px !important; 
+            border-radius: 50% !important; 
+            width: 46px !important;
+            height: 46px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 「拍照」按鈕：置底藥丸型 */
+        [data-testid="stCameraInput"] button:not(:has(svg)) {
+            position: absolute !important; 
+            bottom: 30px !important; 
+            left: 50% !important; 
+            transform: translateX(-50%) !important; 
+            border-radius: 30px !important; 
+            padding: 8px 30px !important; 
+        }
+
+        /* 鏡面高光反光 (陽光折射感) */
+        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { 
+            content: ''; 
+            position: absolute; 
+            top: 0; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 320px; 
+            height: 320px; 
+            border-radius: 50%; 
+            background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 60%); 
+            pointer-events: none; 
+            z-index: 15; 
+        }
+
+        /* 放大鏡握把 (木質質感) */
+        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after { 
+            content: ''; 
+            position: absolute; 
+            top: 312px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            width: 44px; 
+            height: 110px; 
+            background: linear-gradient(to right, #4E342E, #8D6E63, #4E342E); 
+            border-radius: 0 0 25px 25px; 
+            box-shadow: 0 15px 30px rgba(94, 53, 17, 0.4), inset 0 -5px 15px rgba(0,0,0,0.3); 
+            z-index: 5; 
+        }
+
+        /* 資訊卡片 */
+        .result-card { background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.8); color: #4E342E; margin-top: 20px; }
         
+        /* 圖庫卡片 */
+        .pokedex-card { background: rgba(255, 255, 255, 0.5); border-radius: 15px; padding: 15px; text-align: center; border: 1px solid rgba(141, 110, 99, 0.2); transition: all 0.3s ease; cursor: pointer; }
+        .pokedex-card:hover { background: rgba(255, 255, 255, 0.8); transform: translateY(-5px); }
+
         h1 { text-align: center; background: -webkit-linear-gradient(45deg, #33691E 0%, #7CB342 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
         </style>
     """, unsafe_allow_html=True)
@@ -115,27 +203,27 @@ def show_detail_dialog(item_data):
 
 def init_session_state():
     if 'pokedex' not in st.session_state:
-        st.session_state.pokedex = {} # 改為字典儲存完整資料
+        st.session_state.pokedex = {}
     if 'active_pet' not in st.session_state:
         st.session_state.active_pet = None
 
 def render_plant_explorer():
     picture = st.camera_input("")
     if picture:
-        with st.status("💎 正在進行光學與圖鑑比對...", expanded=False) as status:
+        with st.status("💎 正在透過放大鏡比對圖鑑...", expanded=False) as status:
             plant_data = identify_plant_from_api(picture)
             if plant_data["success"]:
-                status.update(label="✨ 分析完成", state="complete")
+                status.update(label="✨ 辨識成功", state="complete")
                 st.markdown(f"""
                     <div class="result-card">
                         <h2 style='color:#33691E; margin-top:0;'>🌱 {plant_data['zh_name']}</h2>
                         <p style='line-height:1.6;'>{plant_data['desc']}</p>
+                        <p style='font-size:0.8rem; color:#8D6E63;'>已自動加入下方探險圖庫</p>
                     </div>
                 """, unsafe_allow_html=True)
-                # 存入圖鑑 (儲存完整字典)
                 st.session_state.pokedex[plant_data['zh_name']] = plant_data
             else:
-                status.update(label="❌ 分析失敗", state="error")
+                status.update(label="❌ 辨識失敗", state="error")
                 st.error(plant_data["error"])
 
 def render_animal_explorer():
@@ -151,7 +239,6 @@ def render_animal_explorer():
     
     if st.session_state.active_pet:
         pet = ANIMALS_DB[st.session_state.active_pet]
-        # 包裝成與植物一致的格式存入圖鑑
         animal_info = {
             "zh_name": st.session_state.active_pet,
             "emoji": pet['emoji'],
@@ -162,19 +249,15 @@ def render_animal_explorer():
         st.markdown(f"<div class='result-card'><h3>✨ 遇見了 {st.session_state.active_pet}！</h3><p>{pet['desc']}</p></div>", unsafe_allow_html=True)
 
 def render_pokedex_gallery():
-    """渲染圖庫網格介面"""
     st.markdown("<br><br><h2 style='text-align:center; color:#5D4037;'>🎒 探險圖庫</h2>", unsafe_allow_html=True)
-    
     if not st.session_state.pokedex:
-        st.info("圖庫目前空空如也，快去村莊裡探索吧！")
+        st.info("圖庫目前空空如也，快點擊上方「模式」開始探索！")
         return
 
-    # 計算進度
     count = len(st.session_state.pokedex)
     st.write(f"🌟 已收集 **{count}** 種生物")
     st.progress(min(count / 10, 1.0))
 
-    # 建立網格 (每列 3 個)
     items = list(st.session_state.pokedex.items())
     for i in range(0, len(items), 3):
         cols = st.columns(3)
@@ -182,7 +265,6 @@ def render_pokedex_gallery():
             if i + j < len(items):
                 name, data = items[i + j]
                 with cols[j]:
-                    # 顯示卡片按鈕
                     icon = "🌿" if data.get("type") == "plant" else data.get("emoji", "🐾")
                     if st.button(f"{icon}\n\n{name}", key=f"gallery_{name}"):
                         show_detail_dialog(data)
