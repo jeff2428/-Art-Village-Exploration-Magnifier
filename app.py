@@ -21,71 +21,97 @@ st.markdown("""
         100% { background-position: 0% 50%; }
     }
 
-    /* 放大鏡核心容器 */
-    .lens-container {
-        position: relative;
+    /* ================= 完美版放大鏡 CSS ================= */
+
+    /* 1. 找到相機元件的外層容器，預留握把空間 */
+    [data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) {
         display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding-top: 25px;
-        margin-bottom: 20px;
+        justify-content: center;
+        position: relative;
+        margin-top: 30px;
+        margin-bottom: 130px !important; /* 給下方的握把留出高度 */
+        z-index: 10;
     }
 
-    /* 放大鏡外框：雙層金屬質感與深邃陰影 */
+    /* 2. 放大鏡本體 (相機外框) */
     [data-testid="stCameraInput"] {
         width: 320px !important;
         height: 320px !important;
         border-radius: 50% !important;
-        border: 10px solid #e2e8f0; /* 內層銀白邊框 */
+        border: 10px solid #e2e8f0 !important;
         box-shadow:
             0 0 0 5px #64748b, /* 外層深灰金屬環 */
-            0 25px 50px rgba(0,0,0,0.6), /* 整體強烈立體投影 */
-            inset 0 0 25px rgba(0,0,0,0.8); /* 鏡筒內部深度 */
-        overflow: hidden;
-        z-index: 2;
-        background-color: #000;
-        transition: transform 0.3s ease;
-    }
-    [data-testid="stCameraInput"]:hover {
-        transform: scale(1.02); /* 輕微呼吸感 */
+            0 25px 50px rgba(0,0,0,0.6), /* 立體投影 */
+            inset 0 0 25px rgba(0,0,0,0.8) !important;
+        overflow: hidden !important;
+        background-color: #000 !important;
+        position: relative !important;
+        margin: 0 auto !important;
+        padding: 0 !important; /* 移除 Streamlit 預設內距造成的白邊 */
     }
 
-    /* 鏡面真實反光 (弧形光斑) */
-    .lens-glass {
+    /* 3. 強制相機畫面(Video)與拍好的照片(Img)完全覆蓋放大鏡內部 */
+    [data-testid="stCameraInput"] video,
+    [data-testid="stCameraInput"] img,
+    [data-testid="stCameraInput"] canvas {
+        object-fit: cover !important; /* 強制裁切填滿，不留白邊 */
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 100% !important;
+        min-height: 100% !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+    }
+
+    /* 4. 解決截圖中白底按鈕的問題，美化成半透明藥丸按鈕 */
+    [data-testid="stCameraInput"] button {
+        position: absolute !important;
+        bottom: 25px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        background: rgba(0, 0, 0, 0.5) !important; /* 半透明黑色 */
+        backdrop-filter: blur(5px) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.4) !important;
+        border-radius: 30px !important;
+        padding: 5px 25px !important;
+        z-index: 20 !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
+    }
+    [data-testid="stCameraInput"] button p {
+        color: white !important; /* 確保文字是白色的 */
+        font-weight: bold !important;
+    }
+
+    /* 5. 放大鏡鏡面反光 (利用相機容器的 before) */
+    [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before {
+        content: '';
         position: absolute;
-        top: 25px;
+        top: 0;
         left: 50%;
         transform: translateX(-50%);
         width: 320px;
         height: 320px;
         border-radius: 50%;
-        /* 創造透鏡上方的高光反射 */
-        background: radial-gradient(ellipse at 65% 25%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 45%);
-        pointer-events: none; /* 確保不阻擋相機點擊 */
-        z-index: 3;
+        background: radial-gradient(ellipse at 65% 25%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%);
+        pointer-events: none; /* 讓點擊穿透，才能點到相機 */
+        z-index: 15; 
     }
 
-    /* 精緻科技感握把 */
-    .lens-handle {
+    /* 6. 完美對齊的放大鏡握把 (利用相機容器的 after) */
+    [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after {
+        content: '';
+        position: absolute;
+        top: 310px; /* 緊貼圓形底部 */
+        left: 50%;
+        transform: translateX(-50%);
         width: 42px;
         height: 110px;
         background: linear-gradient(to right, #1e293b, #475569, #1e293b);
         border-radius: 6px 6px 20px 20px;
-        margin-top: -12px;
-        z-index: 1;
         box-shadow: 0 15px 25px rgba(0,0,0,0.5), inset 0 -5px 15px rgba(0,0,0,0.4);
-        position: relative;
-    }
-    /* 握把上的防滑紋路裝飾 */
-    .lens-handle::after {
-        content: '';
-        position: absolute;
-        top: 25px;
-        left: 12px;
-        right: 12px;
-        height: 55px;
-        border-left: 2px solid rgba(255,255,255,0.15);
-        border-right: 2px solid rgba(255,255,255,0.15);
+        z-index: 5;
     }
 
     /* 提示標籤毛玻璃化 */
@@ -97,8 +123,9 @@ st.markdown("""
         border-radius: 30px;
         border: 1px solid rgba(255,255,255,0.2);
         font-size: 0.85rem;
-        margin-top: 20px;
+        margin: 0 auto 20px auto;
         box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        width: fit-content;
     }
 
     /* 磨砂毛玻璃卡片 (Glassmorphism Card) */
@@ -114,33 +141,6 @@ st.markdown("""
         color: #F8FAFC;
     }
 
-    /* 按鈕晶透化 */
-    div.stButton > button {
-        background: rgba(255, 255, 255, 0.1);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 30px;
-        padding: 10px 20px;
-        font-weight: 600;
-        backdrop-filter: blur(5px);
-        transition: all 0.3s ease;
-    }
-    div.stButton > button:hover {
-        background: rgba(255, 255, 255, 0.25);
-        border-color: rgba(255, 255, 255, 0.5);
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    }
-
-    /* 頂部導覽列按鈕區 */
-    .stRadio > div {
-        background: rgba(0,0,0,0.2);
-        padding: 8px 15px;
-        border-radius: 30px;
-        justify-content: center;
-        border: 1px solid rgba(255,255,255,0.05);
-    }
-
     /* 漸層金屬字體標題 */
     h1 { 
         text-align: center; 
@@ -149,8 +149,16 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
         font-weight: 800;
         letter-spacing: 2px;
-        text-shadow: 0px 4px 15px rgba(0,0,0,0.3); /* 提升漸層字立體感 */
+        text-shadow: 0px 4px 15px rgba(0,0,0,0.3);
         margin-bottom: 20px;
+    }
+    
+    div.stButton > button {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 30px;
+        padding: 10px 20px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -176,19 +184,15 @@ mode = st.radio("", ["🌿 尋找植物", "🐾 認識動物"], horizontal=True)
 
 # ================= 3. 路線 A：尋找植物 =================
 if mode == "🌿 尋找植物":
-    st.markdown("<div class='lens-container'>", unsafe_allow_html=True)
-    st.markdown("<div class='lens-glass'></div>", unsafe_allow_html=True)
     
-    # 核心相機元件
+    # 乾淨俐落！不用 HTML 包裝，直接呼叫相機元件 (CSS 會自動把它變成放大鏡)
     picture = st.camera_input("")
     
-    st.markdown("<div class='lens-handle'></div>", unsafe_allow_html=True)
     st.markdown("""
         <div class='switch-tip'>
             🔄 <b>提示：</b> 若想使用後鏡頭，請點擊相機右上角切換
         </div>
     """, unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
     
     if picture:
         with st.status("💎 正在進行光學與圖鑑比對...", expanded=False) as status:
