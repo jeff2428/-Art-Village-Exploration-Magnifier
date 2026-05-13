@@ -37,13 +37,54 @@ st.write("拿起你的放大鏡，開始今天的村莊探險吧！")
 if 'pokedex' not in st.session_state:
     st.session_state.pokedex = set()
 
-# 3. 建立動物靜態資料庫
+
+# 3. 建立動物靜態資料庫 (加入貓狗分類)
 ANIMALS_DB = {
-    "貝比": {"img": "https://via.placeholder.com/150", "desc": "溫柔的米克斯，最喜歡在草地曬太陽。"},
-    "貝果": {"img": "https://via.placeholder.com/150", "desc": "充滿活力的好夥伴，巡邏村莊是牠的任務！"},
-    "大橘": {"img": "https://via.placeholder.com/150", "desc": "村裡的睡神，通常出現在溫暖的角落。"}
+    "貝貝": {"type": "dog", "img": "https://images.unsplash.com/photo-1543466835-00a7907e9de1", "desc": "溫柔可愛的狗狗，喜歡在村莊裡散步！"},
+    "牧耳": {"type": "dog", "img": "https://images.unsplash.com/photo-1517849845537-4d257902454a", "desc": "充滿活力的狗狗夥伴，巡邏是牠的任務。"},
+    "小飛俠": {"type": "cat", "img": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba", "desc": "身手敏捷，像飛俠一樣穿梭在村莊的各個角落。"},
+    "嘿皮": {"type": "cat", "img": "https://images.unsplash.com/photo-1495360010541-f48722b34f7d", "desc": "總是開開心心的貓咪，聽到名字就會看著你。"},
+    "冬瓜": {"type": "cat", "img": "https://images.unsplash.com/photo-1573865526739-10659fec78a5", "desc": "圓滾滾又慵懶，最喜歡在溫暖的地方曬太陽。"}
 }
 
+# ... (保留中間原有的尋找植物程式碼) ...
+
+# ================= 路線 B：認識動物 =================
+elif mode == "🐾 認識動物":
+    st.subheader("點擊大頭貼，看看你遇到的是誰？")
+    
+    # 狗狗專區
+    st.markdown("#### 🐶 狗狗夥伴")
+    dog_cols = st.columns(3)
+    dogs = {k: v for k, v in ANIMALS_DB.items() if v["type"] == "dog"}
+    for idx, (name, data) in enumerate(dogs.items()):
+        with dog_cols[idx % 3]:
+            if st.button(f"🐶 {name}", key=f"btn_{name}"):
+                st.session_state.selected_animal = name
+                
+    st.markdown("---") # 視覺分隔線
+    
+    # 貓咪專區
+    st.markdown("#### 🐱 貓咪夥伴")
+    cat_cols = st.columns(3)
+    cats = {k: v for k, v in ANIMALS_DB.items() if v["type"] == "cat"}
+    for idx, (name, data) in enumerate(cats.items()):
+        with cat_cols[idx % 3]:
+            if st.button(f"🐱 {name}", key=f"btn_{name}"):
+                st.session_state.selected_animal = name
+
+    # 點開後的詳細介紹
+    if 'selected_animal' in st.session_state:
+        st.divider() # 展開介紹前的分隔線
+        animal_name = st.session_state.selected_animal
+        st.markdown(f"### 嗨！我是 {animal_name}")
+        # 顯示動物照片
+        st.image(ANIMALS_DB[animal_name]["img"], use_column_width=True)
+        # 顯示動物介紹台詞
+        st.write(ANIMALS_DB[animal_name]["desc"])
+        
+        # 成功點擊後，自動加入探險圖鑑
+        st.session_state.pokedex.add(animal_name)
 # 4. 雙入口選單
 mode = st.radio("你想探索什麼呢？", ["🌿 尋找植物", "🐾 認識動物"], horizontal=True)
 
