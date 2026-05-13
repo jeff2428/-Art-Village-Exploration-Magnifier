@@ -51,7 +51,8 @@ if mode == "🌿 尋找植物":
         st.info("🔍 魔法放大鏡辨識中，請稍候...")
         
         API_KEY = "2b1004UqTrbWJn4mj5hqcaZN"
-        api_url = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
+        # 加上 lang=zh-tw 嘗試讓 PlantNet 直接回傳繁體中文
+        api_url = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}&lang=zh-tw"
         files = [('images', (picture.name, picture.getvalue(), picture.type))]
         
         try:
@@ -62,54 +63,70 @@ if mode == "🌿 尋找植物":
                 best_match = result['results'][0]
                 scientific_name = best_match['species']['scientificNameWithoutAuthor']
                 
-                # 嘗試獲取 PlantNet 提供的英文俗名，若無則使用學名
+                # 取得 PlantNet 的俗名，若沒有則用學名
                 common_names = best_match['species'].get('commonNames', [])
-                search_keyword = common_names[0] if common_names else scientific_name
+                display_name = common_names[0] if common_names else scientific_name
                 
-                st.success(f"辨識成功！(科學特徵匹配：*{search_keyword}*)")
-                
-                # --- 透過中文維基百科 API 搜尋繁體中文與別名 ---
-                search_url = f"https://zh.wikipedia.org/w/api.php?action=query&list=search&srsearch={search_keyword}&utf8=&format=json&srlimit=1"
-                search_res = requests.get(search_url)
-                
-                display_name = search_keyword
-                description = "在圖鑑裡暫時找不到這株植物的詳細中文故事，但它依然是村莊裡美麗的存在！"
-                aliases_str = ""
+                # --- 強制繁體中文翻譯機制 (利用 Wikidata) ---
+                # 如果目前的名稱全是英文(isascii)，代表系統沒給中文，我們自己去開源庫查
+                if display_name.isascii():
+                    try:
+                        # 用學名查 Wikidata 的 ID
+                        wd_search_url = f"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={scientific_name}&language=en&format=json"
+                        wd_res = requests.get(wd_search_url).json()
+                        if wd_res.get('search'):
+                            q_id = wd_res['search'][0]['id']
+                            # 用 ID 抓取台灣繁體或標準中文
+                            wd_entity_url = f"https://www.wikidata.org/w/api.php?action=wbgetentities&ids={q_id}&props=labels&languages=zh-tw|zh-hant|zh&format=json"
+                            entity_res = requests.get(wd_entity_url).json()
+                            labels = entity_res.get('entities', {}).get(q_id, {}).get('labels', {})
+                            for lang in ['zh-tw', 'zh-hant', 'zh']:
+                                if lang in labels:
+                                    display_name = labels[lang]['value']
+                                    break
+                    except Exception:
+                        pass # 萬一 Wikidata 查不到，就保留原英文名
 
-                if search_res.status_code == 200:
-                    search_data = search_res.json()
-                    search_results = search_data.get('query', {}).get('search', [])
+                st.success(f"辨識成功！(學名匹配：*{scientific_name}*)")
+                
+                # --- 準備查詢維基百科簡介與別名 ---
+                description = "這是一株神秘的植物，百科中暫時找不到詳細的中文故事，但它依然是村莊裡美麗的存在！"
+                aliases_str = ""
+                
+                try:
+                    # 使用已經翻譯好的中文名稱去搜尋維基百科
+                    wiki_search_url = f"https://zh.wikipedia.org/w/api.php?action=query&list=search&srsearch={display_name}&utf8=&format=json&srlimit=1"
+                    wiki_res = requests.get(wiki_search_url).json()
                     
-                    if search_results:
-                        # 取得對應的中文標題 (繁體中文名稱)
-                        zh_title = search_results[0]['title']
-                        display_name = zh_title
+                    if wiki_res.get('query', {}).get('search'):
+                        zh_title = wiki_res['query']['search'][0]['title']
                         
                         # 1. 取得中文摘要
                         wiki_summary_url = f"https://zh.wikipedia.org/api/rest_v1/page/summary/{zh_title}"
-                        wiki_summary_res = requests.get(wiki_summary_url)
-                        if wiki_summary_res.status_code == 200:
-                            description = wiki_summary_res.json().get('extract', description)
-                        
-                        # 2. 取得別名 (利用維基百科的 Redirects 重新導向資料)
+                        summary_data = requests.get(wiki_summary_url).json()
+                        if summary_data.get('extract'):
+                            description = summary_data['extract']
+                            
+                        # 2. 取得別名
                         wiki_aliases_url = f"https://zh.wikipedia.org/w/api.php?action=query&prop=redirects&titles={zh_title}&format=json&utf8="
-                        wiki_aliases_res = requests.get(wiki_aliases_url)
-                        if wiki_aliases_res.status_code == 200:
-                            pages = wiki_aliases_res.json().get('query', {}).get('pages', {})
-                            for page_id, page_info in pages.items():
-                                redirects = page_info.get('redirects', [])
-                                if redirects:
-                                    # 過濾掉包含冒號的特殊頁面(如分類、列表)，保留純粹的別名
-                                    aliases = [r['title'] for r in redirects if ":" not in r['title'] and "：" not in r['title'] and "List" not in r['title']]
-                                    if aliases:
-                                        # 最多顯示 5 個常見別名
-                                        aliases_str = "、".join(aliases[:5])
+                        aliases_data = requests.get(wiki_aliases_url).json()
+                        pages = aliases_data.get('query', {}).get('pages', {})
+                        for page_id, page_info in pages.items():
+                            redirects = page_info.get('redirects', [])
+                            if redirects:
+                                aliases = [r['title'] for r in redirects if ":" not in r['title'] and "：" not in r['title'] and "List" not in r['title']]
+                                if aliases:
+                                    aliases_str = "、".join(aliases[:5])
+                except Exception:
+                    pass
 
                 # 顯示最終結果
                 st.markdown(f"### 🌿 {display_name}")
                 if aliases_str:
                     st.caption(f"💡 **別名 / 相關稱呼**：{aliases_str}")
                 st.write(description)
+                
+                # 加入圖鑑
                 st.session_state.pokedex.add(display_name)
                 
             else:
