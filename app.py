@@ -7,12 +7,12 @@ st.set_page_config(page_title="藝素村探險放大鏡", page_icon="🔍", layo
 st.markdown("""
     <style>
     .stApp {
-        background-color: #F7F3E8; /* 柔和米黃畫紙底色 */
-        color: #4A3F35; /* 溫暖深棕色文字 */
+        background-color: #F7F3E8;
+        color: #4A3F35;
         font-family: 'Comic Sans MS', '微軟正黑體', sans-serif;
     }
     div.stButton > button {
-        background-color: #8DA399; /* 莫蘭迪綠 */
+        background-color: #8DA399;
         color: white;
         border-radius: 20px;
         border: 2px solid #738A7F;
@@ -50,51 +50,77 @@ if mode == "🌿 尋找植物":
     if picture:
         st.info("🔍 魔法放大鏡辨識中，請稍候...")
         
-        # PlantNet API 辨識設定 (網址已修正)
         API_KEY = "2b1004UqTrbWJn4mj5hqcaZN"
         api_url = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
         files = [('images', (picture.name, picture.getvalue(), picture.type))]
         
         try:
-            # 發送照片至 PlantNet
             response = requests.post(api_url, files=files)
             result = response.json()
             
             if response.status_code == 200 and result.get('results'):
-                # 取得分數最高的學名
                 best_match = result['results'][0]
                 scientific_name = best_match['species']['scientificNameWithoutAuthor']
-                st.success(f"辨識成功！學名：*{scientific_name}*")
                 
-                # 透過開源 Wikipedia API 查詢繁體中文資訊
-                wiki_url = f"https://zh.wikipedia.org/api/rest_v1/page/summary/{scientific_name}"
-                wiki_res = requests.get(wiki_url)
+                # 嘗試獲取 PlantNet 提供的英文俗名，若無則使用學名
+                common_names = best_match['species'].get('commonNames', [])
+                search_keyword = common_names[0] if common_names else scientific_name
                 
-                if wiki_res.status_code == 200:
-                    wiki_data = wiki_res.json()
-                    display_name = wiki_data.get('title', scientific_name)
-                    # 如果維基百科沒有簡介，給予預設文字
-                    description = wiki_data.get('extract', "在圖鑑裡暫時找不到這株植物的詳細中文故事，但它依然是村莊裡美麗的存在！")
+                st.success(f"辨識成功！(科學特徵匹配：*{search_keyword}*)")
+                
+                # --- 透過中文維基百科 API 搜尋繁體中文與別名 ---
+                search_url = f"https://zh.wikipedia.org/w/api.php?action=query&list=search&srsearch={search_keyword}&utf8=&format=json&srlimit=1"
+                search_res = requests.get(search_url)
+                
+                display_name = search_keyword
+                description = "在圖鑑裡暫時找不到這株植物的詳細中文故事，但它依然是村莊裡美麗的存在！"
+                aliases_str = ""
+
+                if search_res.status_code == 200:
+                    search_data = search_res.json()
+                    search_results = search_data.get('query', {}).get('search', [])
                     
-                    st.markdown(f"### 🌿 {display_name}")
-                    st.write(description)
-                    st.session_state.pokedex.add(display_name)
-                else:
-                    # 若維基百科查無此學名
-                    st.markdown(f"### 🌿 {scientific_name}")
-                    st.write("這是一株神秘的植物，百科中尚未有完整的繁體中文介紹！")
-                    st.session_state.pokedex.add(scientific_name)
+                    if search_results:
+                        # 取得對應的中文標題 (繁體中文名稱)
+                        zh_title = search_results[0]['title']
+                        display_name = zh_title
+                        
+                        # 1. 取得中文摘要
+                        wiki_summary_url = f"https://zh.wikipedia.org/api/rest_v1/page/summary/{zh_title}"
+                        wiki_summary_res = requests.get(wiki_summary_url)
+                        if wiki_summary_res.status_code == 200:
+                            description = wiki_summary_res.json().get('extract', description)
+                        
+                        # 2. 取得別名 (利用維基百科的 Redirects 重新導向資料)
+                        wiki_aliases_url = f"https://zh.wikipedia.org/w/api.php?action=query&prop=redirects&titles={zh_title}&format=json&utf8="
+                        wiki_aliases_res = requests.get(wiki_aliases_url)
+                        if wiki_aliases_res.status_code == 200:
+                            pages = wiki_aliases_res.json().get('query', {}).get('pages', {})
+                            for page_id, page_info in pages.items():
+                                redirects = page_info.get('redirects', [])
+                                if redirects:
+                                    # 過濾掉包含冒號的特殊頁面(如分類、列表)，保留純粹的別名
+                                    aliases = [r['title'] for r in redirects if ":" not in r['title'] and "：" not in r['title'] and "List" not in r['title']]
+                                    if aliases:
+                                        # 最多顯示 5 個常見別名
+                                        aliases_str = "、".join(aliases[:5])
+
+                # 顯示最終結果
+                st.markdown(f"### 🌿 {display_name}")
+                if aliases_str:
+                    st.caption(f"💡 **別名 / 相關稱呼**：{aliases_str}")
+                st.write(description)
+                st.session_state.pokedex.add(display_name)
+                
             else:
                 st.error("辨識失敗，這株植物太神秘了，請換個角度再拍一次看看！")
         except Exception as e:
-            # 顯示真實錯誤以利後續除錯
             st.error(f"系統錯誤詳細資訊：{e}")
 
 # ================= 路線 B：認識動物 =================
 elif mode == "🐾 認識動物":
     st.subheader("點擊大頭貼，看看你遇到的是誰？")
     
-    # 狗狗專區
     st.markdown("#### 🐶 狗狗夥伴")
     dog_cols = st.columns(3)
     dogs = {k: v for k, v in ANIMALS_DB.items() if v["type"] == "dog"}
@@ -105,7 +131,6 @@ elif mode == "🐾 認識動物":
                 
     st.markdown("---")
     
-    # 貓咪專區
     st.markdown("#### 🐱 貓咪夥伴")
     cat_cols = st.columns(3)
     cats = {k: v for k, v in ANIMALS_DB.items() if v["type"] == "cat"}
@@ -114,7 +139,6 @@ elif mode == "🐾 認識動物":
             if st.button(f"🐱 {name}", key=f"btn_{name}"):
                 st.session_state.selected_animal = name
 
-    # 點開後的詳細介紹
     if 'selected_animal' in st.session_state:
         st.divider()
         animal_name = st.session_state.selected_animal
@@ -122,7 +146,6 @@ elif mode == "🐾 認識動物":
         st.image(ANIMALS_DB[animal_name]["img"], use_column_width=True)
         st.write(ANIMALS_DB[animal_name]["desc"])
         
-        # 加入圖鑑
         st.session_state.pokedex.add(animal_name)
 
 # ================= 探險圖鑑與彩蛋機制 =================
@@ -133,7 +156,6 @@ st.write(f"目前已收集：{len(st.session_state.pokedex)} 種驚喜！")
 if len(st.session_state.pokedex) > 0:
     st.write("、".join(list(st.session_state.pokedex)))
 
-# 達成目標觸發隱藏彩蛋 (集滿 3 種動植物)
 if len(st.session_state.pokedex) >= 3:
     st.balloons()
     st.success("🎉 恭喜達成探險目標！解鎖隱藏彩蛋！")
