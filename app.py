@@ -47,10 +47,10 @@ st.markdown("""
         background-color: #000 !important;
         position: relative !important;
         margin: 0 auto !important;
-        padding: 0 !important; /* 移除 Streamlit 預設內距造成的白邊 */
+        padding: 0 !important;
     }
 
-    /* 3. 強制相機畫面(Video)與拍好的照片(Img)完全覆蓋放大鏡內部 */
+    /* 3. 強制相機畫面(Video)完全覆蓋放大鏡內部 */
     [data-testid="stCameraInput"] video,
     [data-testid="stCameraInput"] img,
     [data-testid="stCameraInput"] canvas {
@@ -64,13 +64,13 @@ st.markdown("""
         left: 0 !important;
     }
 
-    /* 4. 解決截圖中白底按鈕的問題，美化成半透明藥丸按鈕 */
+    /* 4. 拍照按鈕美化 (半透明藥丸設計) */
     [data-testid="stCameraInput"] button {
         position: absolute !important;
         bottom: 25px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
-        background: rgba(0, 0, 0, 0.5) !important; /* 半透明黑色 */
+        background: rgba(0, 0, 0, 0.5) !important;
         backdrop-filter: blur(5px) !important;
         color: #ffffff !important;
         border: 1px solid rgba(255, 255, 255, 0.4) !important;
@@ -80,11 +80,11 @@ st.markdown("""
         box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
     }
     [data-testid="stCameraInput"] button p {
-        color: white !important; /* 確保文字是白色的 */
+        color: white !important;
         font-weight: bold !important;
     }
 
-    /* 5. 放大鏡鏡面反光 (利用相機容器的 before) */
+    /* 5. 放大鏡鏡面反光 */
     [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before {
         content: '';
         position: absolute;
@@ -95,11 +95,11 @@ st.markdown("""
         height: 320px;
         border-radius: 50%;
         background: radial-gradient(ellipse at 65% 25%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%);
-        pointer-events: none; /* 讓點擊穿透，才能點到相機 */
+        pointer-events: none; 
         z-index: 15; 
     }
 
-    /* 6. 完美對齊的放大鏡握把 (利用相機容器的 after) */
+    /* 6. 完美對齊的放大鏡握把 */
     [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after {
         content: '';
         position: absolute;
@@ -114,21 +114,27 @@ st.markdown("""
         z-index: 5;
     }
 
-    /* 提示標籤毛玻璃化 */
-    .switch-tip {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(8px);
-        color: #e0f2fe;
-        padding: 8px 18px;
-        border-radius: 30px;
-        border: 1px solid rgba(255,255,255,0.2);
+    /* ================= 7. 放大鏡左上角：切換鏡頭 UI 按鈕 ================= */
+    [data-testid="stCameraInput"]::after {
+        content: '🔄 切換 ↗';
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(30, 41, 59, 0.7); /* 深色毛玻璃底 */
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        color: #bae6fd; /* 冰藍色文字 */
+        padding: 8px 16px;
+        border-radius: 25px;
         font-size: 0.85rem;
-        margin: 0 auto 20px auto;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        width: fit-content;
+        font-weight: bold;
+        border: 1px solid rgba(186, 230, 253, 0.4);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        z-index: 40; /* 確保在最上層 */
+        pointer-events: none; /* 讓點擊能穿透到真實相機介面 */
     }
 
-    /* 磨砂毛玻璃卡片 (Glassmorphism Card) */
+    /* 磨砂毛玻璃卡片 */
     .result-card {
         background: rgba(255, 255, 255, 0.08);
         backdrop-filter: blur(20px);
@@ -141,7 +147,6 @@ st.markdown("""
         color: #F8FAFC;
     }
 
-    /* 漸層金屬字體標題 */
     h1 { 
         text-align: center; 
         background: -webkit-linear-gradient(45deg, #e0f2fe 0%, #7dd3fc 100%);
@@ -185,14 +190,8 @@ mode = st.radio("", ["🌿 尋找植物", "🐾 認識動物"], horizontal=True)
 # ================= 3. 路線 A：尋找植物 =================
 if mode == "🌿 尋找植物":
     
-    # 乾淨俐落！不用 HTML 包裝，直接呼叫相機元件 (CSS 會自動把它變成放大鏡)
+    # 直接呼叫相機，乾淨無包裝。CSS 會自動把手柄和左上角的按鈕渲染上去！
     picture = st.camera_input("")
-    
-    st.markdown("""
-        <div class='switch-tip'>
-            🔄 <b>提示：</b> 若想使用後鏡頭，請點擊相機右上角切換
-        </div>
-    """, unsafe_allow_html=True)
     
     if picture:
         with st.status("💎 正在進行光學與圖鑑比對...", expanded=False) as status:
