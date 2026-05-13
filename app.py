@@ -2,16 +2,23 @@ import streamlit as st
 import requests
 from opencc import OpenCC
 
-# ================= 1. 冷冬風格與放大鏡進階 CSS =================
+# ================= 1. 極光漸層與毛玻璃 (Glassmorphism) 美化 CSS =================
 st.set_page_config(page_title="藝素村探險放大鏡", page_icon="🔍", layout="centered")
 
 st.markdown("""
     <style>
-    /* 冷冬風格色調：深藍、銀灰、冰白 */
+    /* 動態極光/深海漸層背景 */
     .stApp {
-        background: linear-gradient(135deg, #1A202C 0%, #2D3748 100%);
-        color: #E2E8F0;
+        background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
+        color: #F8FAFC;
         font-family: '微軟正黑體', sans-serif;
+    }
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
     }
 
     /* 放大鏡核心容器 */
@@ -20,70 +27,131 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding-top: 20px;
+        padding-top: 25px;
+        margin-bottom: 20px;
     }
 
-    /* 放大鏡圓形鏡面與邊框 */
+    /* 放大鏡外框：雙層金屬質感與深邃陰影 */
     [data-testid="stCameraInput"] {
         width: 320px !important;
         height: 320px !important;
         border-radius: 50% !important;
-        border: 14px solid #A0AEC0; /* 銀灰色邊框 */
-        box-shadow: 0 0 30px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.3);
+        border: 10px solid #e2e8f0; /* 內層銀白邊框 */
+        box-shadow:
+            0 0 0 5px #64748b, /* 外層深灰金屬環 */
+            0 25px 50px rgba(0,0,0,0.6), /* 整體強烈立體投影 */
+            inset 0 0 25px rgba(0,0,0,0.8); /* 鏡筒內部深度 */
         overflow: hidden;
         z-index: 2;
         background-color: #000;
+        transition: transform 0.3s ease;
+    }
+    [data-testid="stCameraInput"]:hover {
+        transform: scale(1.02); /* 輕微呼吸感 */
     }
 
-    /* 鏡面反光效果層 */
+    /* 鏡面真實反光 (弧形光斑) */
     .lens-glass {
         position: absolute;
-        top: 20px;
+        top: 25px;
+        left: 50%;
+        transform: translateX(-50%);
         width: 320px;
         height: 320px;
         border-radius: 50%;
-        background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 50%);
-        pointer-events: none; /* 讓點擊穿透到相機 */
+        /* 創造透鏡上方的高光反射 */
+        background: radial-gradient(ellipse at 65% 25%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 45%);
+        pointer-events: none; /* 確保不阻擋相機點擊 */
         z-index: 3;
     }
 
-    /* 放大鏡握把 */
+    /* 精緻科技感握把 */
     .lens-handle {
-        width: 35px;
-        height: 100px;
-        background: linear-gradient(to right, #4A5568, #A0AEC0, #4A5568);
-        border-radius: 0 0 10px 10px;
-        margin-top: -10px;
+        width: 42px;
+        height: 110px;
+        background: linear-gradient(to right, #1e293b, #475569, #1e293b);
+        border-radius: 6px 6px 20px 20px;
+        margin-top: -12px;
         z-index: 1;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        box-shadow: 0 15px 25px rgba(0,0,0,0.5), inset 0 -5px 15px rgba(0,0,0,0.4);
+        position: relative;
+    }
+    /* 握把上的防滑紋路裝飾 */
+    .lens-handle::after {
+        content: '';
+        position: absolute;
+        top: 25px;
+        left: 12px;
+        right: 12px;
+        height: 55px;
+        border-left: 2px solid rgba(255,255,255,0.15);
+        border-right: 2px solid rgba(255,255,255,0.15);
     }
 
-    /* 美化切換按鈕提示 */
+    /* 提示標籤毛玻璃化 */
     .switch-tip {
-        background-color: rgba(66, 153, 225, 0.2);
-        color: #63B3ED;
-        padding: 8px 15px;
-        border-radius: 20px;
-        border: 1px solid #63B3ED;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(8px);
+        color: #e0f2fe;
+        padding: 8px 18px;
+        border-radius: 30px;
+        border: 1px solid rgba(255,255,255,0.2);
         font-size: 0.85rem;
-        margin-top: 15px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
+        margin-top: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
 
-    /* 結果顯示卡片 */
+    /* 磨砂毛玻璃卡片 (Glassmorphism Card) */
     .result-card {
-        background-color: rgba(45, 55, 72, 0.8);
-        backdrop-filter: blur(10px);
-        padding: 25px;
-        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 30px;
+        border-radius: 24px;
         margin-top: 30px;
-        border: 1px solid rgba(255,255,255,0.1);
-        color: #F7FAFC;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        color: #F8FAFC;
     }
-    
-    h1 { color: #F7FAFC; letter-spacing: 2px; }
+
+    /* 按鈕晶透化 */
+    div.stButton > button {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 30px;
+        padding: 10px 20px;
+        font-weight: 600;
+        backdrop-filter: blur(5px);
+        transition: all 0.3s ease;
+    }
+    div.stButton > button:hover {
+        background: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    /* 頂部導覽列按鈕區 */
+    .stRadio > div {
+        background: rgba(0,0,0,0.2);
+        padding: 8px 15px;
+        border-radius: 30px;
+        justify-content: center;
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    /* 漸層金屬字體標題 */
+    h1 { 
+        text-align: center; 
+        background: -webkit-linear-gradient(45deg, #e0f2fe 0%, #7dd3fc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-shadow: 0px 4px 15px rgba(0,0,0,0.3); /* 提升漸層字立體感 */
+        margin-bottom: 20px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -102,9 +170,8 @@ ANIMALS_DB = {
     "冬瓜": {"type": "cat", "emoji": "🐱", "desc": "圓滾滾的橘貓，是村裡的慵懶大王。"}
 }
 
-st.markdown("<h1 style='text-align: center;'>探險放大鏡 🔍</h1>", unsafe_allow_html=True)
+st.markdown("<h1>探險放大鏡 🔍</h1>", unsafe_allow_html=True)
 
-# 模式導航
 mode = st.radio("", ["🌿 尋找植物", "🐾 認識動物"], horizontal=True)
 
 # ================= 3. 路線 A：尋找植物 =================
@@ -116,17 +183,15 @@ if mode == "🌿 尋找植物":
     picture = st.camera_input("")
     
     st.markdown("<div class='lens-handle'></div>", unsafe_allow_html=True)
-    
-    # 前後鏡頭切換指引按鈕 (視覺美化)
     st.markdown("""
         <div class='switch-tip'>
-            🔄 <b>提示：</b> 若想使用後鏡頭，請點擊相機右上角圖示切換
+            🔄 <b>提示：</b> 若想使用後鏡頭，請點擊相機右上角切換
         </div>
     """, unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
     
     if picture:
-        with st.status("💎 正在進行光學分析...", expanded=False) as status:
+        with st.status("💎 正在進行光學與圖鑑比對...", expanded=False) as status:
             API_KEY = "2b1004UqTrbWJn4mj5hqcaZN"
             api_url = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}&lang=zh"
             files = [('images', (picture.name, picture.getvalue(), picture.type))]
@@ -151,11 +216,12 @@ if mode == "🌿 尋找植物":
 
                     st.markdown(f"""
                         <div class="result-card">
-                            <h2 style='color:#63B3ED; margin-top:0;'>🌱 {zh_name}</h2>
-                            <p style='color:#A0AEC0;'><b>🇬🇧 英文名稱：</b> {eng_name}</p>
-                            <p style='color:#A0AEC0;'><b>🔬 拉丁學名：</b> <i>{sci_name}</i></p>
-                            <hr style='border: 0.5px solid rgba(255,255,255,0.1);'>
-                            <p style='line-height:1.8; font-size: 1.05rem;'>{description}</p>
+                            <h2 style='color:#bae6fd; margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;'>🌱 {zh_name}</h2>
+                            <p style='color:#cbd5e1; margin-top: 15px;'><b>🇬🇧 英文俗名：</b> {eng_name}</p>
+                            <p style='color:#cbd5e1;'><b>🔬 拉丁學名：</b> <i>{sci_name}</i></p>
+                            <div style='background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; margin-top: 15px;'>
+                                <p style='line-height:1.8; font-size: 1rem; margin:0;'>{description}</p>
+                            </div>
                         </div>
                     """, unsafe_allow_html=True)
                     st.session_state.pokedex.add(zh_name)
@@ -186,9 +252,11 @@ elif mode == "🐾 認識動物":
     if 'active_pet' in st.session_state:
         pet = ANIMALS_DB[st.session_state.active_pet]
         st.markdown(f"""
-            <div class="result-card" style="border-left: 5px solid #63B3ED;">
-                <h3>✨ 遇見了 {st.session_state.active_pet}！</h3>
-                <p style='font-size: 1.1rem; line-height: 1.6;'>{pet['desc']}</p>
+            <div class="result-card">
+                <h3 style='color:#bae6fd; margin-top:0;'>✨ 遇見了 {st.session_state.active_pet}！</h3>
+                <div style='background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; margin-top: 15px;'>
+                    <p style='font-size: 1.1rem; line-height: 1.6; margin:0;'>{pet['desc']}</p>
+                </div>
             </div>
         """, unsafe_allow_html=True)
         st.session_state.pokedex.add(st.session_state.active_pet)
