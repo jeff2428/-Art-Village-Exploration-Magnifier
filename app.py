@@ -69,7 +69,7 @@ def identify_plant_from_api(image_file):
 # 3. 介面渲染模組 (UI Components)
 # ==========================================
 def load_custom_css():
-    """載入自訂義的 CSS 樣式 (森林微語 - 大地暖色主題)"""
+    """載入自訂義的 CSS 樣式 (森林微語 - 大地暖色主題 & 按鈕修復版)"""
     st.markdown("""
         <style>
         /* 1. 動態晨曦森林漸層背景 */
@@ -77,7 +77,7 @@ def load_custom_css():
             background: linear-gradient(-45deg, #F9FBE7, #E8F5E9, #DCEDC8); 
             background-size: 400% 400%; 
             animation: gradientBG 15s ease infinite; 
-            color: #33691E; /* 深苔蘚綠字體 */
+            color: #33691E; 
             font-family: '微軟正黑體', sans-serif; 
         }
         @keyframes gradientBG { 
@@ -101,10 +101,10 @@ def load_custom_css():
             width: 320px !important; 
             height: 320px !important; 
             border-radius: 50% !important; 
-            border: 10px solid #FFF8E1 !important; /* 象牙白內框 */
+            border: 10px solid #FFF8E1 !important; 
             box-shadow: 
-                0 0 0 6px #8D6E63, /* 胡桃木色外環 */
-                0 20px 40px rgba(94, 53, 17, 0.2), /* 暖色立體陰影 */
+                0 0 0 6px #8D6E63, 
+                0 20px 40px rgba(94, 53, 17, 0.2), 
                 inset 0 0 25px rgba(0,0,0,0.6) !important; 
             overflow: hidden !important; 
             background-color: #000 !important; 
@@ -121,15 +121,46 @@ def load_custom_css():
             position: absolute !important; top: 0 !important; left: 0 !important; 
         }
 
-        /* 5. 拍照按鈕：大地色毛玻璃 */
+        /* ==================================================== */
+        /* 5. 原生相機按鈕修復：將切換鏡頭與拍照按鈕分開處理 */
+        /* ==================================================== */
+        
+        /* 所有按鈕共同底色：大地色毛玻璃 */
         [data-testid="stCameraInput"] button { 
-            position: absolute !important; bottom: 25px !important; left: 50% !important; transform: translateX(-50%) !important; 
-            background: rgba(141, 110, 99, 0.6) !important; /* 半透明木棕色 */
-            backdrop-filter: blur(5px) !important; color: #ffffff !important; 
-            border: 1px solid rgba(255, 255, 255, 0.5) !important; border-radius: 30px !important; 
-            padding: 5px 25px !important; z-index: 20 !important; box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; 
+            background: rgba(141, 110, 99, 0.7) !important; 
+            backdrop-filter: blur(5px) !important; 
+            border: 1px solid rgba(255, 255, 255, 0.5) !important; 
+            z-index: 50 !important; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; 
+            color: white !important;
         }
-        [data-testid="stCameraInput"] button p { color: white !important; font-weight: bold !important; }
+        [data-testid="stCameraInput"] button p, [data-testid="stCameraInput"] button div { 
+            color: white !important; font-weight: bold !important; 
+        }
+
+        /* 5-1. 真正的原生「切換鏡頭」按鈕 (判斷特徵：按鈕內只有 SVG 圖示) */
+        [data-testid="stCameraInput"] button:has(svg) {
+            position: absolute !important; 
+            top: 25px !important; 
+            right: 25px !important; /* 往內縮進，避免被圓形邊緣切掉 */
+            border-radius: 50% !important; 
+            padding: 8px !important;
+            width: 45px !important;
+            height: 45px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 5-2. 「拍照 / 清除照片」按鈕 (判斷特徵：不包含 SVG，代表是有文字的按鈕) */
+        [data-testid="stCameraInput"] button:not(:has(svg)) {
+            position: absolute !important; 
+            bottom: 30px !important; 
+            left: 50% !important; 
+            transform: translateX(-50%) !important; 
+            border-radius: 30px !important; 
+            padding: 5px 25px !important; 
+        }
 
         /* 6. 鏡面反光：溫暖的陽光折射 */
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { 
@@ -149,16 +180,7 @@ def load_custom_css():
             z-index: 5; 
         }
 
-        /* 8. 鏡頭切換提示按鈕 (左上角) */
-        [data-testid="stCameraInput"]::after { 
-            content: '🔄 切換 ↗'; position: absolute; top: 20px; left: 20px; 
-            background: rgba(255, 248, 225, 0.8); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); 
-            color: #5D4037; padding: 8px 16px; border-radius: 25px; font-size: 0.85rem; font-weight: bold; 
-            border: 1px solid rgba(141, 110, 99, 0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
-            z-index: 40; pointer-events: none; 
-        }
-
-        /* 9. 資訊卡片：暖白透光紙質 */
+        /* 8. 資訊卡片：暖白透光紙質 */
         .result-card { 
             background: rgba(255, 255, 255, 0.65); 
             backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); 
@@ -168,7 +190,7 @@ def load_custom_css():
             color: #4E342E; 
         }
 
-        /* 10. 標題與字體美化 */
+        /* 9. 標題與字體美化 */
         h1 { 
             text-align: center; 
             background: -webkit-linear-gradient(45deg, #33691E 0%, #7CB342 100%); 
