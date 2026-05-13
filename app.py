@@ -73,14 +73,14 @@ def load_custom_css():
         }
         @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-        /* ================= 顏色強制覆蓋區 (解決文字反白問題) ================= */
-        /* 強制選項按鈕與所有標籤的文字為深苔蘚綠色 */
+        /* ================= 顏色強制覆蓋區 (解決所有文字反白問題) ================= */
+        
+        /* 選項按鈕 (尋找植物/認識動物) */
         div[role="radiogroup"] label, div[role="radiogroup"] div, div[role="radiogroup"] p {
             color: #2E7D32 !important; 
             font-weight: 800 !important;
             font-size: 1rem !important;
         }
-        /* 選項按鈕容器底色加深，增加對比 */
         .stRadio > div { 
             background: rgba(255,255,255,0.85) !important; 
             padding: 10px 20px; 
@@ -88,12 +88,43 @@ def load_custom_css():
             border: 2px solid rgba(141,110,99,0.3) !important; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        /* 強制全局普通文字為深咖啡色 */
+
+        /* 標籤頁 Tabs (狗狗小隊/貓咪軍團) 強制顯色 */
+        button[data-baseweb="tab"] p, button[data-baseweb="tab"] span {
+            color: #4E342E !important; /* 未選取時深咖啡色 */
+            font-weight: 800 !important;
+            font-size: 1.1rem !important;
+        }
+        button[data-baseweb="tab"][aria-selected="true"] p, button[data-baseweb="tab"][aria-selected="true"] span {
+            color: #2E7D32 !important; /* 選取時變綠色 */
+        }
+        div[data-baseweb="tab-highlight"] {
+            background-color: #2E7D32 !important; /* 選取時底部線條變綠色 */
+        }
+
+        /* 全局普通按鈕 (動物大頭貼按鈕、圖庫按鈕) */
+        div.stButton > button { 
+            background: rgba(255, 255, 255, 0.85) !important; 
+            color: #4E342E !important; 
+            border: 2px solid rgba(141, 110, 99, 0.3) !important; 
+            border-radius: 20px !important; 
+            font-weight: 800 !important; 
+            transition: all 0.3s ease !important;
+        }
+        div.stButton > button:hover {
+            background: rgba(255, 255, 255, 1) !important;
+            border-color: #8D6E63 !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important;
+        }
+
+        /* 全局普通文字 (內文) */
         .stMarkdown p, .stMarkdown span, .stMarkdown div {
             color: #4E342E !important;
         }
 
-        /* 2. 放大鏡本體與外框 */
+        /* ================= 放大鏡與相機樣式區 ================= */
+
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) { display: flex; justify-content: center; position: relative; margin-top: 40px; margin-bottom: 140px !important; z-index: 10; }
         [data-testid="stCameraInput"] { 
             width: 320px !important; height: 320px !important; border-radius: 50% !important; 
@@ -103,28 +134,28 @@ def load_custom_css():
         }
         [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { object-fit: cover !important; width: 100% !important; height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; }
 
-        /* 3. 相機按鈕強化 (解決 Take Photo 字不清楚的問題) */
+        /* 相機專屬按鈕 (確保不被全局 Button 影響) */
         [data-testid="stCameraInput"] button { 
-            background: rgba(93, 64, 55, 0.85) !important; /* 加深木棕色底色 */
+            background: rgba(93, 64, 55, 0.85) !important; 
             backdrop-filter: blur(8px) !important; 
             border: 2px solid rgba(255, 255, 255, 0.6) !important; 
             z-index: 50 !important; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
         }
         [data-testid="stCameraInput"] button p, [data-testid="stCameraInput"] button div {
-            color: #FFFFFF !important; /* 強制純白字體 */
+            color: #FFFFFF !important; 
             font-weight: 900 !important;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; /* 加入黑色文字陰影增加銳利度 */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; 
             letter-spacing: 1px !important;
         }
         [data-testid="stCameraInput"] button:has(svg) { position: absolute !important; top: 25px !important; right: 25px !important; border-radius: 50% !important; width: 46px !important; height: 46px !important; display: flex; align-items: center; justify-content: center; }
         [data-testid="stCameraInput"] button:not(:has(svg)) { position: absolute !important; bottom: 30px !important; left: 50% !important; transform: translateX(-50%) !important; border-radius: 30px !important; padding: 10px 35px !important; }
 
-        /* 4. 鏡面反光與握把 */
+        /* 鏡面反光與握把 */
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%); pointer-events: none; z-index: 15; }
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after { content: ''; position: absolute; top: 312px; left: 50%; transform: translateX(-50%); width: 44px; height: 110px; background: linear-gradient(to right, #4E342E, #8D6E63, #4E342E); border-radius: 0 0 25px 25px; box-shadow: 0 15px 30px rgba(94, 53, 17, 0.4), inset 0 -5px 15px rgba(0,0,0,0.3); z-index: 5; }
 
-        /* 5. 資訊卡片 */
+        /* ================= 資訊卡片 ================= */
         .result-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; border: 1px solid rgba(141, 110, 99, 0.3); color: #4E342E; margin-top: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         .pokedex-card { background: rgba(255, 255, 255, 0.7); border-radius: 15px; padding: 15px; text-align: center; border: 2px solid rgba(141, 110, 99, 0.2); transition: all 0.3s ease; cursor: pointer; color: #4E342E !important; font-weight: bold; }
         .pokedex-card:hover { background: rgba(255, 255, 255, 0.95); transform: translateY(-5px); border-color: #8D6E63; }
@@ -180,7 +211,6 @@ def render_animal_explorer():
             pets = {k: v for k, v in ANIMALS_DB.items() if v["type"] == p_type}
             for i, (name, data) in enumerate(pets.items()):
                 with cols[i % 2]:
-                    # 將按鈕文字強制加上 HTML 標籤確保不被反白
                     if st.button(f"{data['emoji']} {name}", key=f"pet_{name}"):
                         st.session_state.active_pet = name
     
