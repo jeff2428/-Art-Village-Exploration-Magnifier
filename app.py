@@ -69,107 +69,130 @@ def identify_plant_from_api(image_file):
 # 3. 介面渲染模組 (UI Components)
 # ==========================================
 def load_custom_css():
-    """載入自訂義的 CSS 樣式"""
+    """載入自訂義的 CSS 樣式 (森林微語 - 大地暖色主題)"""
     st.markdown("""
         <style>
-        .stApp { background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364); background-size: 400% 400%; animation: gradientBG 15s ease infinite; color: #F8FAFC; font-family: '微軟正黑體', sans-serif; }
-        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) { display: flex; justify-content: center; position: relative; margin-top: 30px; margin-bottom: 130px !important; z-index: 10; }
-        [data-testid="stCameraInput"] { width: 320px !important; height: 320px !important; border-radius: 50% !important; border: 10px solid #e2e8f0 !important; box-shadow: 0 0 0 5px #64748b, 0 25px 50px rgba(0,0,0,0.6), inset 0 0 25px rgba(0,0,0,0.8) !important; overflow: hidden !important; background-color: #000 !important; position: relative !important; margin: 0 auto !important; padding: 0 !important; }
-        [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { object-fit: cover !important; width: 100% !important; height: 100% !important; min-width: 100% !important; min-height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; }
-        [data-testid="stCameraInput"] button { position: absolute !important; bottom: 25px !important; left: 50% !important; transform: translateX(-50%) !important; background: rgba(0, 0, 0, 0.5) !important; backdrop-filter: blur(5px) !important; color: #ffffff !important; border: 1px solid rgba(255, 255, 255, 0.4) !important; border-radius: 30px !important; padding: 5px 25px !important; z-index: 20 !important; box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important; }
+        /* 1. 動態晨曦森林漸層背景 */
+        .stApp { 
+            background: linear-gradient(-45deg, #F9FBE7, #E8F5E9, #DCEDC8); 
+            background-size: 400% 400%; 
+            animation: gradientBG 15s ease infinite; 
+            color: #33691E; /* 深苔蘚綠字體 */
+            font-family: '微軟正黑體', sans-serif; 
+        }
+        @keyframes gradientBG { 
+            0% { background-position: 0% 50%; } 
+            50% { background-position: 100% 50%; } 
+            100% { background-position: 0% 50%; } 
+        }
+
+        /* 2. 放大鏡容器定位 */
+        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) { 
+            display: flex; 
+            justify-content: center; 
+            position: relative; 
+            margin-top: 30px; 
+            margin-bottom: 130px !important; 
+            z-index: 10; 
+        }
+
+        /* 3. 放大鏡本體：木質外框與暖色陰影 */
+        [data-testid="stCameraInput"] { 
+            width: 320px !important; 
+            height: 320px !important; 
+            border-radius: 50% !important; 
+            border: 10px solid #FFF8E1 !important; /* 象牙白內框 */
+            box-shadow: 
+                0 0 0 6px #8D6E63, /* 胡桃木色外環 */
+                0 20px 40px rgba(94, 53, 17, 0.2), /* 暖色立體陰影 */
+                inset 0 0 25px rgba(0,0,0,0.6) !important; 
+            overflow: hidden !important; 
+            background-color: #000 !important; 
+            position: relative !important; 
+            margin: 0 auto !important; 
+            padding: 0 !important; 
+        }
+
+        /* 4. 相機畫面滿版裁切 */
+        [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { 
+            object-fit: cover !important; 
+            width: 100% !important; height: 100% !important; 
+            min-width: 100% !important; min-height: 100% !important; 
+            position: absolute !important; top: 0 !important; left: 0 !important; 
+        }
+
+        /* 5. 拍照按鈕：大地色毛玻璃 */
+        [data-testid="stCameraInput"] button { 
+            position: absolute !important; bottom: 25px !important; left: 50% !important; transform: translateX(-50%) !important; 
+            background: rgba(141, 110, 99, 0.6) !important; /* 半透明木棕色 */
+            backdrop-filter: blur(5px) !important; color: #ffffff !important; 
+            border: 1px solid rgba(255, 255, 255, 0.5) !important; border-radius: 30px !important; 
+            padding: 5px 25px !important; z-index: 20 !important; box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; 
+        }
         [data-testid="stCameraInput"] button p { color: white !important; font-weight: bold !important; }
-        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(ellipse at 65% 25%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%); pointer-events: none; z-index: 15; }
-        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after { content: ''; position: absolute; top: 310px; left: 50%; transform: translateX(-50%); width: 42px; height: 110px; background: linear-gradient(to right, #1e293b, #475569, #1e293b); border-radius: 6px 6px 20px 20px; box-shadow: 0 15px 25px rgba(0,0,0,0.5), inset 0 -5px 15px rgba(0,0,0,0.4); z-index: 5; }
-        [data-testid="stCameraInput"]::after { content: '🔄 切換 ↗'; position: absolute; top: 20px; left: 20px; background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); color: #bae6fd; padding: 8px 16px; border-radius: 25px; font-size: 0.85rem; font-weight: bold; border: 1px solid rgba(186, 230, 253, 0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.4); z-index: 40; pointer-events: none; }
-        .result-card { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); padding: 30px; border-radius: 24px; margin-top: 30px; border: 1px solid rgba(255, 255, 255, 0.15); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); color: #F8FAFC; }
-        h1 { text-align: center; background: -webkit-linear-gradient(45deg, #e0f2fe 0%, #7dd3fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: 2px; text-shadow: 0px 4px 15px rgba(0,0,0,0.3); margin-bottom: 20px; }
-        div.stButton > button { background: rgba(255, 255, 255, 0.1); color: white; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 30px; padding: 10px 20px; }
+
+        /* 6. 鏡面反光：溫暖的陽光折射 */
+        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { 
+            content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); 
+            width: 320px; height: 320px; border-radius: 50%; 
+            background: radial-gradient(ellipse at 65% 25%, rgba(255,255,230,0.3) 0%, rgba(255,255,255,0) 50%); /* 帶有一點點暖黃的反光 */
+            pointer-events: none; z-index: 15; 
+        }
+
+        /* 7. 放大鏡握把：流線木紋質感 */
+        [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after { 
+            content: ''; position: absolute; top: 310px; left: 50%; transform: translateX(-50%); 
+            width: 44px; height: 110px; 
+            background: linear-gradient(to right, #5D4037, #8D6E63, #5D4037); 
+            border-radius: 6px 6px 25px 25px; 
+            box-shadow: 0 15px 25px rgba(94, 53, 17, 0.4), inset 0 -5px 15px rgba(0,0,0,0.3); 
+            z-index: 5; 
+        }
+
+        /* 8. 鏡頭切換提示按鈕 (左上角) */
+        [data-testid="stCameraInput"]::after { 
+            content: '🔄 切換 ↗'; position: absolute; top: 20px; left: 20px; 
+            background: rgba(255, 248, 225, 0.8); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); 
+            color: #5D4037; padding: 8px 16px; border-radius: 25px; font-size: 0.85rem; font-weight: bold; 
+            border: 1px solid rgba(141, 110, 99, 0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.15); 
+            z-index: 40; pointer-events: none; 
+        }
+
+        /* 9. 資訊卡片：暖白透光紙質 */
+        .result-card { 
+            background: rgba(255, 255, 255, 0.65); 
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); 
+            padding: 30px; border-radius: 24px; margin-top: 30px; 
+            border: 1px solid rgba(255, 255, 255, 0.8); 
+            box-shadow: 0 8px 32px 0 rgba(100, 110, 80, 0.15); 
+            color: #4E342E; 
+        }
+
+        /* 10. 標題與字體美化 */
+        h1 { 
+            text-align: center; 
+            background: -webkit-linear-gradient(45deg, #33691E 0%, #7CB342 100%); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+            font-weight: 800; letter-spacing: 2px; 
+            text-shadow: 0px 4px 15px rgba(51, 105, 30, 0.15); margin-bottom: 20px; 
+        }
+        
+        div.stButton > button { 
+            background: rgba(255, 255, 255, 0.7); color: #5D4037; 
+            border: 1px solid rgba(141, 110, 99, 0.3); border-radius: 30px; padding: 10px 20px; 
+            font-weight: bold; transition: all 0.3s ease;
+        }
+        div.stButton > button:hover {
+            background: rgba(255, 255, 255, 0.95);
+            border-color: #8D6E63;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(141, 110, 99, 0.2);
+        }
+        
+        /* 頂部選項按鈕底色 */
+        .stRadio > div { background: rgba(255,255,255,0.5); padding: 8px 15px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.6); }
         </style>
     """, unsafe_allow_html=True)
-
-def init_session_state():
-    """初始化全域狀態變數"""
-    if 'pokedex' not in st.session_state:
-        st.session_state.pokedex = set()
-    if 'active_pet' not in st.session_state:
-        st.session_state.active_pet = None
-
-def render_plant_explorer():
-    """渲染路線 A：尋找植物介面"""
-    picture = st.camera_input("")
-    
-    if picture:
-        with st.status("💎 正在進行光學與圖鑑比對...", expanded=False) as status:
-            plant_data = identify_plant_from_api(picture)
-            
-            if plant_data["success"]:
-                status.update(label="✨ 分析完成", state="complete")
-                
-                # 渲染結果卡片
-                st.markdown(f"""
-                    <div class="result-card">
-                        <h2 style='color:#bae6fd; margin-top:0; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;'>🌱 {plant_data['zh_name']}</h2>
-                        <p style='color:#cbd5e1; margin-top: 15px;'><b>🇬🇧 英文俗名：</b> {plant_data['eng_name']}</p>
-                        <p style='color:#cbd5e1;'><b>🔬 拉丁學名：</b> <i>{plant_data['sci_name']}</i></p>
-                        <div style='background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; margin-top: 15px;'>
-                            <p style='line-height:1.8; font-size: 1rem; margin:0;'>{plant_data['desc']}</p>
-                        </div>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                # 存入圖鑑
-                st.session_state.pokedex.add(plant_data['zh_name'])
-            else:
-                status.update(label="❌ 分析失敗", state="error")
-                st.error(plant_data["error"])
-
-def render_animal_explorer():
-    """渲染路線 B：認識動物介面"""
-    st.write("<br>", unsafe_allow_html=True)
-    tabs = st.tabs(["🐶 狗狗小隊", "🐱 貓咪軍團"])
-    
-    with tabs[0]:
-        cols = st.columns(2)
-        dogs = {k: v for k, v in ANIMALS_DB.items() if v["type"] == "dog"}
-        for i, (name, data) in enumerate(dogs.items()):
-            with cols[i % 2]:
-                if st.button(f"{data['emoji']} {name}", key=f"dog_{name}"):
-                    st.session_state.active_pet = name
-
-    with tabs[1]:
-        cols = st.columns(2)
-        cats = {k: v for k, v in ANIMALS_DB.items() if v["type"] == "cat"}
-        for i, (name, data) in enumerate(cats.items()):
-            with cols[i % 2]:
-                if st.button(f"{data['emoji']} {name}", key=f"cat_{name}"):
-                    st.session_state.active_pet = name
-
-    if st.session_state.active_pet:
-        pet = ANIMALS_DB[st.session_state.active_pet]
-        st.markdown(f"""
-            <div class="result-card">
-                <h3 style='color:#bae6fd; margin-top:0;'>✨ 遇見了 {st.session_state.active_pet}！</h3>
-                <div style='background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; margin-top: 15px;'>
-                    <p style='font-size: 1.1rem; line-height: 1.6; margin:0;'>{pet['desc']}</p>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-        st.session_state.pokedex.add(st.session_state.active_pet)
-
-def render_pokedex():
-    """渲染底部成就圖鑑"""
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    with st.expander("🎒 我的探險圖鑑", expanded=False):
-        if st.session_state.pokedex:
-            count = len(st.session_state.pokedex)
-            st.markdown(f"🌟 **已收集 {count} 種生物**")
-            st.progress(min(count / 10, 1.0))
-            st.write("，".join(st.session_state.pokedex))
-            if count >= 3:
-                st.balloons()
-        else:
-            st.write("圖鑑尚無紀錄，開始探索藝素村吧！")
 
 # ==========================================
 # 4. 主程式流程 (Main Execution)
