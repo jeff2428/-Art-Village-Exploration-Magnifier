@@ -53,7 +53,7 @@ if mode == "🌿 尋找植物":
         
         # PlantNet API 辨識設定
         API_KEY = st.secrets["PLANTNET_API_KEY"]
-        api_url = f"https://my.api.plantnet.org/v2/identify/all?api-key={API_KEY}"
+       api_url = f"https://my-api.plantnet.org/v2/identify/all?api-key={API_KEY}"
         files = [('images', (picture.name, picture.getvalue(), picture.type))]
         
         try:
