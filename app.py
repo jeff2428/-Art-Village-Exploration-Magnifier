@@ -94,89 +94,90 @@ def load_custom_css():
         [data-testid="stCameraInput"] { 
             width: 320px !important; height: 320px !important; border-radius: 50% !important; border: 12px solid #FFF8E1 !important; 
             box-shadow: 0 0 0 2px #A1887F, 0 0 0 10px #5D4037, 0 25px 50px rgba(94, 53, 17, 0.3), inset 0 0 30px rgba(0,0,0,0.8) !important; 
-            overflow: visible !important; /* 💡 終極越獄：讓按鈕能掛在框外 */
+            overflow: visible !important; /* 允許實體按鈕掛在外面 */
             background-color: #000 !important; position: relative !important; margin: 0 auto !important; padding: 0 !important; 
+            box-sizing: border-box !important;
         }
         
-        /* 解除內部 div 綁架，確保按鈕定位精準 */
-        [data-testid="stCameraInput"] > div, [data-testid="stCameraInput"] > div > div { position: static !important; overflow: visible !important; }
+        /* 💡 終極防禦：強制所有內部包裹的 div 變成透明，徹底消滅礙眼的白底方形！ */
+        [data-testid="stCameraInput"] div { 
+            background: transparent !important; 
+            border: none !important; 
+            position: static !important; 
+        }
         
-        /* 影片必須自帶圓角，才不會因為 overflow: visible 而溢出成方形 */
+        /* 影片與截圖必須強制裁切成圓角，避免溢出 */
         [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { 
-            object-fit: cover !important; width: 100% !important; height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; z-index: 1 !important; 
-            border-radius: 50% !important; 
+            object-fit: cover !important; width: 100% !important; height: 100% !important; 
+            position: absolute !important; top: 0 !important; left: 0 !important; 
+            z-index: 1 !important; border-radius: 50% !important; 
         }
 
-        /* ================= 握把設計 (加粗加長以容納兩個按鈕) ================= */
+        /* ================= 握把設計 (容納兩個按鈕) ================= */
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after { 
-            content: ''; position: absolute; top: 300px; left: 50%; transform: translateX(-50%); 
-            width: 52px; height: 130px; /* 握把長度延伸 */
+            content: ''; position: absolute; top: 305px; left: 50%; transform: translateX(-50%); 
+            width: 52px; height: 120px; 
             background: linear-gradient(to right, #4E342E, #8D6E63, #4E342E); 
             border-radius: 0 0 26px 26px; 
             box-shadow: 0 15px 30px rgba(94, 53, 17, 0.4), inset 0 -5px 15px rgba(0,0,0,0.3); z-index: 5; 
         }
 
-        /* ================= 握把實體按鈕 (共用底層樣式) ================= */
-        [data-testid="stCameraInput"]:not(:has(img)) button:has(svg),
-        [data-testid="stCameraInput"]:not(:has(img)) button:not(:has(svg)),
-        [data-testid="stCameraInput"]:has(img) button {
+        /* ================= 握把上的實體按鍵 (金屬鑲嵌風格) ================= */
+        [data-testid="stCameraInput"] button {
             position: absolute !important;
             left: 50% !important;
-            width: 42px !important;
-            height: 42px !important;
+            transform: translateX(-50%) !important;
+            width: 38px !important;
+            height: 38px !important;
             border-radius: 50% !important;
             padding: 0 !important;
-            background: linear-gradient(145deg, #6d4c41, #3e2723) !important; /* 金屬原木質感 */
+            margin: 0 !important;
+            background: linear-gradient(145deg, #6d4c41, #3e2723) !important; /* 原木金屬質感 */
             border: 2px solid #A1887F !important;
-            box-shadow: inset 2px 2px 5px rgba(255,255,255,0.1), 0 4px 6px rgba(0,0,0,0.6) !important;
+            box-shadow: inset 2px 2px 5px rgba(255,255,255,0.2), 0 4px 8px rgba(0,0,0,0.7) !important;
             z-index: 9999 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            color: transparent !important;
-            font-size: 0 !important;
             transition: all 0.2s ease !important;
         }
 
-        /* 隱藏原生文字與多餘 SVG */
-        [data-testid="stCameraInput"] button p, [data-testid="stCameraInput"] button div { display: none !important; }
-        [data-testid="stCameraInput"]:has(img) button svg { display: none !important; }
+        /* 徹底隱藏 Streamlit 原生的文字與圖示 (避免干擾) */
+        [data-testid="stCameraInput"] button * { display: none !important; }
 
-        /* 按鈕互動回饋 */
-        [data-testid="stCameraInput"] button:hover {
-            transform: translateX(-50%) scale(1.05) !important;
-            background: linear-gradient(145deg, #8D6E63, #4E342E) !important;
-        }
-
-        /* 🔴 1. 紅色圈位置：切換鏡頭按鈕 (上半部) */
+        /* 🔴 上方按鈕：切換鏡頭 (未拍照時，具有 svg 的按鈕) */
         [data-testid="stCameraInput"]:not(:has(img)) button:has(svg) {
-            top: 315px !important; 
-            bottom: auto !important; right: auto !important; transform: translateX(-50%) !important;
+            top: 315px !important; bottom: auto !important;
         }
-        /* 切換鏡頭 SVG 樣式 */
-        [data-testid="stCameraInput"]:not(:has(img)) button:has(svg) svg {
-            fill: #FFF8E1 !important; width: 22px !important; height: 22px !important;
+        [data-testid="stCameraInput"]:not(:has(img)) button:has(svg)::after {
+            content: '🔄'; font-size: 20px; display: block; line-height: 1;
         }
 
-        /* 🟡 2. 黃色圈位置：拍照 / 重拍按鈕 (下半部) */
-        [data-testid="stCameraInput"]:not(:has(img)) button:not(:has(svg)),
-        [data-testid="stCameraInput"]:has(img) button {
-            top: 370px !important; 
-            bottom: auto !important; right: auto !important; transform: translateX(-50%) !important;
+        /* 🟡 下方按鈕：拍照 (未拍照時，沒有 svg 的按鈕) */
+        [data-testid="stCameraInput"]:not(:has(img)) button:not(:has(svg)) {
+            top: 365px !important; bottom: auto !important;
         }
-        /* 拍照按鈕 Icon (相機圖案) */
-        [data-testid="stCameraInput"]:not(:has(img)) button:not(:has(svg))::before {
+        [data-testid="stCameraInput"]:not(:has(img)) button:not(:has(svg))::after {
             content: '📸'; font-size: 20px; display: block; line-height: 1;
         }
-        /* 重拍按鈕 Icon (叉叉圖案) */
-        [data-testid="stCameraInput"]:has(img) button::before {
-            content: '✖️'; font-size: 18px; display: block; line-height: 1; color: #FFF8E1;
+
+        /* 🟡 下方按鈕：重拍 (已拍照時的唯一按鈕) */
+        [data-testid="stCameraInput"]:has(img) button {
+            top: 365px !important; bottom: auto !important;
+        }
+        [data-testid="stCameraInput"]:has(img) button::after {
+            content: '✖️'; font-size: 16px; display: block; line-height: 1; color: white;
         }
 
-        /* 鏡面高光 */
+        /* 按壓回饋：有真實按鈕陷下去的感覺 */
+        [data-testid="stCameraInput"] button:active {
+            box-shadow: inset 2px 2px 10px rgba(0,0,0,0.9) !important;
+            transform: translateX(-50%) scale(0.95) !important;
+        }
+
+        /* 鏡面高光 (放在最後以確保疊在影片上層) */
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%); pointer-events: none; z-index: 15; }
 
-        /* 資訊卡片 */
         .result-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; border: 1px solid rgba(141, 110, 99, 0.3); color: #4E342E; margin-top: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         .pokedex-card { background: rgba(255, 255, 255, 0.7); border-radius: 15px; padding: 15px; text-align: center; border: 2px solid rgba(141, 110, 99, 0.2); transition: all 0.3s ease; cursor: pointer; color: #4E342E !important; font-weight: bold; }
         .pokedex-card:hover { background: rgba(255, 255, 255, 0.95); transform: translateY(-5px); border-color: #8D6E63; }
