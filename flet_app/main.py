@@ -105,6 +105,19 @@ async def run_app(page: ft.Page) -> None:
     page.bgcolor = "#edf4dc"
     page.scroll = ft.ScrollMode.AUTO
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
+    page.add(
+        ft.Container(
+            padding=16,
+            alignment=ft.alignment.center,
+            content=ft.Text(
+                "探險放大鏡啟動中...",
+                size=22,
+                weight=ft.FontWeight.W_900,
+                color="#3d2a21",
+            ),
+        )
+    )
+    page.update()
 
     pokedex: dict[str, dict[str, str]] = {}
     cameras: list[Any] = []
@@ -259,6 +272,7 @@ async def run_app(page: ft.Page) -> None:
         ],
     )
 
+    page.clean()
     page.add(
         ft.Column(
             controls=[
@@ -280,4 +294,4 @@ async def run_app(page: ft.Page) -> None:
     page.update()
 
 
-ft.app(main)
+ft.run(main)

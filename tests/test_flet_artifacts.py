@@ -38,6 +38,7 @@ class FletArtifactsTests(unittest.TestCase):
 
         self.assertIn("flet_camera", main)
         self.assertIn("run_app", main)
+        self.assertIn("探險放大鏡啟動中", main)
         self.assertIn("探險放大鏡載入失敗", main)
         self.assertIn("啟動相機", main)
         self.assertIn("ft.RadioGroup", main)
@@ -45,6 +46,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("take_picture", main)
         self.assertIn("set_description", main)
         self.assertIn("GridView", main)
+        self.assertIn("ft.run(main)", main)
 
     def test_cloudflare_pages_builds_and_patches_loader(self):
         build = (ROOT / "build.sh").read_text(encoding="utf-8")
