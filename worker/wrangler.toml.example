@@ -1,0 +1,7 @@
+name = "art-village-plantnet-proxy"
+main = "index.js"
+compatibility_date = "2026-05-14"
+
+# Do not put PLANTNET_API_KEY here.
+# Set it as an encrypted secret:
+#   npx wrangler secret put PLANTNET_API_KEY

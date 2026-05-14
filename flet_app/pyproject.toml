@@ -1,0 +1,12 @@
+[project]
+name = "art-village-exploration-magnifier"
+version = "0.1.0"
+description = "Flet Web version of the Art Village Exploration Magnifier."
+requires-python = ">=3.10"
+dependencies = [
+    "flet",
+    "flet-camera",
+]
+
+[tool.flet]
+permissions = ["camera"]
