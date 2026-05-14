@@ -124,7 +124,7 @@ div.stButton > button:focus-visible,
     position: relative;
     z-index: 10;
     margin-top: 2rem;
-    margin-bottom: clamp(13.5rem, 35vw, 16.75rem) !important;
+    margin-bottom: clamp(14.5rem, 42vw, 17.75rem) !important;
 }
 
 [data-testid="stCameraInput"] {
@@ -181,17 +181,18 @@ div.stButton > button:focus-visible,
 [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after {
     content: "";
     position: absolute;
-    top: min(68vw, 282px);
+    top: min(68vw, 284px);
     left: 50%;
     z-index: 5;
-    width: clamp(168px, 56vw, 224px);
-    height: clamp(112px, 28vw, 132px);
+    width: clamp(86px, 24vw, 104px);
+    height: clamp(224px, 58vw, 260px);
     border: 2px solid #1a100b;
-    border-radius: 999px 999px 46px 46px;
+    border-radius: 999px;
     background: linear-gradient(180deg, #58382a, #372217);
     box-shadow:
         inset 0 0 0 2px #654536,
-        inset 0 0 0 6px rgba(158, 122, 104, 0.38),
+        inset 0 0 0 6px rgba(158, 122, 104, 0.34),
+        inset 0 0 0 8px rgba(26, 16, 11, 0.24),
         0 16px 30px rgba(47, 37, 25, 0.42);
     transform: translateX(-50%);
 }
@@ -204,13 +205,13 @@ div.stButton > button:focus-visible,
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: clamp(74px, 22vw, 92px) !important;
-    height: clamp(74px, 22vw, 92px) !important;
+    width: clamp(66px, 18vw, 78px) !important;
+    height: clamp(66px, 18vw, 78px) !important;
     box-sizing: border-box !important;
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
-    border-radius: 1.25rem !important;
+    border-radius: 50% !important;
     color: #2b1308 !important;
     font-size: 0 !important;
     line-height: 1 !important;
@@ -239,10 +240,10 @@ div.stButton > button:focus-visible,
 [data-testid="stCameraInput"] button::before {
     position: absolute !important;
     left: 50% !important;
-    bottom: 0.5rem !important;
+    bottom: 0.46rem !important;
     width: 100% !important;
     color: #2b1308 !important;
-    font-size: clamp(0.66rem, 2.3vw, 0.78rem) !important;
+    font-size: clamp(0.58rem, 1.9vw, 0.68rem) !important;
     font-weight: 900 !important;
     letter-spacing: 0 !important;
     line-height: 1 !important;
@@ -255,10 +256,10 @@ div.stButton > button:focus-visible,
 [data-testid="stCameraInput"] button::after {
     content: "";
     position: absolute !important;
-    top: 0.92rem !important;
+    top: 0.78rem !important;
     left: 50% !important;
-    width: 40% !important;
-    height: 40% !important;
+    width: 38% !important;
+    height: 38% !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
     background-size: contain !important;
@@ -267,8 +268,9 @@ div.stButton > button:focus-visible,
 }
 
 [data-testid="stCameraInput"] > div button {
-    top: calc(min(76vw, 320px) + clamp(48px, 13vw, 58px)) !important;
-    left: calc(50% - clamp(48px, 15vw, 62px)) !important;
+    top: calc(min(76vw, 320px) + clamp(22px, 6vw, 30px)) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
 }
 
 [data-testid="stCameraInput"] > div button::before {
@@ -280,8 +282,9 @@ div.stButton > button:focus-visible,
 }
 
 [data-testid="stCameraInput"] > button {
-    top: calc(min(76vw, 320px) + clamp(48px, 13vw, 58px)) !important;
-    left: calc(50% + clamp(48px, 15vw, 62px)) !important;
+    top: calc(min(76vw, 320px) + clamp(104px, 28vw, 126px)) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
 }
 
 [data-testid="stCameraInput"] > button::before {
@@ -306,7 +309,7 @@ div.stButton > button:focus-visible,
         0 0 0 3px #3d1f11,
         0 0 0 5px #916142,
         0 3px 7px rgba(0, 0, 0, 0.5) !important;
-    transform: translateY(3px) !important;
+    transform: translateX(-50%) translateY(3px) !important;
 }
 
 .result-card {
