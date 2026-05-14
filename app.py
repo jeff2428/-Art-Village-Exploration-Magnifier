@@ -1,13 +1,20 @@
 # app.py
+import base64
 from html import escape
+import json
 from pathlib import Path
+import zlib
 
 import streamlit as st
+import streamlit.components.v1 as components
 from config import ANIMALS_DB
 from api_handler import identify_plant_from_api
 
 
 BASE_DIR = Path(__file__).resolve().parent
+POKEDEX_CACHE_KEY = "art_village_pokedex_v1"
+POKEDEX_QUERY_PARAM = "pokedex"
+MAX_POKEDEX_CACHE_ENTRIES = 50
 
 
 # 讀取獨立的 CSS 檔案
@@ -19,6 +26,115 @@ def load_local_css(file_name):
 
 def safe_text(value, default="N/A"):
     return escape(str(value if value not in (None, "") else default), quote=True)
+
+
+def normalize_pokedex(raw_pokedex):
+    if not isinstance(raw_pokedex, dict):
+        return {}
+
+    normalized = {}
+    allowed_fields = {"zh_name", "emoji", "desc", "type", "sci_name", "eng_name"}
+    for name, item in list(raw_pokedex.items())[:MAX_POKEDEX_CACHE_ENTRIES]:
+        if not isinstance(name, str) or not isinstance(item, dict):
+            continue
+
+        safe_item = {}
+        for key in allowed_fields:
+            value = item.get(key)
+            if isinstance(value, (str, int, float, bool)):
+                safe_item[key] = str(value)
+
+        if "zh_name" not in safe_item:
+            safe_item["zh_name"] = name
+        if "desc" in safe_item:
+            normalized[name] = safe_item
+
+    return normalized
+
+
+def encode_pokedex_cache(pokedex):
+    normalized = normalize_pokedex(pokedex)
+    if not normalized:
+        return ""
+
+    payload = json.dumps(normalized, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    compressed = zlib.compress(payload, level=9)
+    return base64.urlsafe_b64encode(compressed).decode("ascii").rstrip("=")
+
+
+def decode_pokedex_cache(encoded):
+    if not encoded or not isinstance(encoded, str):
+        return {}
+
+    try:
+        padded = encoded + "=" * (-len(encoded) % 4)
+        compressed = base64.urlsafe_b64decode(padded.encode("ascii"))
+        decompressor = zlib.decompressobj()
+        payload = decompressor.decompress(compressed, 80_000)
+        if decompressor.unconsumed_tail:
+            return {}
+        return normalize_pokedex(json.loads(payload.decode("utf-8")))
+    except (ValueError, TypeError, json.JSONDecodeError, zlib.error):
+        return {}
+
+
+def get_query_param_value(name):
+    value = st.query_params.get(name)
+    if isinstance(value, list):
+        return value[0] if value else ""
+    return value or ""
+
+
+def restore_pokedex_cache_from_query():
+    if st.session_state.get("_pokedex_cache_restored"):
+        return
+
+    restored = decode_pokedex_cache(get_query_param_value(POKEDEX_QUERY_PARAM))
+    if restored:
+        st.session_state.pokedex.update(restored)
+    st.session_state._pokedex_cache_restored = True
+
+
+def sync_pokedex_cache_to_browser():
+    encoded = encode_pokedex_cache(st.session_state.pokedex)
+    current_value = get_query_param_value(POKEDEX_QUERY_PARAM)
+    if encoded and current_value != encoded:
+        st.query_params[POKEDEX_QUERY_PARAM] = encoded
+    elif not encoded and current_value:
+        del st.query_params[POKEDEX_QUERY_PARAM]
+
+    components.html(
+        f"""
+        <script>
+        (() => {{
+            const cacheKey = {json.dumps(POKEDEX_CACHE_KEY)};
+            const paramName = {json.dumps(POKEDEX_QUERY_PARAM)};
+            const encoded = {json.dumps(encoded)};
+            try {{
+                if (encoded) {{
+                    window.localStorage.setItem(cacheKey, encoded);
+                }} else {{
+                    window.localStorage.removeItem(cacheKey);
+                }}
+
+                const parentUrl = new URL(window.parent.location.href);
+                if (!parentUrl.searchParams.get(paramName)) {{
+                    const cached = window.localStorage.getItem(cacheKey);
+                    if (cached) {{
+                        parentUrl.searchParams.set(paramName, cached);
+                        window.parent.history.replaceState(null, "", parentUrl.toString());
+                        window.parent.location.reload();
+                    }}
+                }}
+            }} catch (error) {{
+                // Query-param persistence still protects refreshes if localStorage is unavailable.
+            }}
+        }})();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
 
 
 def render_result_card(title, description, icon="🌱", meta_html=""):
@@ -61,6 +177,7 @@ def main():
     # 載入外部 CSS
     load_local_css("style.css")
     init_session_state()
+    restore_pokedex_cache_from_query()
 
     st.markdown("<h1>探險放大鏡 🔍</h1>", unsafe_allow_html=True)
 
@@ -80,6 +197,7 @@ def main():
                         '<p class="card-note">已自動加入下方探險圖庫</p>',
                     )
                     st.session_state.pokedex[plant_data['zh_name']] = plant_data
+                    sync_pokedex_cache_to_browser()
                 else:
                     status.update(label="❌ 辨識失敗", state="error")
                     st.error(plant_data["error"])
@@ -113,6 +231,7 @@ def main():
                 "type": "animal"
             }
             st.session_state.pokedex[st.session_state.active_pet] = animal_info
+            sync_pokedex_cache_to_browser()
             render_result_card(f"遇見了 {st.session_state.active_pet}！", pet["desc"], "✨")
 
     st.markdown("<br><br><h2 class='gallery-heading'>🎒 探險圖庫</h2>", unsafe_allow_html=True)
@@ -133,6 +252,8 @@ def main():
                         icon = "🌿" if data.get("type") == "plant" else data.get("emoji", "🐾")
                         if st.button(f"{icon} {name}", key=f"gallery_{name}", use_container_width=True):
                             show_detail_dialog(data)
+
+    sync_pokedex_cache_to_browser()
 
 if __name__ == "__main__":
     main()
