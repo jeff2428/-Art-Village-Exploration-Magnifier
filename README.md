@@ -36,10 +36,31 @@ PLANTNET_API_KEY=你的 PlantNet API Key
 
 ## 本機開發
 
-```bash
-cd flet_app
-uv run flet run -d chrome
+日常開發請先在本機測到滿意，再 `git push` 交給 Cloudflare Pages 編譯上線。不要把 Cloudflare 當草稿紙，這樣會省下很多等待時間。
+
+第一次先安裝依賴：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install-dev.ps1
 ```
+
+之後每次開發：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/dev.ps1
+```
+
+瀏覽器會開啟本機 Flet 畫面。你改程式、存檔、看畫面，確認功能完成後再推送到 GitHub。
+
+上線流程：
+
+```bash
+git add .
+git commit -m "Describe your change"
+git push origin main
+```
+
+Cloudflare Pages 只負責正式部署。
 
 ## Cloudflare Pages 設定
 

@@ -50,6 +50,8 @@ class FletArtifactsTests(unittest.TestCase):
 
     def test_cloudflare_pages_builds_and_patches_loader(self):
         build = (ROOT / "build.sh").read_text(encoding="utf-8")
+        dev = (ROOT / "scripts" / "dev.ps1").read_text(encoding="utf-8")
+        install_dev = (ROOT / "scripts" / "install-dev.ps1").read_text(encoding="utf-8")
         patcher = (ROOT / "scripts" / "patch_flet_loader.py").read_text(encoding="utf-8")
         wrangler = (ROOT / "wrangler.toml").read_text(encoding="utf-8")
 
@@ -66,6 +68,8 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("探險家載入中", patcher)
         self.assertIn("explorer-pulse", patcher)
         self.assertIn("hasFletContent", patcher)
+        self.assertIn("flet run -d chrome", dev)
+        self.assertIn("flet_app/requirements.txt", install_dev)
 
 
 if __name__ == "__main__":

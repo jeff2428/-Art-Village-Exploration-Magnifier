@@ -48,6 +48,24 @@ pip install flet requests opencc-python-reimplemented && flet build web
 
 It does not pass `--yes`, so Cloudflare's non-interactive build environment can fail with `EOFError: EOF when reading a line` when Flet asks to install the required Flutter SDK. Recent Flet versions also accept only `auto`, `canvaskit`, or `skwasm` for `--web-renderer`. Use `bash build.sh` instead.
 
+## Local Development Workflow
+
+Use Cloudflare Pages as the production display machine, not as the draft workspace.
+
+Install dependencies once:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install-dev.ps1
+```
+
+Start local Flet development:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/dev.ps1
+```
+
+Iterate locally until the UI, buttons, responsive layout, and API calls are acceptable. Push to GitHub only when the change is ready for Cloudflare to compile and publish.
+
 ## Local Build
 
 ```bash
