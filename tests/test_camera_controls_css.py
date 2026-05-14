@@ -44,6 +44,13 @@ class CameraControlsCssTests(unittest.TestCase):
         self.assertNotIn("[data-testid=\"stCameraInput\"] > div button::before", css)
         self.assertNotIn("[data-testid=\"stCameraInput\"] > div button", css)
 
+    def test_mobile_switch_wrapper_position_is_not_reset(self):
+        css = STYLE_PATH.read_text(encoding="utf-8")
+
+        self.assertNotIn('[data-testid="stCameraInput"] div {\n    position: static', css)
+        self.assertIn('[data-testid="stCameraInputWebcamComponent"]', css)
+        self.assertIn('[data-testid="stCameraInputWebcamStyledBox"]', css)
+
 
 if __name__ == "__main__":
     unittest.main()

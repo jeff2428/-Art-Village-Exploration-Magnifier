@@ -145,8 +145,8 @@ div.stButton > button:focus-visible,
         inset 0 0 30px rgba(0, 0, 0, 0.8) !important;
 }
 
-[data-testid="stCameraInput"] div {
-    position: static !important;
+[data-testid="stCameraInputWebcamComponent"],
+[data-testid="stCameraInputWebcamStyledBox"] {
     border: none !important;
     background: transparent !important;
 }
