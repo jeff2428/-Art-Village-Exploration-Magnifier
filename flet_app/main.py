@@ -252,8 +252,8 @@ async def run_app(page: ft.Page) -> None:
     page.on_connect = initialize_camera
     page.add(
         ft.SafeArea(
-            ft.Column(
-                [
+            content=ft.Column(
+                controls=[
                     ft.Text("探險放大鏡 🔍", size=36, weight=ft.FontWeight.W_900, color="#3d2a21"),
                     mode,
                     camera_frame,
@@ -265,9 +265,11 @@ async def run_app(page: ft.Page) -> None:
                 ],
                 spacing=16,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            )
+            ),
+            expand=True,
         )
     )
+    page.update()
 
 
 ft.app(main)
