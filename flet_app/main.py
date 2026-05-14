@@ -120,18 +120,7 @@ async def run_app(page: ft.Page) -> None:
         height=260,
     )
 
-    camera = (
-        fc.Camera(
-            expand=True,
-            preview_enabled=True,
-            content=ft.Container(
-                alignment=ft.alignment.center,
-                content=ft.Icon(ft.Icons.CENTER_FOCUS_STRONG, size=44, color=ft.Colors.WHITE70),
-            ),
-        )
-        if fc is not None
-        else None
-    )
+    camera = None
     camera_frame = ft.Container(
         width=320,
         height=320,
@@ -140,11 +129,18 @@ async def run_app(page: ft.Page) -> None:
         bgcolor="#0f1512",
         border=ft.border.all(12, "#fff8df"),
         shadow=ft.BoxShadow(blur_radius=28, color="#442f2519", offset=ft.Offset(0, 12)),
-        content=camera
-        if camera is not None
-        else ft.Container(
+        content=ft.Container(
             alignment=ft.alignment.center,
-            content=ft.Text("相機元件尚未載入", color=ft.Colors.WHITE70, weight=ft.FontWeight.W_700),
+            padding=20,
+            content=ft.Column(
+                controls=[
+                    ft.Icon(ft.Icons.CENTER_FOCUS_STRONG, size=44, color=ft.Colors.WHITE70),
+                    ft.Text("點擊下方按鈕啟動相機", color=ft.Colors.WHITE70, weight=ft.FontWeight.W_700),
+                ],
+                spacing=10,
+                alignment=ft.MainAxisAlignment.CENTER,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
         ),
     )
 
@@ -210,12 +206,23 @@ async def run_app(page: ft.Page) -> None:
         page.update()
 
     async def initialize_camera(_event: ft.ControlEvent | None = None) -> None:
-        nonlocal cameras
+        nonlocal cameras, camera
         try:
-            if camera is None or fc is None:
+            if fc is None:
                 status.value = "此瀏覽器暫時無法載入相機元件"
                 render_handle()
                 return
+            if camera is None:
+                camera = fc.Camera(
+                    expand=True,
+                    preview_enabled=True,
+                    content=ft.Container(
+                        alignment=ft.alignment.center,
+                        content=ft.Icon(ft.Icons.CENTER_FOCUS_STRONG, size=44, color=ft.Colors.WHITE70),
+                    ),
+                )
+                camera_frame.content = camera
+                page.update()
             cameras = await camera.get_available_cameras()
             if cameras:
                 await camera.initialize(cameras[0], fc.ResolutionPreset.MEDIUM, enable_audio=False)
@@ -226,12 +233,15 @@ async def run_app(page: ft.Page) -> None:
             status.value = f"相機啟動失敗：{error}"
         render_handle()
 
-    mode = ft.SegmentedButton(
-        selected={"plant"},
-        segments=[
-            ft.Segment(value="plant", label=ft.Text("🌿 尋找植物")),
-            ft.Segment(value="animal", label=ft.Text("🐾 認識動物")),
-        ],
+    mode = ft.RadioGroup(
+        value="plant",
+        content=ft.Row(
+            controls=[
+                ft.Radio(value="plant", label="尋找植物"),
+                ft.Radio(value="animal", label="認識動物"),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+        ),
     )
 
     animal_buttons = ft.Row(
@@ -249,26 +259,24 @@ async def run_app(page: ft.Page) -> None:
         ],
     )
 
-    page.on_connect = initialize_camera
     page.add(
-        ft.SafeArea(
-            content=ft.Column(
-                controls=[
-                    ft.Text("探險放大鏡 🔍", size=36, weight=ft.FontWeight.W_900, color="#3d2a21"),
-                    mode,
-                    camera_frame,
-                    ft.Container(height=238, content=handle_slot),
-                    status,
-                    ft.Text("🎒 探險圖鑑", size=28, weight=ft.FontWeight.W_900, color="#3d2a21"),
-                    animal_buttons,
-                    grid,
-                ],
-                spacing=16,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
-            expand=True,
+        ft.Column(
+            controls=[
+                ft.Text("探險放大鏡", size=36, weight=ft.FontWeight.W_900, color="#3d2a21"),
+                mode,
+                ft.ElevatedButton("啟動相機", icon=ft.Icons.CAMERA_ALT, on_click=initialize_camera),
+                camera_frame,
+                ft.Container(height=238, content=handle_slot),
+                status,
+                ft.Text("探險圖鑑", size=28, weight=ft.FontWeight.W_900, color="#3d2a21"),
+                animal_buttons,
+                grid,
+            ],
+            spacing=16,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
     )
+    render_handle()
     page.update()
 
 
