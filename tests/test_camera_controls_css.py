@@ -61,6 +61,15 @@ class CameraControlsCssTests(unittest.TestCase):
         self.assertIn("overflow: hidden !important", css)
         self.assertIn("border-radius: 50% !important", css)
 
+    def test_snapshot_preview_fills_round_lens(self):
+        css = STYLE_PATH.read_text(encoding="utf-8")
+
+        self.assertIn('[data-testid="stCameraInput"] div:has(> img[alt="Snapshot"])', css)
+        self.assertIn("inset: 0 !important", css)
+        self.assertIn("height: 100% !important", css)
+        self.assertIn("overflow: hidden !important", css)
+        self.assertIn("border-radius: 50% !important", css)
+
     def test_native_switch_hides_unavailable_fallback(self):
         css = STYLE_PATH.read_text(encoding="utf-8")
 
