@@ -48,6 +48,80 @@ h1 {
     text-align: center;
 }
 
+.st-key-gallery_panel {
+    margin-top: clamp(2rem, 7vw, 3.25rem);
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+}
+
+.gallery-summary {
+    display: grid;
+    gap: 0.85rem;
+    margin: 0 0 1rem;
+    padding: 0.25rem 0 0.5rem;
+}
+
+.gallery-summary h2 {
+    margin: 0;
+    color: var(--bark-800);
+    font-size: clamp(2rem, 9vw, 3rem);
+    font-weight: 900;
+    letter-spacing: 0;
+    line-height: 1.08;
+    text-align: center;
+}
+
+.gallery-summary p {
+    margin: 0;
+    color: var(--bark-800) !important;
+    font-size: clamp(1.05rem, 4.8vw, 1.35rem);
+    font-weight: 650;
+    line-height: 1.35;
+}
+
+.gallery-summary strong {
+    font-weight: 900;
+}
+
+.gallery-progress {
+    width: 100%;
+    height: 0.78rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(47, 111, 62, 0.13);
+    box-shadow: inset 0 0 0 1px rgba(47, 111, 62, 0.12);
+}
+
+.gallery-progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2f8fd8, #1479c9);
+}
+
+.st-key-gallery_panel [data-testid="stHorizontalBlock"] {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.85rem !important;
+    margin-bottom: 0.85rem;
+}
+
+.st-key-gallery_panel [data-testid="stColumn"] {
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+.st-key-gallery_panel [class*="st-key-gallery_"] div.stButton > button {
+    min-height: 4rem;
+    padding: 0.5rem 0.75rem !important;
+    border-radius: 0.85rem !important;
+    font-size: clamp(0.98rem, 4.4vw, 1.2rem) !important;
+    line-height: 1.18 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    box-shadow: 0 8px 18px rgba(47, 37, 25, 0.08) !important;
+}
+
 .stMarkdown p,
 .stMarkdown span,
 .stMarkdown div {
@@ -492,8 +566,7 @@ div.stButton > button:focus-visible,
 
 @media (max-width: 520px) {
     .block-container {
-        padding-left: 1rem;
-        padding-right: 1rem;
+        padding: 1.35rem 1rem 0;
     }
 
     .stRadio > div {
@@ -513,6 +586,32 @@ div.stButton > button:focus-visible,
     .detail-list div {
         grid-template-columns: 1fr;
         gap: 0.15rem;
+    }
+
+    .st-key-gallery_panel {
+        margin-top: 1.35rem;
+        padding-bottom: calc(8.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .gallery-summary {
+        gap: 0.75rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .gallery-summary h2 {
+        font-size: clamp(2.05rem, 10vw, 2.75rem);
+    }
+
+    .st-key-gallery_panel [data-testid="stHorizontalBlock"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.72rem !important;
+        margin-bottom: 0.72rem;
+    }
+
+    .st-key-gallery_panel [class*="st-key-gallery_"] div.stButton > button {
+        min-height: 3.65rem;
+        padding: 0.45rem 0.55rem !important;
+        font-size: clamp(0.94rem, 4.8vw, 1.08rem) !important;
     }
 }
 

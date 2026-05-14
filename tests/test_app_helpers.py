@@ -1,6 +1,6 @@
 import unittest
 
-from app import decode_pokedex_cache, encode_pokedex_cache, normalize_pokedex, safe_text
+from app import decode_pokedex_cache, encode_pokedex_cache, normalize_pokedex, render_gallery_summary, safe_text
 
 
 class AppHelperTests(unittest.TestCase):
@@ -44,6 +44,9 @@ class AppHelperTests(unittest.TestCase):
         )
 
         self.assertEqual(restored, {"測試": {"zh_name": "測試", "desc": "描述"}})
+
+    def test_gallery_summary_renderer_exists(self):
+        self.assertTrue(callable(render_gallery_summary))
 
 
 if __name__ == "__main__":

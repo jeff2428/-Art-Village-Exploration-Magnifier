@@ -150,6 +150,22 @@ def render_result_card(title, description, icon="🌱", meta_html=""):
     )
 
 
+def render_gallery_summary(count):
+    progress = min(count / 10, 1.0) * 100
+    st.markdown(
+        f"""
+        <section class="gallery-summary" aria-label="探險圖庫收集進度">
+            <h2>🎒 探險圖庫</h2>
+            <p><span>🌟</span> 已收集 <strong>{count}</strong> 種生物</p>
+            <div class="gallery-progress" aria-hidden="true">
+                <span style="width: {progress:.0f}%"></span>
+            </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 @st.dialog("🌿 探險圖鑑詳情")
 def show_detail_dialog(item_data):
     meta_html = f"""
@@ -234,24 +250,24 @@ def main():
             sync_pokedex_cache_to_browser()
             render_result_card(f"遇見了 {st.session_state.active_pet}！", pet["desc"], "✨")
 
-    st.markdown("<br><br><h2 class='gallery-heading'>🎒 探險圖庫</h2>", unsafe_allow_html=True)
-    if not st.session_state.pokedex:
-        st.info("圖庫目前空空如也，快點擊上方「模式」開始探索！")
-    else:
-        count = len(st.session_state.pokedex)
-        st.write(f"🌟 已收集 **{count}** 種生物")
-        st.progress(min(count / 10, 1.0))
+    with st.container(key="gallery_panel"):
+        if not st.session_state.pokedex:
+            render_gallery_summary(0)
+            st.info("圖庫目前空空如也，快點擊上方「模式」開始探索！")
+        else:
+            count = len(st.session_state.pokedex)
+            render_gallery_summary(count)
 
-        items = list(st.session_state.pokedex.items())
-        for i in range(0, len(items), 3):
-            cols = st.columns(3)
-            for j in range(3):
-                if i + j < len(items):
-                    name, data = items[i + j]
-                    with cols[j]:
-                        icon = "🌿" if data.get("type") == "plant" else data.get("emoji", "🐾")
-                        if st.button(f"{icon} {name}", key=f"gallery_{name}", use_container_width=True):
-                            show_detail_dialog(data)
+            items = list(st.session_state.pokedex.items())
+            for i in range(0, len(items), 3):
+                cols = st.columns(3)
+                for j in range(3):
+                    if i + j < len(items):
+                        name, data = items[i + j]
+                        with cols[j]:
+                            icon = "🌿" if data.get("type") == "plant" else data.get("emoji", "🐾")
+                            if st.button(f"{icon} {name}", key=f"gallery_{name}", use_container_width=True):
+                                show_detail_dialog(data)
 
     sync_pokedex_cache_to_browser()
 
