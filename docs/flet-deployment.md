@@ -12,6 +12,16 @@ npx wrangler secret put PLANTNET_API_KEY
 
 Requests from Cloudflare Pages `https://*.pages.dev` origins are allowed by CORS. If you use a custom domain, set an `ALLOWED_ORIGIN` Worker variable such as `https://example.com`.
 
+If the Worker is connected to Git, use these Worker build settings:
+
+- Build command: `echo "No Worker build step"`
+- Deploy command: `npx wrangler deploy -c worker/wrangler.toml`
+- Version command: `npx wrangler versions upload -c worker/wrangler.toml`
+- Root directory: `/`
+- Production branch: `main`
+
+Add `PLANTNET_API_KEY` in Worker Variables and secrets.
+
 ## Cloudflare Pages
 
 Use Cloudflare Pages Git integration with these settings:

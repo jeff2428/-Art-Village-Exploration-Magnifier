@@ -14,6 +14,7 @@ class FletArtifactsTests(unittest.TestCase):
 
     def test_worker_uses_secret_env_and_restricts_github_io_origins(self):
         worker = (ROOT / "worker" / "index.js").read_text(encoding="utf-8")
+        wrangler = (ROOT / "worker" / "wrangler.toml").read_text(encoding="utf-8")
 
         self.assertIn("env.PLANTNET_API_KEY", worker)
         self.assertNotIn("2b1004", worker)
@@ -21,6 +22,8 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("pages\\.dev", worker)
         self.assertIn("ALLOWED_ORIGIN", worker)
         self.assertIn("Access-Control-Allow-Origin", worker)
+        self.assertIn('name = "art-village-magnifier"', wrangler)
+        self.assertIn('main = "index.js"', wrangler)
 
     def test_flet_app_has_magnifier_handle_callbacks(self):
         handle = (ROOT / "flet_app" / "magnifier_handle.py").read_text(encoding="utf-8")

@@ -10,6 +10,8 @@ Flet Web + Cloudflare Worker + Cloudflare Pages 版本。
 
 ## Cloudflare Worker
 
+這個 Worker 是 PlantNet API 中繼站，不是網頁前端。
+
 ```bash
 cd worker
 npx wrangler secret put PLANTNET_API_KEY
@@ -17,6 +19,20 @@ npx wrangler deploy
 ```
 
 部署後，把 Worker URL 填到 Cloudflare Pages 的 `WORKER_URL` 環境變數。
+
+如果你要讓 Worker 也連 Git 自動部署，Cloudflare Worker 的 Build 設定請使用：
+
+- Build command：`echo "No Worker build step"`
+- Deploy command：`npx wrangler deploy -c worker/wrangler.toml`
+- Version command：`npx wrangler versions upload -c worker/wrangler.toml`
+- Root directory：`/`
+- Production branch：`main`
+
+Worker 的 Variables and secrets 要新增：
+
+```text
+PLANTNET_API_KEY=你的 PlantNet API Key
+```
 
 ## 本機開發
 
@@ -26,6 +42,8 @@ uv run flet run -d chrome
 ```
 
 ## Cloudflare Pages 設定
+
+這裡才是網頁前端，也就是 Flet 靜態網頁。
 
 在 Cloudflare Pages 專案使用這些設定：
 
