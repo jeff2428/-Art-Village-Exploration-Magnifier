@@ -20,8 +20,7 @@ div.stButton > button:hover { background: rgba(255, 255, 255, 1) !important; bor
 [data-testid="stCameraInput"] { 
     width: 320px !important; height: 320px !important; border-radius: 50% !important; border: 12px solid #FFF8E1 !important; 
     box-shadow: 0 0 0 2px #A1887F, 0 0 0 10px #4E342E, 0 25px 50px rgba(94, 53, 17, 0.3), inset 0 0 30px rgba(0,0,0,0.8) !important; 
-    overflow: visible !important; 
-    background-color: #000 !important; position: relative !important; margin: 0 auto !important; padding: 0 !important; 
+    overflow: visible !important; background-color: #000 !important; position: relative !important; margin: 0 auto !important; padding: 0 !important; 
     box-sizing: border-box !important;
 }
 
@@ -42,13 +41,15 @@ div.stButton > button:hover { background: rgba(255, 255, 255, 1) !important; bor
     z-index: 5; 
 }
 
-/* ================= 🛠️ 終極防禦版：按鈕核心設定 ================= */
+/* ================= 🛠️ 終極版：100% 設備相容的按鈕定位法 ================= */
+
+/* --- 1. 所有按鈕共通的青銅機械樣式 --- */
 [data-testid="stCameraInput"] button {
     position: absolute !important; left: 50% !important; transform: translateX(-50%) !important;
     width: 66px !important; height: 66px !important; border-radius: 50% !important;
     padding: 0 !important; margin: 0 !important; box-sizing: border-box !important;
     
-    /* 💥 暴力消滅文字：把文字推到畫面外，並強制透明 */
+    /* 暴力消滅文字 (絕對透明、縮小到0、推出版面外) */
     color: transparent !important; text-indent: -9999px !important;
     white-space: nowrap !important; overflow: hidden !important; font-size: 0px !important;
     
@@ -57,47 +58,47 @@ div.stButton > button:hover { background: rgba(255, 255, 255, 1) !important; bor
     border: none !important;
     box-shadow: 
         inset 1px 1px 4px rgba(255,255,255,0.5), inset -3px -3px 8px rgba(0,0,0,0.8), 
-        0 0 0 3px #3d1f11, 0 0 0 5px #916142, 0 0 0 6px #1a0f0a, 
-        0 10px 15px rgba(0,0,0,0.9) !important; 
+        0 0 0 3px #3d1f11, 0 0 0 5px #916142, 0 0 0 6px #1a0f0a, 0 10px 15px rgba(0,0,0,0.9) !important; 
         
-    z-index: 9999 !important; display: block !important; 
-    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    z-index: 9999 !important; display: block !important; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* 隱藏原生多餘子元素 */
-[data-testid="stCameraInput"] button * { display: none !important; }
+/* 徹底遮蔽內部預設元件 */
+[data-testid="stCameraInput"] button * { display: none !important; color: transparent !important; }
 
-/* 共用 SVG 圖層置中設定 */
+/* 共通的 SVG 置中魔法 */
 [data-testid="stCameraInput"] button::after {
     content: ''; position: absolute !important; top: 50% !important; left: 50% !important;
     transform: translate(-50%, -50%) !important; background-size: contain !important;
     background-repeat: no-repeat !important; background-position: center !important;
     filter: drop-shadow(0px 1.5px 1px rgba(255,255,255,0.45)) !important; 
-    text-indent: 0 !important; /* 確保圖案不會跟著文字被隱藏 */
+    text-indent: 0 !important; /* 解除縮進，讓圖示出現 */
 }
 
-/* --- 🔴 1. 上方按鈕：切換鏡頭 (強制鎖定內部層級) --- */
-[data-testid="stCameraInput"] > div button { 
+/* --- 🔴 2. 上方按鈕：切換鏡頭 (利用 Streamlit 內建的 title 標籤精準辨識) --- */
+[data-testid="stCameraInput"] button[aria-label], 
+[data-testid="stCameraInput"] button[title] {
     top: 285px !important; bottom: auto !important; 
 }
-[data-testid="stCameraInput"] > div button::after { 
+[data-testid="stCameraInput"] button[aria-label]::after, 
+[data-testid="stCameraInput"] button[title]::after {
     width: 34px !important; height: 34px !important; 
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232b1308'%3E%3Cpath d='M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z'/%3E%3C/svg%3E") !important;
 }
 
-/* --- 🟡 2. 下方按鈕：拍照或重拍 (強制鎖定外層級) --- */
-[data-testid="stCameraInput"] > button { 
+/* --- 🟡 3. 下方按鈕：拍照或重拍 (過濾掉有標籤的，剩下的絕對就是拍照鍵) --- */
+[data-testid="stCameraInput"] button:not([aria-label]):not([title]) {
     top: 362px !important; bottom: auto !important; 
 }
 
-/* 預設下方為拍照相機圖案 */
-[data-testid="stCameraInput"] > button::after { 
+/* 預設為相機圖示 */
+[data-testid="stCameraInput"] button:not([aria-label]):not([title])::after {
     width: 34px !important; height: 34px !important; 
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232b1308'%3E%3Cpath d='M20 5h-3.17L15 3H9L7.17 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 14H4V7h4.05l1.83-2h4.24l1.83 2H20v12z'/%3E%3Cpath d='M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3z'/%3E%3C/svg%3E") !important;
 }
 
-/* 雙重保險：如果畫面已拍照 (出現 img)，換成重拍叉叉圖案 */
-[data-testid="stCameraInput"]:has(img) > button::after { 
+/* 當已拍照 (出現 img) 時，強制換成重拍叉叉圖示 */
+[data-testid="stCameraInput"]:has(img) button:not([aria-label]):not([title])::after {
     width: 28px !important; height: 28px !important; 
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232b1308'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E") !important;
 }
@@ -105,9 +106,8 @@ div.stButton > button:hover { background: rgba(255, 255, 255, 1) !important; bor
 /* --- 🕹️ 真實機械按壓物理回饋 --- */
 [data-testid="stCameraInput"] button:active { 
     box-shadow: 
-        inset 2px 2px 10px rgba(0,0,0,0.8), 
-        0 0 0 3px #3d1f11, 0 0 0 5px #916142, 0 0 0 6px #1a0f0a, 
-        0 3px 5px rgba(0,0,0,0.9) !important; 
+        inset 2px 2px 10px rgba(0,0,0,0.8), 0 0 0 3px #3d1f11, 0 0 0 5px #916142, 
+        0 0 0 6px #1a0f0a, 0 3px 5px rgba(0,0,0,0.9) !important; 
     transform: translateX(-50%) translateY(4px) !important; 
 }
 
