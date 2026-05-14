@@ -5,12 +5,11 @@ from opencc import OpenCC
 # ==========================================
 # 1. 系統常數與資安設定 (Config & Security)
 # ==========================================
-# 【資安優化】：不再將密碼寫死在程式碼中，改由 Streamlit Secrets 安全讀取
 try:
     PLANTNET_API_KEY = st.secrets["PLANTNET_API_KEY"]
 except KeyError:
     st.error("⚠️ 系統設定錯誤：遺失 API 授權金鑰。請管理員至 Secrets 中設定。")
-    st.stop() # 阻斷程式繼續執行，保護系統
+    st.stop()
 
 CC_CONVERTER = OpenCC('s2t')
 
@@ -30,7 +29,7 @@ def identify_plant_from_api(image_file):
     files = [('images', (image_file.name, image_file.getvalue(), image_file.type))]
     
     try:
-        response = requests.post(api_url, files=files, timeout=15) # 【資安優化】：加入 Timeout 防禦長時間掛起攻擊
+        response = requests.post(api_url, files=files, timeout=15)
         
         if response.status_code == 401 or response.status_code == 403:
             return {"success": False, "error": "驗證失敗，請確認圖鑑系統授權狀態。"}
@@ -55,7 +54,7 @@ def identify_plant_from_api(image_file):
             if wiki_res.status_code == 200:
                 description = CC_CONVERTER.convert(wiki_res.json().get('extract', description))
         except:
-            pass # 維基百科異常時，靜默失敗，不影響主功能
+            pass
 
         return {
             "success": True,
@@ -66,7 +65,6 @@ def identify_plant_from_api(image_file):
             "type": "plant"
         }
     except Exception:
-        # 【資安優化】：移除直接拋出 Exception as e 的做法，改為模糊友善訊息，避免暴露後端函式庫細節
         return {"success": False, "error": "系統網路通訊異常，請確認連線狀態後重試。"}
 
 # ==========================================
@@ -97,7 +95,23 @@ def load_custom_css():
         [data-testid="stCameraInput"] button { background: rgba(93, 64, 55, 0.85) !important; backdrop-filter: blur(8px) !important; border: 2px solid rgba(255, 255, 255, 0.6) !important; z-index: 50 !important; box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important; }
         [data-testid="stCameraInput"] button p, [data-testid="stCameraInput"] button div { color: #FFFFFF !important; font-weight: 900 !important; text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; letter-spacing: 1px !important; }
         [data-testid="stCameraInput"] button:has(svg) { position: absolute !important; top: 25px !important; right: 25px !important; border-radius: 50% !important; width: 46px !important; height: 46px !important; display: flex; align-items: center; justify-content: center; }
-        [data-testid="stCameraInput"] button:not(:has(svg)) { position: absolute !important; bottom: 30px !important; left: 50% !important; transform: translateX(-50%) !important; border-radius: 30px !important; padding: 10px 35px !important; }
+        
+        /* 💡 重點修正：解除置中綁架，縮小寬度，強制推到圓形最下方 */
+        [data-testid="stCameraInput"] button:not(:has(svg)) { 
+            position: absolute !important; 
+            top: auto !important; /* 解除 Streamlit 預設的垂直置中 */
+            bottom: 20px !important; /* 強制貼齊圓形底部 */
+            left: 50% !important; 
+            transform: translateX(-50%) !important; 
+            width: 160px !important; /* 縮短按鈕，變成膠囊形狀 */
+            height: 45px !important; 
+            margin: 0 !important; /* 清除所有預設的邊距干擾 */
+            border-radius: 30px !important; 
+            padding: 0 !important; 
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
 
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%); pointer-events: none; z-index: 15; }
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after { content: ''; position: absolute; top: 312px; left: 50%; transform: translateX(-50%); width: 44px; height: 110px; background: linear-gradient(to right, #4E342E, #8D6E63, #4E342E); border-radius: 0 0 25px 25px; box-shadow: 0 15px 30px rgba(94, 53, 17, 0.4), inset 0 -5px 15px rgba(0,0,0,0.3); z-index: 5; }
