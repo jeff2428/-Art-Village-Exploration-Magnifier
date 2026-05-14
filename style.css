@@ -1,118 +1,393 @@
 /* style.css */
-.stApp { background: linear-gradient(-45deg, #F9FBE7, #E8F5E9, #DCEDC8); background-size: 400% 400%; animation: gradientBG 15s ease infinite; font-family: '微軟正黑體', sans-serif; }
-@keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+:root {
+    --forest-900: #244129;
+    --forest-700: #2f6f3e;
+    --leaf-500: #72a84a;
+    --moss-100: #eef6df;
+    --paper: rgba(255, 253, 244, 0.92);
+    --paper-strong: #fffdf6;
+    --bark-800: #3d2a21;
+    --bark-600: #6f5445;
+    --clay-500: #a8795f;
+    --sky-100: #e8f6f5;
+    --focus: #0e7490;
+    --shadow-soft: 0 12px 28px rgba(47, 37, 25, 0.13);
+    --shadow-lift: 0 16px 34px rgba(47, 37, 25, 0.18);
+}
 
-div[role="radiogroup"] label, div[role="radiogroup"] div, div[role="radiogroup"] p { color: #2E7D32 !important; font-weight: 800 !important; font-size: 1rem !important; }
-.stRadio > div { background: rgba(255,255,255,0.85) !important; padding: 10px 20px; border-radius: 30px; border: 2px solid rgba(141,110,99,0.3) !important; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+.stApp {
+    color: var(--bark-800);
+    background:
+        linear-gradient(135deg, rgba(232, 246, 245, 0.82), rgba(238, 246, 223, 0.88)),
+        radial-gradient(circle at 50% 0%, rgba(255, 253, 244, 0.9), transparent 46%),
+        #edf4dc;
+    font-family: "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif;
+}
 
-button[data-baseweb="tab"] p, button[data-baseweb="tab"] span { color: #4E342E !important; font-weight: 800 !important; font-size: 1.1rem !important; }
-button[data-baseweb="tab"][aria-selected="true"] p, button[data-baseweb="tab"][aria-selected="true"] span { color: #2E7D32 !important; }
-div[data-baseweb="tab-highlight"] { background-color: #2E7D32 !important; }
+.block-container {
+    max-width: 880px;
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+}
 
-div.stButton > button { background: rgba(255, 255, 255, 0.85) !important; color: #4E342E !important; border: 2px solid rgba(141, 110, 99, 0.3) !important; border-radius: 20px !important; font-weight: 800 !important; transition: all 0.3s ease !important; }
-div.stButton > button:hover { background: rgba(255, 255, 255, 1) !important; border-color: #8D6E63 !important; transform: translateY(-2px) !important; box-shadow: 0 4px 10px rgba(0,0,0,0.1) !important; }
+h1 {
+    margin: 0 0 1.25rem;
+    color: var(--forest-900);
+    font-size: clamp(2.15rem, 7vw, 3.65rem);
+    font-weight: 900;
+    letter-spacing: 0;
+    text-align: center;
+    text-shadow: 0 6px 22px rgba(47, 111, 62, 0.16);
+}
 
-.stMarkdown p, .stMarkdown span, .stMarkdown div { color: #4E342E !important; }
+.gallery-heading {
+    margin: 0 0 1rem;
+    color: var(--bark-800);
+    font-weight: 850;
+    letter-spacing: 0;
+    text-align: center;
+}
 
-/* ================= 放大鏡容器與主體圓框 ================= */
-[data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) { display: flex; justify-content: center; position: relative; margin-top: 40px; margin-bottom: 240px !important; z-index: 10; }
+.stMarkdown p,
+.stMarkdown span,
+.stMarkdown div {
+    color: var(--bark-800) !important;
+}
 
-[data-testid="stCameraInput"] { 
-    width: 320px !important; height: 320px !important; border-radius: 50% !important; border: 12px solid #FFF8E1 !important; 
-    box-shadow: 0 0 0 2px #A1887F, 0 0 0 10px #4E342E, 0 25px 50px rgba(94, 53, 17, 0.3), inset 0 0 30px rgba(0,0,0,0.8) !important; 
-    overflow: visible !important; background-color: #000 !important; position: relative !important; margin: 0 auto !important; padding: 0 !important; 
+div[role="radiogroup"] {
+    justify-content: center;
+}
+
+div[role="radiogroup"] label,
+div[role="radiogroup"] div,
+div[role="radiogroup"] p {
+    color: var(--forest-900) !important;
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+}
+
+.stRadio > div {
+    width: fit-content;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0.45rem;
+    border: 1px solid rgba(111, 84, 69, 0.22) !important;
+    border-radius: 999px;
+    background: rgba(255, 253, 244, 0.88) !important;
+    box-shadow: var(--shadow-soft);
+}
+
+button[data-baseweb="tab"] p,
+button[data-baseweb="tab"] span {
+    color: var(--bark-800) !important;
+    font-size: 1.05rem !important;
+    font-weight: 850 !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] p,
+button[data-baseweb="tab"][aria-selected="true"] span {
+    color: var(--forest-700) !important;
+}
+
+div[data-baseweb="tab-highlight"] {
+    background-color: var(--forest-700) !important;
+}
+
+div.stButton > button {
+    min-height: 2.75rem;
+    border: 1px solid rgba(111, 84, 69, 0.26) !important;
+    border-radius: 0.75rem !important;
+    background: var(--paper) !important;
+    color: var(--bark-800) !important;
+    font-weight: 850 !important;
+    letter-spacing: 0;
+    box-shadow: 0 7px 18px rgba(47, 37, 25, 0.09) !important;
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease !important;
+}
+
+div.stButton > button:hover {
+    border-color: var(--clay-500) !important;
+    background: var(--paper-strong) !important;
+    box-shadow: var(--shadow-lift) !important;
+    transform: translateY(-1px) !important;
+}
+
+div.stButton > button:focus-visible,
+[data-testid="stCameraInput"] button:focus-visible {
+    outline: 3px solid var(--focus) !important;
+    outline-offset: 3px !important;
+}
+
+[data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) {
+    display: flex;
+    justify-content: center;
+    position: relative;
+    z-index: 10;
+    margin-top: 2rem;
+    margin-bottom: clamp(12rem, 30vw, 15.25rem) !important;
+}
+
+[data-testid="stCameraInput"] {
+    position: relative !important;
+    width: min(76vw, 320px) !important;
+    height: min(76vw, 320px) !important;
     box-sizing: border-box !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: clamp(8px, 2.8vw, 12px) solid #fff8df !important;
+    border-radius: 50% !important;
+    background-color: #0f1512 !important;
+    box-shadow:
+        0 0 0 2px #9a8172,
+        0 0 0 clamp(7px, 2.2vw, 10px) #3d2a21,
+        0 24px 48px rgba(61, 42, 33, 0.3),
+        inset 0 0 30px rgba(0, 0, 0, 0.8) !important;
 }
 
-[data-testid="stCameraInput"] div { background: transparent !important; border: none !important; position: static !important; }
-
-[data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { 
-    object-fit: cover !important; width: 100% !important; height: 100% !important; 
-    position: absolute !important; top: 0 !important; left: 0 !important; 
-    z-index: 1 !important; border-radius: 50% !important; 
-}
-
-/* ================= 🛠️ 拉長一倍的 8字型皮革墊片 ================= */
-[data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after { 
-    content: ''; position: absolute; top: 285px; left: 50%; transform: translateX(-50%); 
-    width: 86px; height: 230px; /* 完美拉長至 230px */
-    background: #4a2f24; border-radius: 43px; border: 2px solid #1a0f0a; 
-    box-shadow: inset 0 0 0 2px #5d3c2e, inset 0 0 0 5px #382117, inset 0 0 0 6px dashed #9e7a68, 0 15px 30px rgba(0,0,0,0.6); 
-    z-index: 5; 
-}
-
-/* ================= 🛠️ 終極版手機相容按鈕設定 ================= */
-[data-testid="stCameraInput"] button {
-    -webkit-appearance: none !important; appearance: none !important; /* 解除 Apple/Android 預設按鈕綁架 */
-    position: absolute !important; left: 50% !important; transform: translateX(-50%) !important;
-    width: 66px !important; height: 66px !important; border-radius: 50% !important;
-    padding: 0 !important; margin: 0 !important; box-sizing: border-box !important;
-    
-    /* 終極文字放逐 */
-    color: transparent !important; font-size: 0px !important; line-height: 0 !important; text-indent: -9999px !important;
-    
-    /* 青銅金屬漸層與 3D 雕刻陰影 */
-    background: radial-gradient(circle at 35% 30%, #e8bc96 0%, #c48c66 25%, #875030 65%, #472211 100%) !important; 
+[data-testid="stCameraInput"] div {
+    position: static !important;
     border: none !important;
-    box-shadow: 
-        inset 1px 1px 4px rgba(255,255,255,0.5), inset -3px -3px 8px rgba(0,0,0,0.8), 
-        0 0 0 3px #3d1f11, 0 0 0 5px #916142, 0 0 0 6px #1a0f0a, 
-        0 10px 15px rgba(0,0,0,0.9) !important; 
-        
-    z-index: 9999 !important; display: block !important; cursor: pointer !important;
-    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background: transparent !important;
 }
 
-/* 隱藏原生組件 */
-[data-testid="stCameraInput"] button * { display: none !important; }
+[data-testid="stCameraInput"] video,
+[data-testid="stCameraInput"] img,
+[data-testid="stCameraInput"] canvas {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    z-index: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+}
 
-/* 共通 SVG 畫布設定 */
+[data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 15;
+    width: min(76vw, 320px);
+    height: min(76vw, 320px);
+    border-radius: 50%;
+    background: radial-gradient(circle at 68% 28%, rgba(255, 255, 255, 0.33) 0%, rgba(255, 255, 255, 0) 58%);
+    pointer-events: none;
+    transform: translateX(-50%);
+}
+
+[data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after {
+    content: "";
+    position: absolute;
+    top: min(68vw, 285px);
+    left: 50%;
+    z-index: 5;
+    width: clamp(70px, 20vw, 86px);
+    height: clamp(185px, 48vw, 230px);
+    border: 2px solid #1a100b;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #58382a, #372217);
+    box-shadow:
+        inset 0 0 0 2px #654536,
+        inset 0 0 0 6px rgba(158, 122, 104, 0.38),
+        0 16px 30px rgba(47, 37, 25, 0.42);
+    transform: translateX(-50%);
+}
+
+[data-testid="stCameraInput"] button {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    position: absolute !important;
+    left: 50% !important;
+    z-index: 9999 !important;
+    display: block !important;
+    width: clamp(54px, 15vw, 66px) !important;
+    height: clamp(54px, 15vw, 66px) !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 50% !important;
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    text-indent: -9999px !important;
+    cursor: pointer !important;
+    background: radial-gradient(circle at 35% 30%, #edc6a7 0%, #c88d64 28%, #875235 66%, #412012 100%) !important;
+    box-shadow:
+        inset 1px 1px 4px rgba(255, 255, 255, 0.5),
+        inset -3px -3px 8px rgba(0, 0, 0, 0.68),
+        0 0 0 3px #3d1f11,
+        0 0 0 5px #916142,
+        0 8px 16px rgba(0, 0, 0, 0.46) !important;
+    transition: transform 120ms ease, box-shadow 120ms ease !important;
+    transform: translateX(-50%) !important;
+}
+
+[data-testid="stCameraInput"] button * {
+    display: none !important;
+}
+
 [data-testid="stCameraInput"] button::after {
-    content: ''; position: absolute !important; top: 50% !important; left: 50% !important;
-    transform: translate(-50%, -50%) !important; background-size: contain !important;
-    background-repeat: no-repeat !important; background-position: center !important;
-    filter: drop-shadow(0px 1.5px 1px rgba(255,255,255,0.45)) !important; 
+    content: "";
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 52% !important;
+    height: 52% !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: contain !important;
+    filter: drop-shadow(0 1px 1px rgba(255, 255, 255, 0.45)) !important;
+    transform: translate(-50%, -50%) !important;
 }
 
-/* --- 🔴 1. 上方按鈕：切換鏡頭 (DOM 子元素穿透定位) --- */
-[data-testid="stCameraInput"] > div button { 
-    top: 305px !important; bottom: auto !important; 
+[data-testid="stCameraInput"] > div button {
+    top: calc(min(76vw, 320px) - 15px) !important;
 }
-[data-testid="stCameraInput"] > div button::after { 
-    width: 32px !important; height: 32px !important; 
+
+[data-testid="stCameraInput"] > div button::after {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232b1308'%3E%3Cpath d='M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z'/%3E%3C/svg%3E") !important;
 }
 
-/* --- 🟡 2. 下方按鈕：拍照或重拍 (DOM 子元素穿透定位) --- */
-[data-testid="stCameraInput"] > button { 
-    top: 410px !important; bottom: auto !important; 
+[data-testid="stCameraInput"] > button {
+    top: calc(min(76vw, 320px) + clamp(78px, 21vw, 105px)) !important;
 }
-[data-testid="stCameraInput"] > button::after { 
-    width: 34px !important; height: 34px !important; 
+
+[data-testid="stCameraInput"] > button::after {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232b1308'%3E%3Cpath d='M20 5h-3.17L15 3H9L7.17 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 14H4V7h4.05l1.83-2h4.24l1.83 2H20v12z'/%3E%3Cpath d='M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3z'/%3E%3C/svg%3E") !important;
 }
 
-/* 拍攝完成：轉換為重拍叉叉圖示 */
-[data-testid="stCameraInput"]:has(img) > button::after { 
-    width: 28px !important; height: 28px !important; 
+[data-testid="stCameraInput"]:has(img) > button::after {
+    width: 44% !important;
+    height: 44% !important;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232b1308'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E") !important;
 }
 
-/* --- 🕹️ 真實機械按壓物理回饋 --- */
-[data-testid="stCameraInput"] button:active { 
-    box-shadow: 
-        inset 2px 2px 10px rgba(0,0,0,0.8), 
-        0 0 0 3px #3d1f11, 0 0 0 5px #916142, 0 0 0 6px #1a0f0a, 
-        0 3px 5px rgba(0,0,0,0.9) !important; 
-    transform: translateX(-50%) translateY(4px) !important; 
+[data-testid="stCameraInput"] button:active {
+    box-shadow:
+        inset 2px 2px 10px rgba(0, 0, 0, 0.74),
+        0 0 0 3px #3d1f11,
+        0 0 0 5px #916142,
+        0 3px 7px rgba(0, 0, 0, 0.5) !important;
+    transform: translateX(-50%) translateY(3px) !important;
 }
 
-/* 鏡面高光 */
-[data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%); pointer-events: none; z-index: 15; }
+.result-card {
+    margin-top: 1.25rem;
+    padding: clamp(1rem, 4vw, 1.5rem);
+    border: 1px solid rgba(111, 84, 69, 0.22);
+    border-radius: 0.85rem;
+    background: var(--paper);
+    color: var(--bark-800);
+    box-shadow: var(--shadow-soft);
+}
 
-/* 資訊卡片 */
-.result-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(15px); padding: 25px; border-radius: 24px; border: 1px solid rgba(141, 110, 99, 0.3); color: #4E342E; margin-top: 20px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-.pokedex-card { background: rgba(255, 255, 255, 0.7); border-radius: 15px; padding: 15px; text-align: center; border: 2px solid rgba(141, 110, 99, 0.2); transition: all 0.3s ease; cursor: pointer; color: #4E342E !important; font-weight: bold; }
-.pokedex-card:hover { background: rgba(255, 255, 255, 0.95); transform: translateY(-5px); border-color: #8D6E63; }
+.result-card h2 {
+    margin: 0 0 0.85rem;
+    color: var(--forest-900);
+    font-size: clamp(1.35rem, 4.8vw, 1.8rem);
+    font-weight: 900;
+    letter-spacing: 0;
+}
 
-h1 { text-align: center; background: -webkit-linear-gradient(45deg, #2E7D32 0%, #7CB342 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 900; letter-spacing: 2px; text-shadow: 0px 4px 10px rgba(46, 125, 50, 0.2); margin-bottom: 20px; }
+.result-card h3 {
+    margin: 0 0 0.75rem;
+    color: var(--forest-900);
+}
+
+.result-card p {
+    margin: 0.55rem 0 0;
+    color: var(--bark-800) !important;
+    font-size: 1rem;
+    line-height: 1.72;
+}
+
+.card-note {
+    color: var(--bark-600) !important;
+    font-size: 0.88rem !important;
+    font-weight: 800;
+}
+
+.detail-list {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0.85rem 0;
+    padding: 0.85rem 0;
+    border-top: 1px solid rgba(111, 84, 69, 0.18);
+    border-bottom: 1px solid rgba(111, 84, 69, 0.18);
+}
+
+.detail-list div {
+    display: grid;
+    grid-template-columns: 5.5rem 1fr;
+    gap: 0.75rem;
+    align-items: baseline;
+}
+
+.detail-list dt {
+    color: var(--bark-600);
+    font-size: 0.9rem;
+    font-weight: 850;
+}
+
+.detail-list dd {
+    margin: 0;
+    color: var(--bark-800);
+}
+
+.pokedex-card {
+    padding: 1rem;
+    border: 1px solid rgba(111, 84, 69, 0.2);
+    border-radius: 0.75rem;
+    background: rgba(255, 253, 244, 0.78);
+    color: var(--bark-800) !important;
+    font-weight: 850;
+    text-align: center;
+    transition: transform 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.pokedex-card:hover {
+    border-color: var(--clay-500);
+    background: var(--paper-strong);
+    transform: translateY(-2px);
+}
+
+@media (max-width: 520px) {
+    .block-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .stRadio > div {
+        width: 100%;
+    }
+
+    div[role="radiogroup"] {
+        gap: 0.25rem;
+    }
+
+    div[role="radiogroup"] label,
+    div[role="radiogroup"] div,
+    div[role="radiogroup"] p {
+        font-size: 0.92rem !important;
+    }
+
+    .detail-list div {
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.001ms !important;
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

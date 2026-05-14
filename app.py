@@ -1,24 +1,53 @@
 # app.py
+from html import escape
+from pathlib import Path
+
 import streamlit as st
 from config import ANIMALS_DB
 from api_handler import identify_plant_from_api
 
+
+BASE_DIR = Path(__file__).resolve().parent
+
+
 # 讀取獨立的 CSS 檔案
 def load_local_css(file_name):
-    with open(file_name, "r", encoding="utf-8") as f:
+    css_path = BASE_DIR / file_name
+    with css_path.open("r", encoding="utf-8") as f:
         st.markdown(f"<style>\n{f.read()}\n</style>", unsafe_allow_html=True)
+
+
+def safe_text(value, default="N/A"):
+    return escape(str(value if value not in (None, "") else default), quote=True)
+
+
+def render_result_card(title, description, icon="🌱", meta_html=""):
+    st.markdown(
+        f"""
+        <section class="result-card" aria-label="{safe_text(title)}">
+            <h2>{safe_text(icon)} {safe_text(title)}</h2>
+            {meta_html}
+            <p>{safe_text(description)}</p>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
 
 @st.dialog("🌿 探險圖鑑詳情")
 def show_detail_dialog(item_data):
-    st.markdown(f"""
-        <div class="result-card">
-            <h2 style='color:#33691E; margin-top:0;'>{item_data.get('emoji', '🌱')} {item_data['zh_name']}</h2>
-            <p style='color:#5D4037;'><b>🇬🇧 英文名稱：</b> {item_data.get('eng_name', 'N/A')}</p>
-            <p style='color:#5D4037;'><b>🔬 拉丁學名：</b> <i>{item_data.get('sci_name', 'N/A')}</i></p>
-            <hr style='border: 0.5px solid rgba(141,110,99,0.2);'>
-            <p style='line-height:1.6; font-size: 1rem;'>{item_data['desc']}</p>
-        </div>
-    """, unsafe_allow_html=True)
+    meta_html = f"""
+        <dl class="detail-list">
+            <div><dt>英文名稱</dt><dd>{safe_text(item_data.get('eng_name'))}</dd></div>
+            <div><dt>拉丁學名</dt><dd><i>{safe_text(item_data.get('sci_name'))}</i></dd></div>
+        </dl>
+    """
+    render_result_card(
+        item_data.get("zh_name", "未知生物"),
+        item_data.get("desc", ""),
+        item_data.get("emoji", "🌱"),
+        meta_html,
+    )
 
 def init_session_state():
     if 'pokedex' not in st.session_state:
@@ -35,22 +64,21 @@ def main():
 
     st.markdown("<h1>探險放大鏡 🔍</h1>", unsafe_allow_html=True)
 
-    mode = st.radio("", ["🌿 尋找植物", "🐾 認識動物"], horizontal=True)
+    mode = st.radio("探索模式", ["🌿 尋找植物", "🐾 認識動物"], horizontal=True, label_visibility="collapsed")
 
     if mode == "🌿 尋找植物":
-        picture = st.camera_input("")
+        picture = st.camera_input("拍攝植物照片", label_visibility="collapsed")
         if picture:
             with st.status("💎 正在透過放大鏡比對圖鑑...", expanded=False) as status:
                 plant_data = identify_plant_from_api(picture)
                 if plant_data["success"]:
                     status.update(label="✨ 辨識成功", state="complete")
-                    st.markdown(f"""
-                        <div class="result-card">
-                            <h2 style='color:#33691E; margin-top:0;'>🌱 {plant_data['zh_name']}</h2>
-                            <p style='line-height:1.6;'>{plant_data['desc']}</p>
-                            <p style='font-size:0.8rem; color:#8D6E63; margin-top:10px;'>✔️ 已自動加入下方探險圖庫</p>
-                        </div>
-                    """, unsafe_allow_html=True)
+                    render_result_card(
+                        plant_data["zh_name"],
+                        plant_data["desc"],
+                        "🌱",
+                        '<p class="card-note">已自動加入下方探險圖庫</p>',
+                    )
                     st.session_state.pokedex[plant_data['zh_name']] = plant_data
                 else:
                     status.update(label="❌ 辨識失敗", state="error")
@@ -85,9 +113,9 @@ def main():
                 "type": "animal"
             }
             st.session_state.pokedex[st.session_state.active_pet] = animal_info
-            st.markdown(f"<div class='result-card'><h3>✨ 遇見了 {st.session_state.active_pet}！</h3><p>{pet['desc']}</p></div>", unsafe_allow_html=True)
+            render_result_card(f"遇見了 {st.session_state.active_pet}！", pet["desc"], "✨")
 
-    st.markdown("<br><br><h2 style='text-align:center; color:#5D4037; font-weight:800;'>🎒 探險圖庫</h2>", unsafe_allow_html=True)
+    st.markdown("<br><br><h2 class='gallery-heading'>🎒 探險圖庫</h2>", unsafe_allow_html=True)
     if not st.session_state.pokedex:
         st.info("圖庫目前空空如也，快點擊上方「模式」開始探索！")
     else:

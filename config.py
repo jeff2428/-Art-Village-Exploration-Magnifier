@@ -1,14 +1,24 @@
-# config.py
+"""Application configuration and static catalogue data."""
+
+import os
 import streamlit as st
 
 # ==========================================
 # 系統常數與設定 (Config & Constants)
 # ==========================================
-# 建議將金鑰放在 Streamlit Secrets，若本地測試可直接填入字串
-try:
-    PLANTNET_API_KEY = st.secrets["PLANTNET_API_KEY"]
-except KeyError:
-    PLANTNET_API_KEY = "2b1004UqTrbWJn4mj5hqcaZN" # 替換為您的 API KEY
+
+
+def _read_streamlit_secret(key):
+    try:
+        return st.secrets[key]
+    except (KeyError, FileNotFoundError, RuntimeError):
+        return None
+
+
+PLANTNET_API_KEY = os.getenv("PLANTNET_API_KEY") or _read_streamlit_secret("PLANTNET_API_KEY") or ""
+REQUEST_TIMEOUT_SECONDS = (3.05, 12)
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(5 * 1024 * 1024)))
+ALLOWED_IMAGE_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
 
 # 藝素村動物圖鑑資料庫
 ANIMALS_DB = {
