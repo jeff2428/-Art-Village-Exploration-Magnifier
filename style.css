@@ -37,86 +37,88 @@ div.stButton > button:hover { background: rgba(255, 255, 255, 1) !important; bor
 [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after { 
     content: ''; position: absolute; top: 275px; left: 50%; transform: translateX(-50%); 
     width: 86px; height: 165px; 
-    background: #4a2f24; /* 真實深棕皮革色 */
-    border-radius: 43px; /* 膠囊狀以模擬8字型 */
-    border: 2px solid #1a0f0a; /* 最外圈深色封邊 */
-    box-shadow: 
-        inset 0 0 0 2px #5d3c2e, /* 皮革倒角高光 */
-        inset 0 0 0 5px #382117, /* 縫線外側溝槽 */
-        inset 0 0 0 6px dashed #9e7a68, /* 完美模擬皮革縫線 */
-        0 15px 30px rgba(0,0,0,0.6); /* 懸浮陰影 */
+    background: #4a2f24; border-radius: 43px; border: 2px solid #1a0f0a; 
+    box-shadow: inset 0 0 0 2px #5d3c2e, inset 0 0 0 5px #382117, inset 0 0 0 6px dashed #9e7a68, 0 15px 30px rgba(0,0,0,0.6); 
     z-index: 5; 
 }
 
-/* ================= 🛠️ 極致還原：青銅機械實體按鍵 ================= */
+/* ================= 🛠️ 終極版：純圖案青銅按鍵 (完全消滅文字) ================= */
 [data-testid="stCameraInput"] button {
     position: absolute !important; left: 50% !important; transform: translateX(-50%) !important;
     width: 66px !important; height: 66px !important; border-radius: 50% !important;
     padding: 0 !important; margin: 0 !important; box-sizing: border-box !important;
     
-    /* 金屬圓頂漸層 (凸起感) */
+    /* 💡 終極文字放逐術：將原生文字推出按鈕可視範圍外，並設為透明與零尺寸 */
+    color: transparent !important;
+    text-indent: -9999px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    font-size: 0px !important;
+    line-height: 0 !important;
+    
+    /* 金屬圓頂漸層 */
     background: radial-gradient(circle at 35% 30%, #e8bc96 0%, #c48c66 25%, #875030 65%, #472211 100%) !important; 
     border: none !important;
     
-    /* 多層次機械感外框：內縮溝槽 -> 亮色金屬外環 -> 黑色邊緣 */
     box-shadow: 
-        inset 1px 1px 4px rgba(255,255,255,0.5), /* 圓頂高光 */
-        inset -3px -3px 8px rgba(0,0,0,0.8), /* 圓頂暗面 */
-        0 0 0 3px #3d1f11, /* 內側深溝槽 */
-        0 0 0 5px #916142, /* 外圍青銅環 */
-        0 0 0 6px #1a0f0a, /* 絕對黑邊緣 */
-        0 10px 15px rgba(0,0,0,0.9) !important; /* 投射在皮革上的落影 */
+        inset 1px 1px 4px rgba(255,255,255,0.5), 
+        inset -3px -3px 8px rgba(0,0,0,0.8), 
+        0 0 0 3px #3d1f11, 0 0 0 5px #916142, 0 0 0 6px #1a0f0a, 
+        0 10px 15px rgba(0,0,0,0.9) !important; 
         
-    z-index: 9999 !important; display: flex !important; align-items: center !important; justify-content: center !important;
+    z-index: 9999 !important; display: block !important; 
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* 徹底隱藏任何原生文字與多餘組件，實現「只要圖示」的純淨感 */
+/* 確保所有內部可能包裝文字的標籤都不顯示 */
 [data-testid="stCameraInput"] button * { display: none !important; color: transparent !important; }
 
-/* 🔴 上方按鈕：切換鏡頭 (卡在圓框邊界上) */
+/* 💡 所有按鈕共用的 SVG 圖層：使用絕對定位覆蓋在按鈕正中心 */
+[data-testid="stCameraInput"] button::after {
+    content: '';
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    filter: drop-shadow(0px 1.5px 1px rgba(255,255,255,0.45)) !important; /* 雕刻反光感 */
+    text-indent: 0 !important; /* 覆蓋掉外層的文字放逐設定，確保圖案出現 */
+}
+
+/* 🔴 上方按鈕：切換鏡頭 (如果設備有兩顆以上鏡頭才會出現) */
 [data-testid="stCameraInput"]:not(:has(img)) button:has(svg) { top: 285px !important; bottom: auto !important; }
 
-/* 🔄 切換圖示 (精準雕刻內凹效果) */
 [data-testid="stCameraInput"]:not(:has(img)) button:has(svg)::after { 
-    content: ''; width: 34px; height: 34px; 
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%232b1308"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>');
-    background-size: cover;
-    /* 利用亮色下沉陰影，製造深色雕刻感 */
-    filter: drop-shadow(0px 1.5px 1px rgba(255,255,255,0.45)); 
+    width: 32px !important; height: 32px !important; 
+    /* URL Encode 過的安全 SVG 圖案 */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232b1308'%3E%3Cpath d='M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z'/%3E%3C/svg%3E") !important;
 }
 
 /* 🟡 下方按鈕：拍照 (完美卡在皮革墊片正下方) */
 [data-testid="stCameraInput"]:not(:has(img)) button:not(:has(svg)) { top: 362px !important; bottom: auto !important; }
 
-/* 📸 魔法相機圖示 (精細重繪：機身 + 光圈鏡頭 + 魔法星星 + 下載箭頭) */
 [data-testid="stCameraInput"]:not(:has(img)) button:not(:has(svg))::after { 
-    content: ''; width: 34px; height: 34px; 
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%232b1308"><path d="M20 5h-3.17L15 3H9L7.17 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 14H4V7h4.05l1.83-2h4.24l1.83 2H20v12z"/><path d="M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3z"/><path d="M5.5 8l-.5-1.5L3.5 6l1.5-.5L5.5 4l.5 1.5L7.5 6l-1.5.5z"/><path d="M18.5 9v2h-1V9h-2V8h2V6h1v2h2v1z"/></svg>');
-    background-size: cover;
-    filter: drop-shadow(0px 1.5px 1px rgba(255,255,255,0.45)); 
+    width: 34px !important; height: 34px !important; 
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232b1308'%3E%3Cpath d='M20 5h-3.17L15 3H9L7.17 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 14H4V7h4.05l1.83-2h4.24l1.83 2H20v12z'/%3E%3Cpath d='M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3z'/%3E%3C/svg%3E") !important;
 }
 
 /* 🟡 下方按鈕：重拍 (已拍照時取代拍照按鈕) */
 [data-testid="stCameraInput"]:has(img) button { top: 362px !important; bottom: auto !important; }
 
-/* ✖️ 重拍叉叉圖示 */
 [data-testid="stCameraInput"]:has(img) button::after { 
-    content: ''; width: 30px; height: 30px; 
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%232b1308"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>');
-    background-size: cover;
-    filter: drop-shadow(0px 1.5px 1px rgba(255,255,255,0.45)); 
+    width: 28px !important; height: 28px !important; 
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232b1308'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E") !important;
 }
 
-/* 🕹️ 真實機械按壓物理回饋：按鈕壓下去時光影會發生變化並下沉 */
+/* 🕹️ 真實機械按壓物理回饋 */
 [data-testid="stCameraInput"] button:active { 
     box-shadow: 
-        inset 2px 2px 10px rgba(0,0,0,0.8), /* 內部按壓黑影變深 */
-        0 0 0 3px #3d1f11, 
-        0 0 0 5px #916142, 
-        0 0 0 6px #1a0f0a, 
-        0 3px 5px rgba(0,0,0,0.9) !important; /* 落影縮短變濃 */
-    transform: translateX(-50%) translateY(4px) !important; /* 按鈕往下沉 4px */
+        inset 2px 2px 10px rgba(0,0,0,0.8), 
+        0 0 0 3px #3d1f11, 0 0 0 5px #916142, 0 0 0 6px #1a0f0a, 
+        0 3px 5px rgba(0,0,0,0.9) !important; 
+    transform: translateX(-50%) translateY(4px) !important; 
 }
 
 /* 鏡面高光 */
