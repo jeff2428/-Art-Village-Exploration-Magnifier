@@ -52,6 +52,14 @@ powershell -ExecutionPolicy Bypass -File scripts/dev.ps1
 
 瀏覽器會開啟本機 Flet 畫面。你改程式、存檔、看畫面，確認功能完成後再推送到 GitHub。
 
+這個腳本會在 `flet_app/` 執行：
+
+```powershell
+flet run -d -w main.py
+```
+
+在 Flet 0.85 裡，`-d` 是監看資料夾並熱重載，`-w` 才是用瀏覽器開啟 Web App。
+
 上線流程：
 
 ```bash

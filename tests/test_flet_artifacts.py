@@ -68,7 +68,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("探險家載入中", patcher)
         self.assertIn("explorer-pulse", patcher)
         self.assertIn("hasFletContent", patcher)
-        self.assertIn("flet run -d chrome", dev)
+        self.assertIn("flet run -d -w main.py", dev)
         self.assertIn("flet_app/requirements.txt", install_dev)
 
 

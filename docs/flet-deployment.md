@@ -64,6 +64,8 @@ Start local Flet development:
 powershell -ExecutionPolicy Bypass -File scripts/dev.ps1
 ```
 
+This runs `flet run -d -w main.py` from `flet_app/`. In Flet 0.85, `-d` watches the script directory for hot reload, and `-w` opens the web app in your browser.
+
 Iterate locally until the UI, buttons, responsive layout, and API calls are acceptable. Push to GitHub only when the change is ready for Cloudflare to compile and publish.
 
 ## Local Build
