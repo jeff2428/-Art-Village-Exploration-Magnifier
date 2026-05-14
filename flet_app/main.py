@@ -8,8 +8,10 @@ import flet_camera as fc
 
 from magnifier_handle import MagnifierHandle
 
-
-WORKER_URL = "https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev"
+try:
+    from build_config import WORKER_URL
+except ImportError:
+    WORKER_URL = "https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev"
 
 ANIMALS_DB = {
     "貝貝": {"type": "animal", "emoji": "🐶", "desc": "映澄最心愛的米克斯母狗，也是藝素村最溫柔的導嚮員。"},

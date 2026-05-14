@@ -18,6 +18,8 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("env.PLANTNET_API_KEY", worker)
         self.assertNotIn("2b1004", worker)
         self.assertIn("github\\.io", worker)
+        self.assertIn("pages\\.dev", worker)
+        self.assertIn("ALLOWED_ORIGIN", worker)
         self.assertIn("Access-Control-Allow-Origin", worker)
 
     def test_flet_app_has_magnifier_handle_callbacks(self):
@@ -37,15 +39,17 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("set_description", main)
         self.assertIn("GridView", main)
 
-    def test_deploy_workflow_builds_and_patches_loader(self):
-        workflow = (ROOT / ".github" / "workflows" / "deploy.yml").read_text(encoding="utf-8")
+    def test_cloudflare_pages_builds_and_patches_loader(self):
+        build = (ROOT / "build.sh").read_text(encoding="utf-8")
         patcher = (ROOT / "scripts" / "patch_flet_loader.py").read_text(encoding="utf-8")
+        wrangler = (ROOT / "wrangler.toml").read_text(encoding="utf-8")
 
-        self.assertIn("flet build web", workflow)
-        self.assertIn("--route-url-strategy hash", workflow)
-        self.assertIn("peaceiris/actions-gh-pages", workflow)
-        self.assertIn("publish_branch: gh-pages", workflow)
-        self.assertIn("patch_flet_loader.py", workflow)
+        self.assertFalse((ROOT / ".github" / "workflows" / "deploy.yml").exists())
+        self.assertIn("python -m flet build web", build)
+        self.assertIn("--route-url-strategy hash", build)
+        self.assertIn("WORKER_URL", build)
+        self.assertIn("patch_flet_loader.py", build)
+        self.assertIn('pages_build_output_dir = "flet_app/build/web"', wrangler)
         self.assertIn("flet_app/build/web/index.html", patcher)
         self.assertIn("探險家載入中", patcher)
         self.assertIn("explorer-pulse", patcher)

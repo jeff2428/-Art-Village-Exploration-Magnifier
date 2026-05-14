@@ -1,4 +1,4 @@
-# Flet Web Deployment
+# Flet Web Deployment on Cloudflare Pages
 
 ## Cloudflare Worker
 
@@ -10,21 +10,31 @@ npx wrangler deploy
 npx wrangler secret put PLANTNET_API_KEY
 ```
 
-Only requests from `https://*.github.io` origins are allowed by CORS.
+Requests from Cloudflare Pages `https://*.pages.dev` origins are allowed by CORS. If you use a custom domain, set an `ALLOWED_ORIGIN` Worker variable such as `https://example.com`.
 
-## Flet Build
+## Cloudflare Pages
 
-Set `WORKER_URL` in `flet_app/main.py` to your deployed Worker URL, then build:
+Use Cloudflare Pages Git integration with these settings:
+
+- Framework preset: `None`
+- Root directory: `/`
+- Build command: `bash build.sh`
+- Build output directory: `flet_app/build/web`
+- Production branch: `main`
+
+Add this Pages environment variable before the first production build:
+
+```text
+WORKER_URL=https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
+```
+
+`build.sh` installs the Flet dependencies, writes the Worker URL into `flet_app/build_config.py`, builds the static web app, then patches the custom loading animation.
+
+## Local Build
 
 ```bash
-cd flet_app
-uv run flet build web --yes --verbose --base-url -Art-Village-Exploration-Magnifier --route-url-strategy hash --web-renderer html
-cd ..
-python scripts/patch_flet_loader.py
+set WORKER_URL=https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
+bash build.sh
 ```
 
 The generated web app will be in `flet_app/build/web`.
-
-## GitHub Pages
-
-The workflow at `.github/workflows/deploy.yml` builds on every push to `main` and publishes the generated files to the `gh-pages` branch. In repository settings, set Pages source to deploy from the `gh-pages` branch.

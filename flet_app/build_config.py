@@ -1,0 +1,1 @@
+WORKER_URL = "https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev"
