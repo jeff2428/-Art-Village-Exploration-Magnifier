@@ -145,11 +145,23 @@ div.stButton > button:focus-visible,
         inset 0 0 30px rgba(0, 0, 0, 0.8) !important;
 }
 
-[data-testid="stCameraInputWebcamComponent"],
-[data-testid="stCameraInputWebcamStyledBox"] {
+[data-testid="stCameraInputWebcamComponent"] {
+    position: static !important;
     overflow: visible !important;
     border: none !important;
     background: transparent !important;
+}
+
+[data-testid="stCameraInputWebcamStyledBox"] {
+    position: absolute !important;
+    inset: 0 !important;
+    z-index: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    border: none !important;
+    border-radius: 50% !important;
+    background: #0f1512 !important;
 }
 
 [data-testid="stCameraInput"] video,
@@ -293,7 +305,11 @@ div.stButton > button:focus-visible,
     top: calc(min(76vw, 320px) + clamp(22px, 6vw, 30px)) !important;
     left: 50% !important;
     right: auto !important;
-    z-index: 9999 !important;
+    z-index: 10000 !important;
+    width: clamp(66px, 18vw, 78px) !important;
+    height: clamp(66px, 18vw, 78px) !important;
+    opacity: 1 !important;
+    mix-blend-mode: normal !important;
     transform: translateX(-50%) !important;
 }
 
@@ -321,7 +337,7 @@ div.stButton > button:focus-visible,
     position: absolute !important;
     top: calc(min(76vw, 320px) + clamp(22px, 6vw, 30px)) !important;
     left: 50% !important;
-    z-index: 9998 !important;
+    z-index: 9997 !important;
     display: inline-flex !important;
     align-items: flex-end !important;
     justify-content: center !important;
@@ -344,6 +360,10 @@ div.stButton > button:focus-visible,
         0 0 0 5px #7a6658,
         0 5px 11px rgba(0, 0, 0, 0.36) !important;
     transform: translateX(-50%) !important;
+}
+
+[data-testid="stCameraInput"]:has([data-testid="stCameraInputSwitchButton"])::before {
+    opacity: 0 !important;
 }
 
 [data-testid="stCameraInput"] [data-testid="stCameraInputButton"] {

@@ -52,6 +52,21 @@ class CameraControlsCssTests(unittest.TestCase):
         self.assertIn('[data-testid="stCameraInputWebcamStyledBox"]', css)
         self.assertIn("overflow: visible !important", css)
 
+    def test_webcam_preview_fills_round_lens(self):
+        css = STYLE_PATH.read_text(encoding="utf-8")
+
+        self.assertIn('[data-testid="stCameraInputWebcamStyledBox"]', css)
+        self.assertIn("inset: 0 !important", css)
+        self.assertIn("height: 100% !important", css)
+        self.assertIn("overflow: hidden !important", css)
+        self.assertIn("border-radius: 50% !important", css)
+
+    def test_native_switch_hides_unavailable_fallback(self):
+        css = STYLE_PATH.read_text(encoding="utf-8")
+
+        self.assertIn('[data-testid="stCameraInput"]:has([data-testid="stCameraInputSwitchButton"])::before', css)
+        self.assertIn("opacity: 0 !important", css)
+
     def test_unavailable_switch_fallback_does_not_depend_on_has(self):
         css = STYLE_PATH.read_text(encoding="utf-8")
 
