@@ -90,18 +90,23 @@ def load_custom_css():
 
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) { display: flex; justify-content: center; position: relative; margin-top: 40px; margin-bottom: 140px !important; z-index: 10; }
         [data-testid="stCameraInput"] { width: 320px !important; height: 320px !important; border-radius: 50% !important; border: 12px solid #FFF8E1 !important; box-shadow: 0 0 0 2px #A1887F, 0 0 0 10px #5D4037, 0 25px 50px rgba(94, 53, 17, 0.3), inset 0 0 30px rgba(0,0,0,0.8) !important; overflow: hidden !important; background-color: #000 !important; position: relative !important; margin: 0 auto !important; padding: 0 !important; }
-        [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { object-fit: cover !important; width: 100% !important; height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; }
+        
+        /* 🛠️ 解除 Streamlit 內部 div 綁架，讓按鈕可以任意對齊圓形邊緣 */
+        [data-testid="stCameraInput"] div { position: static !important; }
+        
+        [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { object-fit: cover !important; width: 100% !important; height: 100% !important; position: absolute !important; top: 0 !important; left: 0 !important; z-index: 1 !important; }
 
-        [data-testid="stCameraInput"] button { background: rgba(93, 64, 55, 0.85) !important; backdrop-filter: blur(8px) !important; border: 2px solid rgba(255, 255, 255, 0.6) !important; z-index: 50 !important; box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important; }
+        [data-testid="stCameraInput"] button { background: rgba(93, 64, 55, 0.85) !important; backdrop-filter: blur(8px) !important; border: 2px solid rgba(255, 255, 255, 0.6) !important; box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important; }
         [data-testid="stCameraInput"] button p, [data-testid="stCameraInput"] button div { color: #FFFFFF !important; font-weight: 900 !important; text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; letter-spacing: 1px !important; }
         
         /* 右上角切換鏡頭按鈕 */
-        [data-testid="stCameraInput"] button:has(svg) { position: absolute !important; top: 25px !important; right: 25px !important; border-radius: 50% !important; width: 46px !important; height: 46px !important; display: flex; align-items: center; justify-content: center; }
+        [data-testid="stCameraInput"] button:has(svg) { position: absolute !important; top: 25px !important; right: 25px !important; border-radius: 50% !important; width: 46px !important; height: 46px !important; display: flex; align-items: center; justify-content: center; z-index: 9999 !important; }
         
-        /* 💡 終極修正：放棄 bottom，改用強制 top 往下推疊到黑色區域 */
+        /* 💡 終極定位：直接對齊 320x320 外框底部，精準卡入黑色區域 */
         [data-testid="stCameraInput"] button:not(:has(svg)) { 
             position: absolute !important; 
-            top: 245px !important; /* 強制設定距離上方 245px，精準落在底部黑色區域 */
+            top: auto !important; 
+            bottom: 20px !important; /* 距離外框圓形底部 20px */
             left: 50% !important; 
             transform: translateX(-50%) !important; 
             width: 160px !important; 
@@ -112,6 +117,7 @@ def load_custom_css():
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
+            z-index: 9999 !important; /* 確保不被黑色區塊或影片蓋住 */
         }
 
         [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%); pointer-events: none; z-index: 15; }
