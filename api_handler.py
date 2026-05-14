@@ -1,33 +1,21 @@
 # api_handler.py
 import requests
-import streamlit as st
 from opencc import OpenCC
+from config import PLANTNET_API_KEY
 
 CC_CONVERTER = OpenCC('s2t')
-
-def get_api_key():
-    """安全獲取 API 金鑰"""
-    try:
-        return st.secrets["PLANTNET_API_KEY"]
-    except KeyError:
-        st.error("⚠️ 系統設定錯誤：遺失 API 授權金鑰。請管理員至 Secrets 中設定。")
-        st.stop()
 
 def identify_plant_from_api(image_file):
     """
     負責呼叫 PlantNet API 與 Wikipedia API 進行植物辨識與資料擷取。
     """
-    api_key = get_api_key()
-    api_url = f"https://my-api.plantnet.org/v2/identify/all?api-key={api_key}&lang=zh"
+    api_url = f"https://my-api.plantnet.org/v2/identify/all?api-key={PLANTNET_API_KEY}&lang=zh"
     files = [('images', (image_file.name, image_file.getvalue(), image_file.type))]
     
     try:
-        response = requests.post(api_url, files=files, timeout=15)
-        
-        if response.status_code == 401 or response.status_code == 403:
-            return {"success": False, "error": "驗證失敗，請確認圖鑑系統授權狀態。"}
-        elif response.status_code != 200:
-            return {"success": False, "error": "魔法放大鏡暫時失去焦點，請稍後再試。"}
+        response = requests.post(api_url, files=files)
+        if response.status_code != 200:
+            return {"success": False, "error": "辨識失敗，請確認圖片清晰度或網路狀態。"}
 
         result = response.json()
         if not result.get('results'):
@@ -43,7 +31,7 @@ def identify_plant_from_api(image_file):
 
         description = "這是一株神秘的植物，百科中暫時找不到詳細故事。"
         try:
-            wiki_res = requests.get(f"https://zh.wikipedia.org/api/rest_v1/page/summary/{zh_name}?redirect=true", headers={'Accept-Language': 'zh-tw'}, timeout=5)
+            wiki_res = requests.get(f"https://zh.wikipedia.org/api/rest_v1/page/summary/{zh_name}?redirect=true", headers={'Accept-Language': 'zh-tw'})
             if wiki_res.status_code == 200:
                 description = CC_CONVERTER.convert(wiki_res.json().get('extract', description))
         except:
@@ -57,5 +45,5 @@ def identify_plant_from_api(image_file):
             "desc": description,
             "type": "plant"
         }
-    except Exception:
-        return {"success": False, "error": "系統網路通訊異常，請確認連線狀態後重試。"}
+    except Exception as e:
+        return {"success": False, "error": f"連線異常：{e}"}
