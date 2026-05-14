@@ -228,6 +228,19 @@ div.stButton > button:focus-visible,
     transform: none !important;
 }
 
+[data-testid="stCameraInput"] button:disabled,
+[data-testid="stCameraInput"] button[disabled],
+[data-testid="stCameraInput"] button[aria-disabled="true"] {
+    cursor: not-allowed !important;
+    opacity: 0.78 !important;
+    background: radial-gradient(circle at 35% 30%, #d4c3b4 0%, #a58d7c 32%, #70594c 70%, #3b2b24 100%) !important;
+    box-shadow:
+        inset 2px 2px 8px rgba(0, 0, 0, 0.42),
+        0 0 0 3px #3d1f11,
+        0 0 0 5px #7a6658,
+        0 5px 11px rgba(0, 0, 0, 0.36) !important;
+}
+
 [data-testid="stCameraInput"] button * {
     position: absolute !important;
     width: 1px !important;
@@ -275,6 +288,12 @@ div.stButton > button:focus-visible,
 
 [data-testid="stCameraInput"] > div button::before {
     content: "前後鏡頭";
+}
+
+[data-testid="stCameraInput"] > div button:disabled::before,
+[data-testid="stCameraInput"] > div button[disabled]::before,
+[data-testid="stCameraInput"] > div button[aria-disabled="true"]::before {
+    content: "無法切換";
 }
 
 [data-testid="stCameraInput"] > div button::after {

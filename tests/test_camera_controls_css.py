@@ -10,6 +10,7 @@ class CameraControlsCssTests(unittest.TestCase):
         css = STYLE_PATH.read_text(encoding="utf-8")
 
         self.assertIn('content: "前後鏡頭"', css)
+        self.assertIn('content: "無法切換"', css)
         self.assertIn('content: "拍攝"', css)
         self.assertIn('content: "重拍"', css)
 
@@ -28,6 +29,13 @@ class CameraControlsCssTests(unittest.TestCase):
         self.assertIn("[data-testid=\"stCameraInput\"] > button", css)
         self.assertIn("top: calc(min(76vw, 320px) + clamp(104px, 28vw, 126px))", css)
         self.assertIn("left: 50%", css)
+
+    def test_disabled_switch_button_shows_unavailable_state(self):
+        css = STYLE_PATH.read_text(encoding="utf-8")
+
+        self.assertIn("[data-testid=\"stCameraInput\"] > div button:disabled::before", css)
+        self.assertIn("[data-testid=\"stCameraInput\"] > div button[aria-disabled=\"true\"]::before", css)
+        self.assertIn("cursor: not-allowed", css)
 
 
 if __name__ == "__main__":
