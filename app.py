@@ -94,18 +94,19 @@ def load_custom_css():
 
         [data-testid="stCameraInput"] button { background: rgba(93, 64, 55, 0.85) !important; backdrop-filter: blur(8px) !important; border: 2px solid rgba(255, 255, 255, 0.6) !important; z-index: 50 !important; box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important; }
         [data-testid="stCameraInput"] button p, [data-testid="stCameraInput"] button div { color: #FFFFFF !important; font-weight: 900 !important; text-shadow: 0 2px 4px rgba(0,0,0,0.8) !important; letter-spacing: 1px !important; }
+        
+        /* 右上角切換鏡頭按鈕 */
         [data-testid="stCameraInput"] button:has(svg) { position: absolute !important; top: 25px !important; right: 25px !important; border-radius: 50% !important; width: 46px !important; height: 46px !important; display: flex; align-items: center; justify-content: center; }
         
-        /* 💡 重點修正：解除置中綁架，縮小寬度，強制推到圓形最下方 */
+        /* 💡 終極修正：放棄 bottom，改用強制 top 往下推疊到黑色區域 */
         [data-testid="stCameraInput"] button:not(:has(svg)) { 
             position: absolute !important; 
-            top: auto !important; /* 解除 Streamlit 預設的垂直置中 */
-            bottom: 20px !important; /* 強制貼齊圓形底部 */
+            top: 245px !important; /* 強制設定距離上方 245px，精準落在底部黑色區域 */
             left: 50% !important; 
             transform: translateX(-50%) !important; 
-            width: 160px !important; /* 縮短按鈕，變成膠囊形狀 */
+            width: 160px !important; 
             height: 45px !important; 
-            margin: 0 !important; /* 清除所有預設的邊距干擾 */
+            margin: 0 !important; 
             border-radius: 30px !important; 
             padding: 0 !important; 
             display: flex !important;
