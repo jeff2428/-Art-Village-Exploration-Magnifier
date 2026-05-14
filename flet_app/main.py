@@ -4,7 +4,11 @@ import json
 from typing import Any
 
 import flet as ft
-import flet_camera as fc
+
+try:
+    import flet_camera as fc
+except Exception:
+    fc = None  # type: ignore[assignment]
 
 from magnifier_handle import MagnifierHandle
 
@@ -72,6 +76,29 @@ async def post_image_to_worker(data_url: str) -> dict[str, Any]:
 
 
 async def main(page: ft.Page) -> None:
+    try:
+        await run_app(page)
+    except Exception as error:
+        page.clean()
+        page.bgcolor = "#edf4dc"
+        page.add(
+            ft.Container(
+                padding=24,
+                alignment=ft.alignment.center,
+                content=ft.Column(
+                    [
+                        ft.Text("探險放大鏡載入失敗", size=26, weight=ft.FontWeight.W_900, color="#3d2a21"),
+                        ft.Text(str(error), size=14, color="#5c4032", selectable=True),
+                    ],
+                    spacing=12,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+            )
+        )
+        page.update()
+
+
+async def run_app(page: ft.Page) -> None:
     page.title = "藝素村探險放大鏡"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 16
@@ -80,7 +107,7 @@ async def main(page: ft.Page) -> None:
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
     pokedex: dict[str, dict[str, str]] = {}
-    cameras: list[fc.CameraDescription] = []
+    cameras: list[Any] = []
     selected_camera_index = 0
 
     status = ft.Text("準備探索", size=14, color="#3d2a21", weight=ft.FontWeight.W_700)
@@ -93,13 +120,17 @@ async def main(page: ft.Page) -> None:
         height=260,
     )
 
-    camera = fc.Camera(
-        expand=True,
-        preview_enabled=True,
-        content=ft.Container(
-            alignment=ft.alignment.center,
-            content=ft.Icon(ft.Icons.CENTER_FOCUS_STRONG, size=44, color=ft.Colors.WHITE70),
-        ),
+    camera = (
+        fc.Camera(
+            expand=True,
+            preview_enabled=True,
+            content=ft.Container(
+                alignment=ft.alignment.center,
+                content=ft.Icon(ft.Icons.CENTER_FOCUS_STRONG, size=44, color=ft.Colors.WHITE70),
+            ),
+        )
+        if fc is not None
+        else None
     )
     camera_frame = ft.Container(
         width=320,
@@ -109,7 +140,12 @@ async def main(page: ft.Page) -> None:
         bgcolor="#0f1512",
         border=ft.border.all(12, "#fff8df"),
         shadow=ft.BoxShadow(blur_radius=28, color="#442f2519", offset=ft.Offset(0, 12)),
-        content=camera,
+        content=camera
+        if camera is not None
+        else ft.Container(
+            alignment=ft.alignment.center,
+            content=ft.Text("相機元件尚未載入", color=ft.Colors.WHITE70, weight=ft.FontWeight.W_700),
+        ),
     )
 
     handle_slot = ft.Container()
@@ -132,6 +168,10 @@ async def main(page: ft.Page) -> None:
 
     async def switch_camera(_event: ft.ControlEvent) -> None:
         nonlocal selected_camera_index
+        if camera is None:
+            status.value = "此環境尚未載入相機元件"
+            page.update()
+            return
         if len(cameras) < 2:
             status.value = "此裝置沒有可切換的第二鏡頭"
             page.update()
@@ -145,6 +185,8 @@ async def main(page: ft.Page) -> None:
         status.value = "正在拍攝並辨識..."
         page.update()
         try:
+            if camera is None:
+                raise RuntimeError("此環境尚未載入相機元件")
             image_data = await camera.take_picture()
             payload = await post_image_to_worker(image_data)
             plant = parse_plantnet_result(payload)
@@ -169,12 +211,19 @@ async def main(page: ft.Page) -> None:
 
     async def initialize_camera(_event: ft.ControlEvent | None = None) -> None:
         nonlocal cameras
-        cameras = await camera.get_available_cameras()
-        if cameras:
-            await camera.initialize(cameras[0], fc.ResolutionPreset.MEDIUM, enable_audio=False)
-            status.value = "相機已啟動"
-        else:
-            status.value = "找不到可用相機"
+        try:
+            if camera is None or fc is None:
+                status.value = "此瀏覽器暫時無法載入相機元件"
+                render_handle()
+                return
+            cameras = await camera.get_available_cameras()
+            if cameras:
+                await camera.initialize(cameras[0], fc.ResolutionPreset.MEDIUM, enable_audio=False)
+                status.value = "相機已啟動"
+            else:
+                status.value = "找不到可用相機"
+        except Exception as error:
+            status.value = f"相機啟動失敗：{error}"
         render_handle()
 
     mode = ft.SegmentedButton(
@@ -200,6 +249,7 @@ async def main(page: ft.Page) -> None:
         ],
     )
 
+    page.on_connect = initialize_camera
     page.add(
         ft.SafeArea(
             ft.Column(
@@ -218,7 +268,6 @@ async def main(page: ft.Page) -> None:
             )
         )
     )
-    page.on_connect = initialize_camera
 
 
 ft.app(main)

@@ -37,6 +37,8 @@ class FletArtifactsTests(unittest.TestCase):
         main = (ROOT / "flet_app" / "main.py").read_text(encoding="utf-8")
 
         self.assertIn("flet_camera", main)
+        self.assertIn("run_app", main)
+        self.assertIn("探險放大鏡載入失敗", main)
         self.assertIn("WORKER_URL", main)
         self.assertIn("take_picture", main)
         self.assertIn("set_description", main)
@@ -59,6 +61,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("flet_app/build/web/index.html", patcher)
         self.assertIn("探險家載入中", patcher)
         self.assertIn("explorer-pulse", patcher)
+        self.assertIn("hasFletContent", patcher)
 
 
 if __name__ == "__main__":

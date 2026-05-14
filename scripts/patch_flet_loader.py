@@ -38,10 +38,27 @@ LOADER_HTML = """
   }
 </style>
 <script>
-  window.addEventListener("load", () => {
+  const removeExplorerLoader = () => {
     const loader = document.getElementById("explorer-loader");
     if (loader) loader.remove();
-  });
+  };
+
+  const hasFletContent = () => {
+    const flutterView = document.querySelector("flt-glass-pane, flutter-view, canvas");
+    return Boolean(flutterView && flutterView.getBoundingClientRect().height > 20);
+  };
+
+  const waitForFlet = window.setInterval(() => {
+    if (hasFletContent()) {
+      window.clearInterval(waitForFlet);
+      window.setTimeout(removeExplorerLoader, 450);
+    }
+  }, 250);
+
+  window.setTimeout(() => {
+    const text = document.querySelector("#explorer-loader .explorer-text");
+    if (text) text.textContent = "載入時間較久，請稍候或重新整理頁面";
+  }, 20000);
 </script>
 """
 
