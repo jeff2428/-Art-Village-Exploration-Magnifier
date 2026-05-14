@@ -52,6 +52,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("FLET_CLI_NO_RICH_OUTPUT", build)
         self.assertIn("--yes", build)
         self.assertIn("--route-url-strategy hash", build)
+        self.assertIn("--web-renderer auto", build)
         self.assertIn("WORKER_URL", build)
         self.assertIn("patch_flet_loader.py", build)
         self.assertIn('pages_build_output_dir = "flet_app/build/web"', wrangler)

@@ -14,7 +14,7 @@ fi
 
 echo "Building Flet web app for Cloudflare Pages..." >&2
 cd flet_app
-flet build web --yes --verbose --route-url-strategy hash --web-renderer html
+flet build web --yes --verbose --route-url-strategy hash --web-renderer auto
 cd ..
 
 echo "Patching loading screen..." >&2
