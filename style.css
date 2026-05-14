@@ -14,13 +14,13 @@ div.stButton > button:hover { background: rgba(255, 255, 255, 1) !important; bor
 
 .stMarkdown p, .stMarkdown span, .stMarkdown div { color: #4E342E !important; }
 
-/* ================= 放大鏡容器與主體圓框 ================= */
-[data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) { display: flex; justify-content: center; position: relative; margin-top: 40px; margin-bottom: 180px !important; z-index: 10; }
+/* ================= 1. 放大鏡主體圓框 ================= */
+[data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) { display: flex; justify-content: center; position: relative; margin-top: 40px; margin-bottom: 200px !important; z-index: 10; }
 
 [data-testid="stCameraInput"] { 
     width: 320px !important; height: 320px !important; border-radius: 50% !important; border: 12px solid #FFF8E1 !important; 
-    box-shadow: 0 0 0 2px #A1887F, 0 0 0 10px #4E342E, 0 25px 50px rgba(94, 53, 17, 0.3), inset 0 0 30px rgba(0,0,0,0.8) !important; 
-    overflow: visible !important; 
+    box-shadow: 0 0 0 2px #A1887F, 0 0 0 10px #4a2f24, 0 25px 50px rgba(94, 53, 17, 0.3), inset 0 0 30px rgba(0,0,0,0.8) !important; 
+    overflow: visible !important; /* 讓按鈕與皮革墊片可以外露 */
     background-color: #000 !important; position: relative !important; margin: 0 auto !important; padding: 0 !important; 
     box-sizing: border-box !important;
 }
@@ -33,93 +33,92 @@ div.stButton > button:hover { background: rgba(255, 255, 255, 1) !important; bor
     z-index: 1 !important; border-radius: 50% !important; 
 }
 
-/* ================= 🛠️ 擬物化升級：實體皮革握把 (8字型墊片) ================= */
+/* ================= 2. 8字型皮革墊片 (還原壓花與車線感) ================= */
 [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after { 
-    content: ''; position: absolute; top: 285px; left: 50%; transform: translateX(-50%); 
-    width: 76px; height: 145px; 
-    background: #3e2723; /* 深色皮革底色 */
-    border-radius: 38px; 
-    border: 3px solid #23150f; /* 黑色皮革封邊 */
-    /* 利用多重內陰影與外框，創造出皮革上的壓紋與車線感 */
+    content: ''; position: absolute; 
+    top: 245px; left: 50%; transform: translateX(-50%); 
+    width: 86px; height: 175px; /* 完美比例的 8 字底座 */
+    background: #462c21; /* 高級植鞣革底色 */
+    border-radius: 43px; 
+    /* 利用多重陰影製作皮革包邊與內凹壓紋 */
     box-shadow: 
-        inset 0 0 0 3px #5D4037, /* 皮革內層立體感 */
-        inset 0 0 0 5px #3e2723, 
-        inset 0 0 0 6px dashed #795548, /* 仿車縫線效果 */
+        inset 0 0 0 2px #2d1b13, 
+        inset 0 0 0 4px #614031, 
+        inset 0 0 0 5px #2d1b13, 
+        0 0 0 4px #331e15, 
         0 15px 30px rgba(0,0,0,0.6); 
     z-index: 5; 
 }
 
-/* ================= 🛠️ 擬物化升級：青銅金屬實體按鍵 ================= */
+/* ================= 3. 青銅金屬實體按鍵 (完美還原雙層金屬框) ================= */
 [data-testid="stCameraInput"] button {
     position: absolute !important; left: 50% !important; transform: translateX(-50%) !important;
-    width: 60px !important; height: 60px !important; border-radius: 50% !important;
+    width: 62px !important; height: 62px !important; border-radius: 50% !important;
     padding: 0 !important; margin: 0 !important;
     
-    /* 青銅金屬放射漸層 */
-    background: radial-gradient(circle at 30% 30%, #e6aa7d 0%, #b57a54 30%, #5e331b 80%, #381a0b 100%) !important; 
-    border: 3px solid #23150f !important; /* 金屬按鈕外框 */
+    /* 金屬圓頂漸層光澤 */
+    background: radial-gradient(circle at 35% 35%, #f1c998 0%, #c48c5a 35%, #764121 75%, #3e1b0a 100%) !important; 
+    border: 2px solid #2d1b13 !important; /* 最內層接縫 */
     
-    /* 複雜的光影與立體陰影設計，營造極致的 3D 金屬內凹與凸起感 */
+    /* 還原圖片中的雙層階梯式金屬倒角 (Bevel) */
     box-shadow: 
-        0 0 0 4px #4a2c21, /* 外圍固定環 */
-        0 0 0 5px dashed #8D6E63, /* 外環縫線 */
-        0 0 0 8px #3e2723, /* 與皮革融合的漸層 */
-        inset 2px 2px 5px rgba(255,255,255,0.4), /* 左上金屬高光 */
-        inset -2px -2px 8px rgba(0,0,0,0.8), /* 右下金屬暗角 */
-        0 10px 15px rgba(0,0,0,0.8) !important; /* 按鈕實體落影 */
+        0 0 0 3px #835639, /* 青銅內框 */
+        0 0 0 6px #2d1b13, /* 深色外框 */
+        inset 2px 2px 6px rgba(255,255,255,0.6), /* 金屬高光 */
+        inset -3px -3px 8px rgba(0,0,0,0.8), /* 金屬暗角 */
+        0 10px 15px rgba(0,0,0,0.7) !important; /* 按鈕投影 */
         
     z-index: 9999 !important; display: flex !important; align-items: center !important; justify-content: center !important;
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* 隱藏原生文字與多餘 SVG */
+/* 隱藏原生文字與干擾的 SVG */
 [data-testid="stCameraInput"] button * { display: none !important; }
 
-/* 🔴 紅色圈位置：切換鏡頭按鈕 (上半部) */
-[data-testid="stCameraInput"]:not(:has(img)) button:has(svg) { top: 290px !important; bottom: auto !important; }
+/* 🔴 第一顆按鈕：切換鏡頭 (位於皮革墊片上方) */
+[data-testid="stCameraInput"]:not(:has(img)) button:has(svg) { top: 255px !important; bottom: auto !important; }
 
-/* 利用內嵌 SVG 繪製金屬質感的「切換」圖示 */
+/* 循環箭頭圖示 (精準 SVG 繪製) */
 [data-testid="stCameraInput"]:not(:has(img)) button:has(svg)::after { 
-    content: ''; width: 30px; height: 30px; 
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffd5a1"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>');
+    content: ''; width: 34px; height: 34px; 
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffe4bc"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>');
     background-size: cover;
-    filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.9)); /* 雕刻陰影 */
+    filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.8)); /* 雕刻陰影 */
 }
 
-/* 🟡 黃色圈位置：拍照按鈕 (下半部) */
-[data-testid="stCameraInput"]:not(:has(img)) button:not(:has(svg)) { top: 360px !important; bottom: auto !important; }
+/* 🟡 第二顆按鈕：拍照 (位於皮革墊片下方) */
+[data-testid="stCameraInput"]:not(:has(img)) button:not(:has(svg)) { top: 335px !important; bottom: auto !important; }
 
-/* 利用內嵌 SVG 繪製金屬質感的「相機」圖示 */
+/* 星芒相機圖示 (精準 SVG 繪製：含雙星芒、快門內圈、下載小箭頭) */
 [data-testid="stCameraInput"]:not(:has(img)) button:not(:has(svg))::after { 
-    content: ''; width: 28px; height: 28px; 
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffd5a1"><path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></svg>');
+    content: ''; width: 36px; height: 36px; 
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffe4bc"><path d="M5.5 0l.9 2.6L9 3.5l-2.6.9L5.5 7l-.9-2.6L2 3.5l2.6-.9z"/><path d="M2.5 7l.5 1.5 1.5.5-1.5.5-.5 1.5-.5-1.5-1.5-.5 1.5-.5z"/><path d="M18 1v3h2l-3 3-3-3h2V1z"/><path d="M20 6h-3.5l-2-2h-5L7.5 6H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 12c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 2.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>');
     background-size: cover;
-    filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.9)); 
+    filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.8)); 
 }
 
-/* 🟡 黃色圈位置：重拍按鈕 (已拍照時取代拍照按鈕) */
-[data-testid="stCameraInput"]:has(img) button { top: 360px !important; bottom: auto !important; }
+/* 🟡 第二顆按鈕：重拍/清除 (已拍照時取代拍照按鈕位置) */
+[data-testid="stCameraInput"]:has(img) button { top: 335px !important; bottom: auto !important; }
 
-/* 利用內嵌 SVG 繪製金屬質感的「叉叉」圖示 */
+/* 叉叉圖示 (精準 SVG 繪製) */
 [data-testid="stCameraInput"]:has(img) button::after { 
-    content: ''; width: 26px; height: 26px; 
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffd5a1"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>');
+    content: ''; width: 34px; height: 34px; 
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ffe4bc"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>');
     background-size: cover;
-    filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.9)); 
+    filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.8)); 
 }
 
-/* 真實按壓物理回饋：按鈕壓下去時光影變化與位置下沉 */
+/* ================= 4. 真實按壓物理回饋 ================= */
 [data-testid="stCameraInput"] button:active { 
     box-shadow: 
-        0 0 0 4px #4a2c21, 
-        0 0 0 5px dashed #8D6E63, 
-        0 0 0 8px #3e2723, 
-        inset 2px 2px 15px rgba(0,0,0,0.9), 
-        0 2px 4px rgba(0,0,0,0.8) !important; 
-    transform: translateX(-50%) translateY(3px) !important; /* 按鈕往下沉 */
+        0 0 0 3px #835639, 
+        0 0 0 6px #2d1b13, 
+        inset 2px 2px 12px rgba(0,0,0,0.9), 
+        0 2px 5px rgba(0,0,0,0.8) !important; 
+    transform: translateX(-50%) translateY(3px) !important; /* 按下時真實下沉 */
 }
 
-/* 鏡面高光 (放在最後以確保疊在影片上層) */
+/* 鏡面陽光折射高光 */
 [data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%); pointer-events: none; z-index: 15; }
 
 /* 資訊卡片 */
