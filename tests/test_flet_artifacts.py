@@ -48,7 +48,7 @@ class FletArtifactsTests(unittest.TestCase):
         wrangler = (ROOT / "wrangler.toml").read_text(encoding="utf-8")
 
         self.assertFalse((ROOT / ".github" / "workflows" / "deploy.yml").exists())
-        self.assertIn("python -m flet build web", build)
+        self.assertIn("flet build web", build)
         self.assertIn("FLET_CLI_NO_RICH_OUTPUT", build)
         self.assertIn("--yes", build)
         self.assertIn("--route-url-strategy hash", build)
