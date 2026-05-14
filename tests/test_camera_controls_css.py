@@ -35,7 +35,7 @@ class CameraControlsCssTests(unittest.TestCase):
 
         self.assertIn("[data-testid=\"stCameraInputSwitchButton\"] button:disabled::before", css)
         self.assertIn("[data-testid=\"stCameraInputSwitchButton\"] button[aria-disabled=\"true\"]::before", css)
-        self.assertIn("[data-testid=\"stCameraInput\"]:not(:has([data-testid=\"stCameraInputSwitchButton\"]))::before", css)
+        self.assertIn("[data-testid=\"stCameraInput\"]::before", css)
         self.assertIn("cursor: not-allowed", css)
 
     def test_capture_button_is_not_used_as_switch_button(self):
@@ -50,6 +50,13 @@ class CameraControlsCssTests(unittest.TestCase):
         self.assertNotIn('[data-testid="stCameraInput"] div {\n    position: static', css)
         self.assertIn('[data-testid="stCameraInputWebcamComponent"]', css)
         self.assertIn('[data-testid="stCameraInputWebcamStyledBox"]', css)
+        self.assertIn("overflow: visible !important", css)
+
+    def test_unavailable_switch_fallback_does_not_depend_on_has(self):
+        css = STYLE_PATH.read_text(encoding="utf-8")
+
+        self.assertIn("[data-testid=\"stCameraInput\"]::before", css)
+        self.assertNotIn("[data-testid=\"stCameraInput\"]:not(:has([data-testid=\"stCameraInputSwitchButton\"]))::before", css)
 
 
 if __name__ == "__main__":
