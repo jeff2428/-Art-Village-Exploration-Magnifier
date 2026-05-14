@@ -24,18 +24,25 @@ class CameraControlsCssTests(unittest.TestCase):
         css = STYLE_PATH.read_text(encoding="utf-8")
 
         self.assertIn("height: clamp(224px, 58vw, 260px)", css)
-        self.assertIn("[data-testid=\"stCameraInput\"] > div button", css)
+        self.assertIn("[data-testid=\"stCameraInputSwitchButton\"]", css)
         self.assertIn("top: calc(min(76vw, 320px) + clamp(22px, 6vw, 30px))", css)
-        self.assertIn("[data-testid=\"stCameraInput\"] > button", css)
+        self.assertIn("[data-testid=\"stCameraInput\"] [data-testid=\"stCameraInputButton\"]", css)
         self.assertIn("top: calc(min(76vw, 320px) + clamp(104px, 28vw, 126px))", css)
         self.assertIn("left: 50%", css)
 
     def test_disabled_switch_button_shows_unavailable_state(self):
         css = STYLE_PATH.read_text(encoding="utf-8")
 
-        self.assertIn("[data-testid=\"stCameraInput\"] > div button:disabled::before", css)
-        self.assertIn("[data-testid=\"stCameraInput\"] > div button[aria-disabled=\"true\"]::before", css)
+        self.assertIn("[data-testid=\"stCameraInputSwitchButton\"] button:disabled::before", css)
+        self.assertIn("[data-testid=\"stCameraInputSwitchButton\"] button[aria-disabled=\"true\"]::before", css)
+        self.assertIn("[data-testid=\"stCameraInput\"]:not(:has([data-testid=\"stCameraInputSwitchButton\"]))::before", css)
         self.assertIn("cursor: not-allowed", css)
+
+    def test_capture_button_is_not_used_as_switch_button(self):
+        css = STYLE_PATH.read_text(encoding="utf-8")
+
+        self.assertNotIn("[data-testid=\"stCameraInput\"] > div button::before", css)
+        self.assertNotIn("[data-testid=\"stCameraInput\"] > div button", css)
 
 
 if __name__ == "__main__":
