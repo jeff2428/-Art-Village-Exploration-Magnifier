@@ -30,6 +30,14 @@ WORKER_URL=https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
 
 `build.sh` installs the Flet dependencies, writes the Worker URL into `flet_app/build_config.py`, builds the static web app, then patches the custom loading animation.
 
+Do not use this old build command:
+
+```text
+pip install flet requests opencc-python-reimplemented && flet build web
+```
+
+It does not pass `--yes`, so Cloudflare's non-interactive build environment can fail with `EOFError: EOF when reading a line` when Flet asks to install the required Flutter SDK. Use `bash build.sh` instead.
+
 ## Local Build
 
 ```bash

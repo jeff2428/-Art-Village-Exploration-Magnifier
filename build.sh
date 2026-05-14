@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export FLET_CLI_NO_RICH_OUTPUT=1
+
 echo "Installing Flet dependencies..." >&2
 python -m pip install --upgrade pip
 python -m pip install -r flet_app/requirements.txt

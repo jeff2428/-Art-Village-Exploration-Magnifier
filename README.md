@@ -41,6 +41,14 @@ Pages 環境變數：
 WORKER_URL=https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
 ```
 
+不要使用舊指令：
+
+```text
+pip install flet requests opencc-python-reimplemented && flet build web
+```
+
+這個舊指令沒有 `--yes`，Cloudflare 無互動建置環境會在 Flet 詢問是否安裝 Flutter SDK 時失敗。
+
 ## 本機建置
 
 ```bash

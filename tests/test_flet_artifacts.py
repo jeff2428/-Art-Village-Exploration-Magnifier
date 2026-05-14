@@ -46,6 +46,8 @@ class FletArtifactsTests(unittest.TestCase):
 
         self.assertFalse((ROOT / ".github" / "workflows" / "deploy.yml").exists())
         self.assertIn("python -m flet build web", build)
+        self.assertIn("FLET_CLI_NO_RICH_OUTPUT", build)
+        self.assertIn("--yes", build)
         self.assertIn("--route-url-strategy hash", build)
         self.assertIn("WORKER_URL", build)
         self.assertIn("patch_flet_loader.py", build)
