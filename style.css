@@ -1,398 +1,280 @@
-.stApp {
-    background: linear-gradient(-45deg, #F9FBE7, #E8F5E9, #DCEDC8);
-    background-size: 400% 400%;
-    animation: gradientBG 15s ease infinite;
-    font-family: '微軟正黑體', sans-serif;
+import streamlit as st
+import streamlit.components.v1 as components
+
+# ==========================================
+# 1. 頁面設定與全域 CSS (背景與標題)
+# ==========================================
+st.set_page_config(
+    page_title="藝素村探險放大鏡",
+    layout="centered"
+)
+
+st.markdown(
+    """
+    <style>
+    /* 全域漸層背景 */
+    .stApp {
+        background: linear-gradient(-45deg, #F9FBE7, #E8F5E9, #DCEDC8);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
+        font-family: '微軟正黑體', sans-serif;
+    }
+    @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    h1 {
+        text-align: center;
+        background: -webkit-linear-gradient(45deg, #2E7D32 0%, #7CB342 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 900;
+        letter-spacing: 2px;
+        text-shadow: 0px 4px 10px rgba(46, 125, 50, 0.2);
+        margin-bottom: 20px;
+    }
+    </style>
+    <h1>🔍 藝素村探險放大鏡</h1>
+    """,
+    unsafe_allow_html=True
+)
+
+# ==========================================
+# 2. 獨立相機元件 (HTML + CSS + JS)
+# ==========================================
+camera_html = """
+<style>
+/* 基礎設定確保透明且無邊距 */
+body {
+    margin: 0;
+    background: transparent;
+    overflow: hidden;
+    font-family: sans-serif;
 }
 
-@keyframes gradientBG {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-div[role="radiogroup"] label,
-div[role="radiogroup"] div,
-div[role="radiogroup"] p {
-    color: #2E7D32 !important;
-    font-weight: 800 !important;
-    font-size: 1rem !important;
-}
-
-.stRadio > div {
-    background: rgba(255,255,255,0.85) !important;
-    padding: 10px 20px;
-    border-radius: 30px;
-    border: 2px solid rgba(141,110,99,0.3) !important;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-}
-
-.stMarkdown p,
-.stMarkdown span,
-.stMarkdown div {
-    color: #4E342E !important;
-}
-
-/* ================= 放大鏡容器 ================= */
-
-[data-testid="stElementContainer"]:has([data-testid="stCameraInput"]) {
+/* ================= 放大鏡總容器 ================= */
+.camera-wrap {
+    position: relative;
+    width: 100%;
+    height: 540px; /* 預留空間給拉長的手柄與按鈕 */
     display: flex;
     justify-content: center;
-    position: relative;
-    margin-top: 40px;
-    margin-bottom: 240px !important;
-    z-index: 10;
+    margin-top: 20px;
 }
 
-/* ================= 主鏡頭 ================= */
-
-[data-testid="stCameraInput"] {
-
-    width: min(88vw, 320px) !important;
-    height: min(88vw, 320px) !important;
-
-    border-radius: 50% !important;
-
-    border: 12px solid #FFF8E1 !important;
-
+/* ================= 主鏡頭圓框 ================= */
+#video-container {
+    width: min(88vw, 320px);
+    height: min(88vw, 320px);
+    border-radius: 50%;
+    border: 12px solid #FFF8E1;
     box-shadow:
         0 0 0 2px #A1887F,
         0 0 0 10px #4E342E,
         0 25px 50px rgba(94, 53, 17, 0.3),
-        inset 0 0 30px rgba(0,0,0,0.8) !important;
-
-    overflow: visible !important;
-
-    background-color: #000 !important;
-
-    position: relative !important;
-
-    margin: 0 auto !important;
-
-    padding: 0 !important;
-
-    box-sizing: border-box !important;
-}
-
-/* 消滅白底 */
-
-[data-testid="stCameraInput"] div {
-    background: transparent !important;
-    border: none !important;
-    position: static !important;
-}
-
-/* 鏡頭影像 */
-
-[data-testid="stCameraInput"] video,
-[data-testid="stCameraInput"] img,
-[data-testid="stCameraInput"] canvas {
-
-    object-fit: cover !important;
-
-    width: 100% !important;
-    height: 100% !important;
-
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-
-    z-index: 1 !important;
-
-    border-radius: 50% !important;
-}
-
-/* ================= 放大鏡握把 ================= */
-
-[data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::after {
-
-    content: '';
-
+        inset 0 0 30px rgba(0,0,0,0.8);
     position: absolute;
+    top: 0;
+    background-color: #000;
+    box-sizing: border-box;
+    z-index: 10;
+}
 
-    top: 285px;
+/* 影片與反光鏡面 */
+#video-container video, #video-container canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
 
+/* 玻璃高光反光層 */
+#video-container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 70% 30%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* ================= 8字型皮革墊片 (拉長一倍) ================= */
+.camera-wrap::after {
+    content: '';
+    position: absolute;
+    top: 285px; 
     left: 50%;
-
     transform: translateX(-50%);
-
     width: 86px;
-    height: 230px;
-
+    height: 230px; /* 完美拉長以容納兩顆按鈕 */
     background: #4a2f24;
-
     border-radius: 43px;
-
     border: 2px solid #1a0f0a;
-
     box-shadow:
         inset 0 0 0 2px #5d3c2e,
         inset 0 0 0 5px #382117,
         inset 0 0 0 6px dashed #9e7a68,
         0 15px 30px rgba(0,0,0,0.6);
-
     z-index: 5;
 }
 
-/* ================= 手機按鈕修正版 ================= */
-
-[data-testid="stCameraInput"] button {
-
-    -webkit-appearance: none !important;
-    appearance: none !important;
-
-    position: absolute !important;
-
-    left: 50% !important;
-
-    transform: translateX(-50%) !important;
-
-    width: 66px !important;
-    height: 66px !important;
-
-    border-radius: 50% !important;
-
-    padding: 0 !important;
-    margin: 0 !important;
-
-    box-sizing: border-box !important;
-
-    color: transparent !important;
-
-    font-size: 0 !important;
-
-    text-indent: -9999px !important;
-
-    background: radial-gradient(
-        circle at 35% 30%,
-        #e8bc96 0%,
-        #c48c66 25%,
-        #875030 65%,
-        #472211 100%
-    ) !important;
-
-    border: none !important;
-
+/* ================= 青銅實體按鍵 ================= */
+.cam-btn {
+    -webkit-appearance: none;
+    appearance: none;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    
+    /* 青銅機械漸層 */
+    background: radial-gradient(circle at 35% 30%, #e8bc96 0%, #c48c66 25%, #875030 65%, #472211 100%);
+    border: none;
     box-shadow:
         inset 1px 1px 4px rgba(255,255,255,0.5),
         inset -3px -3px 8px rgba(0,0,0,0.8),
         0 0 0 3px #3d1f11,
         0 0 0 5px #916142,
         0 0 0 6px #1a0f0a,
-        0 10px 15px rgba(0,0,0,0.9) !important;
-
-    z-index: 9999 !important;
-
-    display: flex !important;
-
-    align-items: center !important;
-
-    justify-content: center !important;
-
-    cursor: pointer !important;
+        0 10px 15px rgba(0,0,0,0.9);
+        
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    
+    /* 確保只有圖案顯示 */
+    font-size: 30px;
+    color: white;
+    text-shadow: 0 2px 2px rgba(0,0,0,0.4);
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 隱藏原生 icon */
-
-[data-testid="stCameraInput"] button * {
-    display: none !important;
-}
-
-/* 共通 emoji */
-
-[data-testid="stCameraInput"] button::after {
-
-    position: absolute !important;
-
-    top: 50% !important;
-
-    left: 50% !important;
-
-    transform: translate(-50%, -50%) !important;
-
-    font-size: 30px !important;
-
-    text-indent: 0 !important;
-
-    color: white !important;
-
-    line-height: 1 !important;
-
-    display: block !important;
-
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.4));
-}
-
-/* ================= 第一顆按鈕 ================= */
-/* 如果手機有多鏡頭 -> Streamlit 自動生成切換按鈕 */
-
-[data-testid="stCameraInput"]:not(:has(img)) button:nth-of-type(1) {
-
-    top: 305px !important;
-}
-
-/* 有兩顆按鈕時 */
-[data-testid="stCameraInput"]:not(:has(img)) button:nth-of-type(1)::after {
-
-    content: "🔄";
-}
-
-/* ================= 第二顆按鈕 ================= */
-/* 拍照 */
-
-[data-testid="stCameraInput"]:not(:has(img)) button:nth-of-type(2) {
-
-    top: 410px !important;
-}
-
-[data-testid="stCameraInput"]:not(:has(img)) button:nth-of-type(2)::after {
-
-    content: "📸";
-}
-
-/* ================= 只有一顆鏡頭 ================= */
-/* 沒有切換功能時，唯一按鈕直接當拍照 */
-
-[data-testid="stCameraInput"]:not(:has(img)) button:only-of-type {
-
-    top: 410px !important;
-}
-
-[data-testid="stCameraInput"]:not(:has(img)) button:only-of-type::after {
-
-    content: "📸";
-}
-
-/* ================= 已拍照 ================= */
-
-[data-testid="stCameraInput"]:has(img) button {
-
-    top: 410px !important;
-}
-
-[data-testid="stCameraInput"]:has(img) button::after {
-
-    content: "✖️";
-    font-size: 24px !important;
-}
-
-/* ================= 按壓效果 ================= */
-
-[data-testid="stCameraInput"] button:active {
-
+/* 按壓回饋物理下沉效果 */
+.cam-btn:active {
     box-shadow:
         inset 2px 2px 10px rgba(0,0,0,0.8),
         0 0 0 3px #3d1f11,
         0 0 0 5px #916142,
         0 0 0 6px #1a0f0a,
-        0 3px 5px rgba(0,0,0,0.9) !important;
-
-    transform:
-        translateX(-50%)
-        translateY(4px) !important;
+        0 3px 5px rgba(0,0,0,0.9);
+    transform: translateX(-50%) translateY(4px);
 }
 
-/* ================= 鏡面高光 ================= */
+/* 精準定位按鈕 */
+#switchBtn { top: 305px; }
+#captureBtn { top: 410px; }
 
-[data-testid="stElementContainer"]:has([data-testid="stCameraInput"])::before {
+/* 隱藏畫布 (用於擷取圖片，不顯示於畫面) */
+#canvas { display: none; }
+</style>
 
-    content: '';
+<div class="camera-wrap">
+    <div id="video-container">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+    </div>
+    
+    <!-- 兩顆按鈕現在是完全獨立的 HTML 元素，絕對不會消失 -->
+    <button id="switchBtn" class="cam-btn">🔄</button>
+    <button id="captureBtn" class="cam-btn">📸</button>
+</div>
 
-    position: absolute;
+<script>
+let currentFacingMode = "environment";
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const captureBtn = document.getElementById("captureBtn");
+let currentStream = null;
+let isPhotoTaken = false;
 
-    top: 0;
-
-    left: 50%;
-
-    transform: translateX(-50%);
-
-    width: min(88vw, 320px);
-
-    height: min(88vw, 320px);
-
-    border-radius: 50%;
-
-    background: radial-gradient(
-        circle at 70% 30%,
-        rgba(255,255,255,0.35) 0%,
-        rgba(255,255,255,0) 60%
-    );
-
-    pointer-events: none;
-
-    z-index: 15;
+/* 啟動相機 */
+async function startCamera(){
+    try {
+        if(currentStream){
+            currentStream.getTracks().forEach(track => track.stop());
+        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: currentFacingMode },
+            audio: false
+        });
+        currentStream = stream;
+        video.srcObject = stream;
+        
+        // 切換回即時畫面時，重置 UI
+        video.style.display = "block";
+        canvas.style.display = "none";
+        captureBtn.innerText = "📸";
+        isPhotoTaken = false;
+        
+    } catch(err) {
+        alert("無法開啟相機，請確認已允許相機權限");
+        console.error(err);
+    }
 }
 
-/* ================= 卡片 ================= */
+/* 第一次啟動 */
+startCamera();
 
-.result-card {
+/* 🔄 切換前後鏡頭 */
+document.getElementById("switchBtn").onclick = async () => {
+    currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+    await startCamera();
+};
 
-    background: rgba(255, 255, 255, 0.85);
+/* 📸 拍照 / ✖️ 重拍邏輯 */
+captureBtn.onclick = () => {
+    if (!isPhotoTaken) {
+        // --- 執行拍照 ---
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        
+        // 如果是前鏡頭，照片需要左右翻轉處理
+        if (currentFacingMode === "user") {
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // UI 變化：隱藏影片、顯示截圖畫布、變更按鈕為重拍
+        video.style.display = "none";
+        canvas.style.display = "block";
+        captureBtn.innerText = "✖️";
+        isPhotoTaken = true;
+        
+        // 這裡可以取得 Base64 傳回給 Streamlit (可透過 st.query_params 或自訂 component 傳遞)
+        // const imageBase64 = canvas.toDataURL("image/jpeg");
+        // console.log("照片已擷取"); 
+    } else {
+        // --- 執行重拍 ---
+        // UI 變化：顯示影片、隱藏畫布、變更按鈕為拍照
+        video.style.display = "block";
+        canvas.style.display = "none";
+        captureBtn.innerText = "📸";
+        isPhotoTaken = false;
+    }
+};
+</script>
+"""
 
-    backdrop-filter: blur(15px);
-
-    padding: 25px;
-
-    border-radius: 24px;
-
-    border: 1px solid rgba(141, 110, 99, 0.3);
-
-    color: #4E342E;
-
-    margin-top: 20px;
-
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-}
-
-.pokedex-card {
-
-    background: rgba(255, 255, 255, 0.7);
-
-    border-radius: 15px;
-
-    padding: 15px;
-
-    text-align: center;
-
-    border: 2px solid rgba(141, 110, 99, 0.2);
-
-    transition: all 0.3s ease;
-
-    cursor: pointer;
-
-    color: #4E342E !important;
-
-    font-weight: bold;
-}
-
-.pokedex-card:hover {
-
-    background: rgba(255, 255, 255, 0.95);
-
-    transform: translateY(-5px);
-
-    border-color: #8D6E63;
-}
-
-h1 {
-
-    text-align: center;
-
-    background: -webkit-linear-gradient(
-        45deg,
-        #2E7D32 0%,
-        #7CB342 100%
-    );
-
-    -webkit-background-clip: text;
-
-    -webkit-text-fill-color: transparent;
-
-    font-weight: 900;
-
-    letter-spacing: 2px;
-
-    text-shadow: 0px 4px 10px rgba(46, 125, 50, 0.2);
-
-    margin-bottom: 20px;
-}
+# ==========================================
+# 3. 渲染 HTML 元件
+# ==========================================
+# 設定 height=560 確保底部加長的手柄與按鈕不會被 iframe 裁切
+components.html(
+    camera_html,
+    height=560
+)
