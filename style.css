@@ -25,8 +25,7 @@ div.stButton > button:hover { background: rgba(255, 255, 255, 1) !important; bor
     box-sizing: border-box !important;
 }
 
-/* 確保底層容器透明，不干擾點擊 */
-[data-testid="stCameraInput"] > div { background: transparent !important; }
+[data-testid="stCameraInput"] div { background: transparent !important; border: none !important; position: static !important; }
 
 [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img, [data-testid="stCameraInput"] canvas { 
     object-fit: cover !important; width: 100% !important; height: 100% !important; 
@@ -41,79 +40,74 @@ div.stButton > button:hover { background: rgba(255, 255, 255, 1) !important; bor
     background: #4a2f24; border-radius: 43px; border: 2px solid #1a0f0a; 
     box-shadow: inset 0 0 0 2px #5d3c2e, inset 0 0 0 5px #382117, inset 0 0 0 6px dashed #9e7a68, 0 15px 30px rgba(0,0,0,0.6); 
     z-index: 5; 
-    pointer-events: none; /* 💡 確保皮革墊片不會阻擋按鈕的點擊感應 */
 }
 
-/* ================= 🛠️ 終極修復版：確保功能運作的按鈕設計 ================= */
+/* ================= 🛠️ 終極版：DOM 結構強制穿透定位 ================= */
+
+/* --- 1. 所有相機按鈕的共通青銅材質設定 --- */
 [data-testid="stCameraInput"] button {
     position: absolute !important; left: 50% !important; transform: translateX(-50%) !important;
-    width: 66px !important; height: 66px !important; border-radius: 50% !important;
-    padding: 0 !important; margin: 0 !important; box-sizing: border-box !important;
+    width: 66px !important; height: 66px !important; /* 統一為 66px 完美比例 */
+    border-radius: 50% !important; padding: 0 !important; margin: 0 !important; 
+    box-sizing: border-box !important;
     
-    /* 💡 安全隱藏文字法：不破壞點擊區域，只讓文字透明與縮小 */
-    color: transparent !important;
-    font-size: 0px !important;
-    line-height: 0 !important;
+    /* 暴力消滅所有文字 */
+    color: transparent !important; text-indent: -9999px !important;
+    white-space: nowrap !important; overflow: hidden !important; font-size: 0px !important;
     
-    /* 金屬圓頂漸層 */
+    /* 青銅機械漸層與多層立體陰影 */
     background: radial-gradient(circle at 35% 30%, #e8bc96 0%, #c48c66 25%, #875030 65%, #472211 100%) !important; 
     border: none !important;
-    
     box-shadow: 
         inset 1px 1px 4px rgba(255,255,255,0.5), inset -3px -3px 8px rgba(0,0,0,0.8), 
         0 0 0 3px #3d1f11, 0 0 0 5px #916142, 0 0 0 6px #1a0f0a, 
         0 10px 15px rgba(0,0,0,0.9) !important; 
         
     z-index: 9999 !important; display: block !important; 
-    transition: transform 0.1s ease, box-shadow 0.1s ease !important;
-    cursor: pointer !important; /* 強制顯示可點擊的手指游標 */
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-/* 💡 安全隱藏原生 SVG 與多餘子元素，確保點擊事件能順利穿透並觸發 */
-[data-testid="stCameraInput"] button * { 
-    opacity: 0 !important; 
-    width: 0 !important; 
-    height: 0 !important; 
-    pointer-events: none !important; 
-}
+/* 隱藏原生多餘子元素 (文字與舊圖示) */
+[data-testid="stCameraInput"] button * { display: none !important; }
 
-/* 共通自訂 SVG 圖層設定 */
+/* 共通 SVG 圖層置中設定 */
 [data-testid="stCameraInput"] button::after {
     content: ''; position: absolute !important; top: 50% !important; left: 50% !important;
     transform: translate(-50%, -50%) !important; background-size: contain !important;
     background-repeat: no-repeat !important; background-position: center !important;
-    filter: drop-shadow(0px 1.5px 1px rgba(255,255,255,0.45)) !important; 
-    pointer-events: none !important; /* 確保圖案不會干擾按鈕本體的點擊 */
+    filter: drop-shadow(0px 1.5px 1px rgba(255,255,255,0.45)) !important; /* 雕刻反光 */
+    text-indent: 0 !important; 
 }
 
-/* 🔴 上方按鈕：切換鏡頭 (未拍照時，具有 SVG 的按鈕) */
-[data-testid="stCameraInput"]:not(:has(img)) button:has(svg) { 
-    top: 285px !important; bottom: auto !important; right: auto !important;
+
+/* --- 🔴 2. 上方按鈕：切換鏡頭 (躲在內層 div 裡的 button) --- */
+[data-testid="stCameraInput"] > div button { 
+    top: 285px !important; bottom: auto !important; 
 }
-[data-testid="stCameraInput"]:not(:has(img)) button:has(svg)::after { 
-    width: 32px !important; height: 32px !important; 
+[data-testid="stCameraInput"] > div button::after { 
+    width: 34px !important; height: 34px !important; 
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232b1308'%3E%3Cpath d='M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z'/%3E%3C/svg%3E") !important;
 }
 
-/* 🟡 下方按鈕：拍照 (未拍照時，沒有 SVG 的按鈕) */
-[data-testid="stCameraInput"]:not(:has(img)) button:not(:has(svg)) { 
-    top: 362px !important; bottom: auto !important; right: auto !important;
+
+/* --- 🟡 3. 下方按鈕：拍照或重拍 (外層直接的 button) --- */
+[data-testid="stCameraInput"] > button { 
+    top: 362px !important; bottom: auto !important; 
 }
-[data-testid="stCameraInput"]:not(:has(img)) button:not(:has(svg))::after { 
+
+/* 預設下方為拍照相機圖案 */
+[data-testid="stCameraInput"] > button::after { 
     width: 34px !important; height: 34px !important; 
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232b1308'%3E%3Cpath d='M20 5h-3.17L15 3H9L7.17 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 14H4V7h4.05l1.83-2h4.24l1.83 2H20v12z'/%3E%3Cpath d='M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.65 0-3 1.35-3 3s1.35 3 3 3 3-1.35 3-3-1.35-3-3-3z'/%3E%3C/svg%3E") !important;
 }
 
-/* 🟡 下方按鈕：重拍 (已拍照時的唯一按鈕) */
-[data-testid="stCameraInput"]:has(img) button { 
-    top: 362px !important; bottom: auto !important; right: auto !important;
-}
-[data-testid="stCameraInput"]:has(img) button::after { 
+/* 當已拍照 (出現 img) 時，強制把下方按鈕換成重拍叉叉圖案 */
+[data-testid="stCameraInput"]:has(img) > button::after { 
     width: 28px !important; height: 28px !important; 
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232b1308'%3E%3Cpath d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E") !important;
 }
 
-/* 🕹️ 真實機械按壓物理回饋 */
+/* --- 🕹️ 真實機械按壓物理回饋 --- */
 [data-testid="stCameraInput"] button:active { 
     box-shadow: 
         inset 2px 2px 10px rgba(0,0,0,0.8), 
