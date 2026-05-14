@@ -6,6 +6,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class FletArtifactsTests(unittest.TestCase):
+    def test_streamlit_frontend_is_removed(self):
+        self.assertFalse((ROOT / "app.py").exists())
+        self.assertFalse((ROOT / "style.css").exists())
+        requirements = (ROOT / "requirements.txt").read_text(encoding="utf-8")
+        self.assertNotIn("streamlit", requirements.lower())
+
     def test_worker_uses_secret_env_and_restricts_github_io_origins(self):
         worker = (ROOT / "worker" / "index.js").read_text(encoding="utf-8")
 
