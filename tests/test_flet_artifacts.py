@@ -28,7 +28,8 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("Worker proxy failed", worker)
         self.assertIn("URLSearchParams", worker)
         self.assertIn('request.method === "GET"', worker)
-        self.assertIn("{ results: [] }", worker)
+        self.assertIn("App version expired", worker)
+        self.assertIn("status: 426", worker)
         self.assertIn('name = "art-village-magnifier"', wrangler)
         self.assertIn('main = "index.js"', wrangler)
 

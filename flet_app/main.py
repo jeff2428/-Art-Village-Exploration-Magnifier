@@ -191,6 +191,8 @@ def worker_error_message(status_code: int, text: str) -> str:
         return "辨識服務金鑰未通過，請檢查 Worker 的 PLANTNET_API_KEY"
     if status_code == 413:
         return "照片太大，請靠近植物後再拍一次"
+    if status_code == 426:
+        return "前端版本過舊，請重新整理頁面後再拍一次"
     if status_code == 429:
         return "辨識服務忙碌，請稍後再試"
     if 500 <= status_code < 600:

@@ -94,6 +94,12 @@ class CameraIdentificationFlowTests(unittest.TestCase):
         self.assertIn("重新整理", message)
         self.assertNotIn("Method not allowed", message)
 
+    def test_expired_app_error_asks_for_refresh(self):
+        message = app_main.worker_error_message(426, '{"error":"App version expired"}')
+
+        self.assertIn("版本過舊", message)
+        self.assertIn("重新整理", message)
+
     def test_recognition_service_error_is_not_retryable_by_default(self):
         error = app_main.RecognitionServiceError("bad plant photo")
 

@@ -62,7 +62,12 @@ export default {
 
     try {
       if (request.method === "GET" || request.method === "HEAD") {
-        return jsonResponse({ results: [] }, { status: 200 }, request, env);
+        return jsonResponse(
+          { error: "App version expired. Refresh the page before identifying plants." },
+          { status: 426 },
+          request,
+          env,
+        );
       }
 
       if (request.method !== "POST") {
