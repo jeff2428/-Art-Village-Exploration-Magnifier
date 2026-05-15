@@ -32,6 +32,9 @@ LENS_FRAME_SIZE = 336
 LENS_FRAME_PADDING = 11
 CAMERA_PREVIEW_SIZE = 420
 CAMERA_PREVIEW_OFFSET = -58
+MIN_CAMERA_ZOOM = 1.0
+MAX_CAMERA_ZOOM = 2.0
+CAMERA_ZOOM_STEP = 0.25
 PLANT_ORGAN_OPTIONS = {
     "auto": "自動",
     "leaf": "葉",
@@ -232,6 +235,84 @@ def capture_to_bytes(capture: Any) -> tuple[bytes, str]:
         return base64.b64decode(capture), "image/jpeg"
 
     raise TypeError("相機回傳了無法辨識的圖片格式")
+
+
+def clamp_camera_zoom(value: float) -> float:
+    return min(MAX_CAMERA_ZOOM, max(MIN_CAMERA_ZOOM, round(value / CAMERA_ZOOM_STEP) * CAMERA_ZOOM_STEP))
+
+
+def camera_preview_metrics(zoom_level: float) -> tuple[int, int, int]:
+    zoom = clamp_camera_zoom(zoom_level)
+    size = round(CAMERA_PREVIEW_SIZE * zoom)
+    offset = round((LENS_VIEWPORT_SIZE - size) / 2)
+    return size, offset, offset
+
+
+def camera_descriptor_text(camera_description: Any) -> str:
+    parts: list[str] = []
+    if isinstance(camera_description, dict):
+        parts.extend(str(value) for value in camera_description.values())
+    else:
+        for field in (
+            "name",
+            "label",
+            "display_name",
+            "description",
+            "lens_direction",
+            "position",
+            "device_id",
+        ):
+            try:
+                value = getattr(camera_description, field)
+            except Exception:
+                value = None
+            if value:
+                parts.append(str(value))
+    parts.append(str(camera_description))
+    return " ".join(parts).lower()
+
+
+def camera_direction_score(camera_description: Any, direction: str) -> int:
+    text = camera_descriptor_text(camera_description)
+    front_terms = ("front", "selfie", "user", "facetime", "前", "前置")
+    back_terms = ("back", "rear", "environment", "world", "後", "後置", "主鏡頭")
+    avoid_terms = ("ultra", "tele", "macro", "depth", "0.5", "2x", "超廣角", "望遠", "微距")
+    main_terms = ("main", "primary", "default", "standard", "主", "主要")
+
+    terms = front_terms if direction == "front" else back_terms
+    score = 0
+    if any(term in text for term in terms):
+        score += 100
+    if direction == "back" and any(term in text for term in main_terms):
+        score += 20
+    if any(term in text for term in avoid_terms):
+        score -= 30
+    return score
+
+
+def select_preferred_cameras(available_cameras: list[Any]) -> list[Any]:
+    if not available_cameras:
+        return []
+
+    back_candidates = [
+        (camera_direction_score(camera_description, "back"), index, camera_description)
+        for index, camera_description in enumerate(available_cameras)
+    ]
+    front_candidates = [
+        (camera_direction_score(camera_description, "front"), index, camera_description)
+        for index, camera_description in enumerate(available_cameras)
+    ]
+    back_score, _, back_camera = max(back_candidates, key=lambda item: (item[0], -item[1]))
+    front_score, _, front_camera = max(front_candidates, key=lambda item: (item[0], -item[1]))
+
+    selected: list[Any] = []
+    if back_score > 0:
+        selected.append(back_camera)
+    if front_score > 0 and front_camera not in selected:
+        selected.append(front_camera)
+    if selected:
+        return selected
+    return [available_cameras[0]]
 
 
 class RecognitionServiceError(RuntimeError):
@@ -437,6 +518,8 @@ async def run_app(page: ft.Page) -> None:
     cameras: list[Any] = []
     selected_camera_index = 0
     camera_ready = False
+    zoom_level = MIN_CAMERA_ZOOM
+    zoom_start_level = MIN_CAMERA_ZOOM
 
     status = ft.Text(
         "",
@@ -470,20 +553,50 @@ async def run_app(page: ft.Page) -> None:
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         ),
     )
+    camera_preview_slot = ft.Container(
+        left=0,
+        top=0,
+        width=LENS_VIEWPORT_SIZE,
+        height=LENS_VIEWPORT_SIZE,
+        content=camera_placeholder,
+    )
     camera_viewport = ft.Stack(
         width=LENS_VIEWPORT_SIZE,
         height=LENS_VIEWPORT_SIZE,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
-        controls=[
-            ft.Container(
-                left=0,
-                top=0,
-                width=LENS_VIEWPORT_SIZE,
-                height=LENS_VIEWPORT_SIZE,
-                content=camera_placeholder,
-            )
-        ],
+        controls=[camera_preview_slot],
     )
+
+    def apply_camera_zoom(update_slot: bool = True) -> None:
+        size, left, top = camera_preview_metrics(zoom_level)
+        camera_preview_slot.left = left
+        camera_preview_slot.top = top
+        camera_preview_slot.width = size
+        camera_preview_slot.height = size
+        if camera is not None:
+            camera.width = size
+            camera.height = size
+        if update_slot:
+            camera_preview_slot.update()
+
+    def on_pinch_start(_event: Any) -> None:
+        nonlocal zoom_start_level
+        zoom_start_level = zoom_level
+
+    def on_pinch_update(event: Any) -> None:
+        nonlocal zoom_level
+        try:
+            gesture_scale = float(getattr(event, "scale", 1.0) or 1.0)
+        except (TypeError, ValueError):
+            return
+        next_zoom = clamp_camera_zoom(zoom_start_level * gesture_scale)
+        if next_zoom == zoom_level:
+            return
+        zoom_level = next_zoom
+        apply_camera_zoom()
+        status.value = f"放大 {zoom_level:.2g}x" if zoom_level > MIN_CAMERA_ZOOM else "回到原始大小"
+        page.update()
+
     camera_frame = ft.Container(
         width=LENS_FRAME_SIZE,
         height=LENS_FRAME_SIZE,
@@ -498,7 +611,11 @@ async def run_app(page: ft.Page) -> None:
             border_radius=LENS_VIEWPORT_SIZE / 2,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
             bgcolor="#0f1512",
-            content=camera_viewport,
+            content=ft.GestureDetector(
+                content=camera_viewport,
+                on_scale_start=on_pinch_start,
+                on_scale_update=on_pinch_update,
+            ),
         ),
     )
 
@@ -807,13 +924,23 @@ async def run_app(page: ft.Page) -> None:
             status.value = "此裝置沒有可切換的第二鏡頭"
             page.update()
             return
+        previous_index = selected_camera_index
         camera_ready = False
         render_handle()
-        selected_camera_index = (selected_camera_index + 1) % len(cameras)
-        await camera.set_description(cameras[selected_camera_index])
-        camera_ready = True
+        selected_camera_index = 1 if selected_camera_index == 0 else 0
+        try:
+            await camera.set_description(cameras[selected_camera_index])
+            camera_ready = True
+            status.value = "已切換到前鏡頭" if selected_camera_index == 1 else "已切換到後鏡頭"
+        except Exception as error:
+            selected_camera_index = previous_index
+            try:
+                await camera.set_description(cameras[selected_camera_index])
+            except Exception:
+                pass
+            camera_ready = True
+            status.value = f"鏡頭切換失敗，已回到上一顆鏡頭：{error}"
         render_handle()
-        status.value = "已切換鏡頭"
         page.update()
 
     async def capture_and_identify(_event: ft.ControlEvent) -> None:
@@ -861,7 +988,7 @@ async def run_app(page: ft.Page) -> None:
             page.update()
 
     async def initialize_camera(_event: ft.ControlEvent | None = None) -> None:
-        nonlocal cameras, camera, camera_ready
+        nonlocal cameras, camera, camera_ready, selected_camera_index
         try:
             mark_load_timing("art-village:camera-init-start")
             camera_ready = False
@@ -874,23 +1001,16 @@ async def run_app(page: ft.Page) -> None:
                 return
             if camera is None:
                 camera = fc.Camera(
-                    width=CAMERA_PREVIEW_SIZE,
-                    height=CAMERA_PREVIEW_SIZE,
+                    width=camera_preview_slot.width,
+                    height=camera_preview_slot.height,
                     preview_enabled=True,
                     content=ft.Container(
                         alignment=ft.Alignment(0, 0),
                         content=ft.Icon(ft.Icons.CENTER_FOCUS_STRONG, size=44, color=ft.Colors.WHITE70),
                     ),
                 )
-                camera_viewport.controls = [
-                    ft.Container(
-                        left=CAMERA_PREVIEW_OFFSET,
-                        top=CAMERA_PREVIEW_OFFSET,
-                        width=CAMERA_PREVIEW_SIZE,
-                        height=CAMERA_PREVIEW_SIZE,
-                        content=camera,
-                    )
-                ]
+                apply_camera_zoom(update_slot=False)
+                camera_preview_slot.content = camera
                 page.update()
                 await asyncio.sleep(0)
             status.value = "正在尋找可用相機..."
@@ -911,6 +1031,8 @@ async def run_app(page: ft.Page) -> None:
             if last_error is not None:
                 raise last_error
             if cameras:
+                cameras = select_preferred_cameras(cameras)
+                selected_camera_index = 0
                 status.value = "正在初始化相機..."
                 page.update()
                 await camera.initialize(cameras[0], fc.ResolutionPreset.MEDIUM, enable_audio=False)

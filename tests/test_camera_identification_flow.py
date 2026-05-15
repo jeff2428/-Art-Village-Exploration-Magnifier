@@ -116,6 +116,37 @@ class CameraIdentificationFlowTests(unittest.TestCase):
 
             self.assertFalse(legacy_path.exists())
 
+    def test_camera_zoom_is_clamped_to_supported_preview_range(self):
+        self.assertEqual(app_main.clamp_camera_zoom(0.5), 1.0)
+        self.assertEqual(app_main.clamp_camera_zoom(1.26), 1.25)
+        self.assertEqual(app_main.clamp_camera_zoom(2.5), 2.0)
+
+    def test_camera_preview_metrics_keep_zoom_centered_in_lens(self):
+        size, left, top = app_main.camera_preview_metrics(1.5)
+
+        self.assertEqual(size, 630)
+        self.assertEqual(left, -163)
+        self.assertEqual(top, -163)
+
+    def test_preferred_camera_selection_uses_back_main_then_front(self):
+        cameras = [
+            {"name": "Back Ultra Wide Camera 0.5x"},
+            {"name": "Front Selfie Camera"},
+            {"name": "Back Main Camera"},
+            {"name": "Back Telephoto Camera 2x"},
+        ]
+
+        selected = app_main.select_preferred_cameras(cameras)
+
+        self.assertEqual(selected, [cameras[2], cameras[1]])
+
+    def test_preferred_camera_selection_falls_back_to_first_unknown_camera(self):
+        cameras = [{"name": "Mystery Camera A"}, {"name": "Mystery Camera B"}]
+
+        selected = app_main.select_preferred_cameras(cameras)
+
+        self.assertEqual(selected, [cameras[0]])
+
     def test_worker_404_error_points_to_bad_worker_url(self):
         message = app_main.worker_error_message(404, "error code: 1042")
 
