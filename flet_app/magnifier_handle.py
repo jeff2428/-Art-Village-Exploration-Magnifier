@@ -21,12 +21,17 @@ class _PressableRoundButton(ft.GestureDetector):
         top: int,
         on_click: Callback,
         disabled: bool = False,
+        left: int = 17,
+        size: int = 86,
+        icon_size: int = 32,
+        show_label: bool = True,
     ) -> None:
+        radius = size / 2
         self._button_face = ft.Container(
-            width=86,
-            height=86,
+            width=size,
+            height=size,
             tooltip=label,
-            border_radius=43,
+            border_radius=radius,
             alignment=ft.Alignment(0, 0),
             gradient=ft.RadialGradient(
                 center=ft.Alignment(-0.38, -0.45),
@@ -56,16 +61,16 @@ class _PressableRoundButton(ft.GestureDetector):
             animate_offset=ft.Animation(90, ft.AnimationCurve.EASE_OUT),
             content=ft.Column(
                 [
-                    ft.Icon(icon, size=32, color="#2b1308"),
-                    ft.Text(label, size=13, weight=ft.FontWeight.W_900, color="#2b1308"),
+                    ft.Icon(icon, size=icon_size, color="#2b1308"),
+                    ft.Text(label, size=13, weight=ft.FontWeight.W_900, color="#2b1308") if show_label else ft.Container(),
                 ],
-                spacing=3,
+                spacing=3 if show_label else 0,
                 alignment=ft.MainAxisAlignment.CENTER,
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
         )
         super().__init__(
-            left=17,
+            left=left,
             top=top,
             mouse_cursor=ft.MouseCursor.FORBIDDEN if disabled else ft.MouseCursor.CLICK,
             content=self._button_face,
@@ -85,17 +90,21 @@ class _PressableRoundButton(ft.GestureDetector):
 
 
 class MagnifierHandle(ft.Stack):
-    """Reusable storybook-style leather magnifier handle with two physical buttons."""
+    """Reusable storybook-style leather magnifier handle with physical controls."""
 
     def __init__(
         self,
         on_switch: Callback = None,
         on_capture: Callback = None,
+        on_room_in: Callback = None,
+        on_room_out: Callback = None,
         switch_enabled: bool = True,
         capture_enabled: bool = True,
-    ) -> None:
+        room_in_enabled: bool = True,
+        room_out_enabled: bool = True,
+        ) -> None:
         super().__init__(
-            width=120,
+            width=160,
             height=260,
             controls=[
                 ft.Container(
@@ -155,6 +164,28 @@ class MagnifierHandle(ft.Stack):
                     top=44,
                     on_click=on_switch,
                     disabled=not switch_enabled,
+                ),
+                _PressableRoundButton(
+                    label="Room in" if room_in_enabled else "已最大",
+                    icon=ft.Icons.ZOOM_IN,
+                    top=52,
+                    left=118,
+                    size=32,
+                    icon_size=19,
+                    show_label=False,
+                    on_click=on_room_in,
+                    disabled=not room_in_enabled,
+                ),
+                _PressableRoundButton(
+                    label="Room out" if room_out_enabled else "已最小",
+                    icon=ft.Icons.ZOOM_OUT,
+                    top=90,
+                    left=118,
+                    size=32,
+                    icon_size=19,
+                    show_label=False,
+                    on_click=on_room_out,
+                    disabled=not room_out_enabled,
                 ),
                 _PressableRoundButton(
                     label="拍攝" if capture_enabled else "準備中",

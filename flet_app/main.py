@@ -519,7 +519,6 @@ async def run_app(page: ft.Page) -> None:
     selected_camera_index = 0
     camera_ready = False
     zoom_level = MIN_CAMERA_ZOOM
-    zoom_start_level = MIN_CAMERA_ZOOM
 
     status = ft.Text(
         "",
@@ -579,23 +578,22 @@ async def run_app(page: ft.Page) -> None:
         if update_slot:
             camera_preview_slot.update()
 
-    def on_pinch_start(_event: Any) -> None:
-        nonlocal zoom_start_level
-        zoom_start_level = zoom_level
-
-    def on_pinch_update(event: Any) -> None:
+    def adjust_camera_zoom(delta: float) -> None:
         nonlocal zoom_level
-        try:
-            gesture_scale = float(getattr(event, "scale", 1.0) or 1.0)
-        except (TypeError, ValueError):
-            return
-        next_zoom = clamp_camera_zoom(zoom_start_level * gesture_scale)
+        next_zoom = clamp_camera_zoom(zoom_level + delta)
         if next_zoom == zoom_level:
             return
         zoom_level = next_zoom
         apply_camera_zoom()
         status.value = f"放大 {zoom_level:.2g}x" if zoom_level > MIN_CAMERA_ZOOM else "回到原始大小"
+        render_handle(update_page=False)
         page.update()
+
+    def room_in(_event: ft.ControlEvent) -> None:
+        adjust_camera_zoom(CAMERA_ZOOM_STEP)
+
+    def room_out(_event: ft.ControlEvent) -> None:
+        adjust_camera_zoom(-CAMERA_ZOOM_STEP)
 
     camera_frame = ft.Container(
         width=LENS_FRAME_SIZE,
@@ -611,15 +609,11 @@ async def run_app(page: ft.Page) -> None:
             border_radius=LENS_VIEWPORT_SIZE / 2,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
             bgcolor="#0f1512",
-            content=ft.GestureDetector(
-                content=camera_viewport,
-                on_scale_start=on_pinch_start,
-                on_scale_update=on_pinch_update,
-            ),
+            content=camera_viewport,
         ),
     )
 
-    handle_slot = ft.Container(width=120, height=260)
+    handle_slot = ft.Container(width=160, height=260)
     magnifier_handle_overlap = 24
     magnifier_body = ft.Stack(
         width=LENS_FRAME_SIZE,
@@ -628,7 +622,7 @@ async def run_app(page: ft.Page) -> None:
             ft.Container(
                 left=(LENS_FRAME_SIZE - 120) / 2,
                 top=LENS_FRAME_SIZE - magnifier_handle_overlap,
-                width=120,
+                width=160,
                 height=260,
                 content=handle_slot,
             ),
@@ -860,7 +854,48 @@ async def run_app(page: ft.Page) -> None:
                 ft.Text("別名", size=12, color="#8a5a22", weight=ft.FontWeight.W_900),
                 ft.Text("、".join(aliases), size=13, color="#5c4032"),
             ]
-        
+
+        metadata_controls = [
+            info_chip("拍攝部位", organ_label),
+            info_chip("毒性", toxicity.get("label", "資料待確認"), toxicity.get("detail", "")),
+            info_chip("外來種", invasive.get("label", "資料待確認"), invasive.get("detail", "")),
+        ]
+        dialog_content_height = max(420, min(520, round((page.height or 760) * 0.58)))
+        plant_detail_content = ft.Column(
+            controls=[
+                image_banner,
+                warning_text,
+                ft.Row(
+                    controls=[
+                        ft.Text(data["zh_name"], size=22, color="#3d2a21", weight=ft.FontWeight.W_900, expand=True),
+                        ft.Container(
+                            padding=ft.Padding.symmetric(horizontal=10, vertical=6),
+                            border_radius=999,
+                            bgcolor="#e8bc96",
+                            content=ft.Text(f"{confidence}%", size=13, color="#3d2a21", weight=ft.FontWeight.W_900),
+                        ),
+                    ],
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                detail_text(data.get("eng_name") or "N/A", size=14, color="#6d5140", weight=ft.FontWeight.W_800),
+                detail_text(data.get("sci_name") or "", size=12, color="#8a6a54"),
+                *alias_controls,
+                ft.Column(
+                    controls=metadata_controls,
+                    spacing=8,
+                ),
+                ft.Text(data["desc"], size=14, color="#3d2a21"),
+                ft.Text(confidence_text(data), size=13, color="#6d5140"),
+                *alternative_controls,
+                ft.Container(
+                    padding=ft.Padding.only(bottom=12),
+                    content=ft.Text("已加入探險圖鑑", size=13, color="#2f7d51", weight=ft.FontWeight.W_800),
+                ),
+            ],
+            spacing=10,
+            scroll=ft.ScrollMode.AUTO,
+        )
+
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
@@ -868,44 +903,10 @@ async def run_app(page: ft.Page) -> None:
                 title=ft.Text(f"{data['emoji']} {name}", size=24, weight=ft.FontWeight.W_900, color="#3d2a21"),
                 content=ft.Container(
                     width=360,
-                    height=620,
+                    height=dialog_content_height,
                     content=soft_card(
-                    ft.Column(
-                        controls=[
-                            image_banner,
-                            warning_text,
-                            ft.Row(
-                                controls=[
-                                    ft.Text(data["zh_name"], size=22, color="#3d2a21", weight=ft.FontWeight.W_900, expand=True),
-                                    ft.Container(
-                                        padding=ft.Padding.symmetric(horizontal=10, vertical=6),
-                                        border_radius=999,
-                                        bgcolor="#e8bc96",
-                                        content=ft.Text(f"{confidence}%", size=13, color="#3d2a21", weight=ft.FontWeight.W_900),
-                                    ),
-                                ],
-                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                            ),
-                            detail_text(data.get("eng_name") or "N/A", size=14, color="#6d5140", weight=ft.FontWeight.W_800),
-                            detail_text(data.get("sci_name") or "", size=12, color="#8a6a54"),
-                            *alias_controls,
-                            ft.Row(
-                                controls=[
-                                    info_chip("拍攝部位", organ_label),
-                                    info_chip("毒性", toxicity.get("label", "資料待確認"), toxicity.get("detail", "")),
-                                    info_chip("外來種", invasive.get("label", "資料待確認"), invasive.get("detail", "")),
-                                ],
-                                spacing=8,
-                                wrap=True,
-                            ),
-                            ft.Text(data["desc"], size=14, color="#3d2a21"),
-                            ft.Text(confidence_text(data), size=13, color="#6d5140"),
-                            *alternative_controls,
-                            ft.Text("已加入探險圖鑑", size=13, color="#2f7d51", weight=ft.FontWeight.W_800),
-                        ],
-                        spacing=10,
-                    ),
-                    padding=18,
+                        plant_detail_content,
+                        padding=14,
                     ),
                 ),
                 actions=[ft.TextButton("關閉", on_click=close_dialog)],
@@ -981,8 +982,12 @@ async def run_app(page: ft.Page) -> None:
         handle_slot.content = MagnifierHandle(
             on_switch=switch_camera,
             on_capture=capture_and_identify,
+            on_room_in=room_in,
+            on_room_out=room_out,
             switch_enabled=len(cameras) > 1,
             capture_enabled=camera_ready,
+            room_in_enabled=zoom_level < MAX_CAMERA_ZOOM,
+            room_out_enabled=zoom_level > MIN_CAMERA_ZOOM,
         )
         if update_page:
             page.update()
