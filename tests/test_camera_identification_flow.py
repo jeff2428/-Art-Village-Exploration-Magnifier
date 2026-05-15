@@ -88,6 +88,12 @@ class CameraIdentificationFlowTests(unittest.TestCase):
         self.assertIn("PLANTNET_API_KEY", message)
         self.assertNotIn("Forbidden", message)
 
+    def test_method_error_asks_for_refresh_without_raw_payload(self):
+        message = app_main.worker_error_message(405, '{"error":"Method not allowed"}')
+
+        self.assertIn("重新整理", message)
+        self.assertNotIn("Method not allowed", message)
+
     def test_recognition_service_error_is_not_retryable_by_default(self):
         error = app_main.RecognitionServiceError("bad plant photo")
 

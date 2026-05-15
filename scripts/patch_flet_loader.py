@@ -40,6 +40,8 @@ LOADER_HTML = """
   }
 </style>
 <script>
+  window.__artVillageReady = false;
+
   const removeExplorerLoader = () => {
     const loader = document.getElementById("explorer-loader");
     if (loader) loader.remove();
@@ -51,11 +53,17 @@ LOADER_HTML = """
   };
 
   const waitForFlet = window.setInterval(() => {
-    if (hasFletContent()) {
+    if (window.__artVillageReady === true) {
       window.clearInterval(waitForFlet);
       window.setTimeout(removeExplorerLoader, 450);
     }
   }, 250);
+
+  window.setTimeout(() => {
+    if (hasFletContent()) {
+      removeExplorerLoader();
+    }
+  }, 45000);
 
   window.setTimeout(() => {
     const text = document.querySelector("#explorer-loader .explorer-text");

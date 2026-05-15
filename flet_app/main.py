@@ -185,6 +185,8 @@ def worker_error_message(status_code: int, text: str) -> str:
         return "辨識服務尚未部署，請檢查 Worker 網址"
     if status_code in (400, 404):
         return "沒有辨識到植物，請對準葉子、花或果實再拍一次"
+    if status_code == 405:
+        return "辨識服務方法錯誤，請重新整理頁面後再試"
     if status_code in (401, 403):
         return "辨識服務金鑰未通過，請檢查 Worker 的 PLANTNET_API_KEY"
     if status_code == 413:
@@ -203,7 +205,7 @@ async def post_image_to_worker(capture: Any) -> dict[str, Any]:
     binary, mime = capture_to_bytes(capture)
 
     try:
-        from js import Blob, FormData, Uint8Array, fetch  # type: ignore
+        from js import Blob, FormData, Object, Uint8Array, fetch  # type: ignore
         from pyodide.ffi import to_js  # type: ignore
 
         image_array = Uint8Array.new(to_js(list(binary)))
@@ -212,7 +214,8 @@ async def post_image_to_worker(capture: Any) -> dict[str, Any]:
         form = FormData.new()
         form.append("images", blob, "capture.jpg")
 
-        response = await fetch(WORKER_URL, {"method": "POST", "body": form})
+        fetch_options = to_js({"method": "POST", "body": form}, dict_converter=Object.fromEntries)
+        response = await fetch(WORKER_URL, fetch_options)
         text = await response.text()
         if not response.ok:
             raise RecognitionServiceError(worker_error_message(response.status, text))
@@ -285,6 +288,15 @@ def clear_legacy_snapshot_cache() -> None:
         legacy_path = LOCAL_CACHE_DIR / "local_snapshot_queue.json"
         if legacy_path.exists():
             legacy_path.unlink()
+    except Exception:
+        pass
+
+
+def mark_explorer_ready() -> None:
+    try:
+        from js import window  # type: ignore
+
+        window.__artVillageReady = True
     except Exception:
         pass
 
@@ -859,6 +871,7 @@ async def run_app(page: ft.Page) -> None:
     render_handle()
     refresh_gallery()
     page.update()
+    mark_explorer_ready()
     await initialize_camera()
 
 
