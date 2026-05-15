@@ -24,7 +24,9 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("pages.dev", worker)
         self.assertIn("ALLOWED_ORIGIN", worker)
         self.assertIn("Access-Control-Allow-Origin", worker)
-        self.assertIn('plantNetForm.append("organs", "auto")', worker)
+        self.assertIn("isFileLike", worker)
+        self.assertIn("Worker proxy failed", worker)
+        self.assertIn("URLSearchParams", worker)
         self.assertIn('name = "art-village-magnifier"', wrangler)
         self.assertIn('main = "index.js"', wrangler)
 

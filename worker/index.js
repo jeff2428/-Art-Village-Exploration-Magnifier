@@ -40,6 +40,10 @@ function jsonResponse(body, init, request, env) {
   });
 }
 
+function isFileLike(value) {
+  return value && typeof value.arrayBuffer === "function" && typeof value.type === "string";
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
@@ -56,60 +60,64 @@ export default {
       });
     }
 
-    if (request.method !== "POST") {
+    try {
+      if (request.method !== "POST") {
+        return jsonResponse({ error: "Method not allowed" }, { status: 405 }, request, env);
+      }
+
+      if (!env.PLANTNET_API_KEY) {
+        return jsonResponse({ error: "PlantNet API key is not configured" }, { status: 500 }, request, env);
+      }
+
+      const contentType = request.headers.get("Content-Type") || "";
+      if (!contentType.toLowerCase().includes("multipart/form-data")) {
+        return jsonResponse({ error: "Expected multipart/form-data" }, { status: 415 }, request, env);
+      }
+
+      const incomingForm = await request.formData();
+      const image = incomingForm.get("images") || incomingForm.get("image") || incomingForm.get("file");
+
+      if (!isFileLike(image)) {
+        return jsonResponse({ error: "Missing image file" }, { status: 400 }, request, env);
+      }
+
+      const plantNetForm = new FormData();
+      plantNetForm.append("images", image, image.name || "capture.jpg");
+
+      const params = new URLSearchParams({
+        "api-key": env.PLANTNET_API_KEY,
+        lang: "zh",
+        "no-reject": "true",
+      });
+
+      const response = await fetch(`${PLANTNET_URL}?${params.toString()}`, {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+        },
+        body: plantNetForm,
+      });
+
       const allowOrigin = corsHeaders(request, env);
-      return jsonResponse({ error: "Method not allowed" }, { status: 405 }, request, env);
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: {
+          "Content-Type": response.headers.get("Content-Type") || "application/json; charset=utf-8",
+          "Access-Control-Allow-Origin": allowOrigin,
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+          "Access-Control-Max-Age": "86400",
+          Vary: "Origin",
+        },
+      });
+    } catch (error) {
+      return jsonResponse(
+        { error: "Worker proxy failed", detail: error instanceof Error ? error.message : String(error) },
+        { status: 502 },
+        request,
+        env,
+      );
     }
-
-    if (!env.PLANTNET_API_KEY) {
-      const allowOrigin = corsHeaders(request, env);
-      return jsonResponse({ error: "PlantNet API key is not configured" }, { status: 500 }, request, env);
-    }
-
-    const contentType = request.headers.get("Content-Type") || "";
-    if (!contentType.toLowerCase().includes("multipart/form-data")) {
-      const allowOrigin = corsHeaders(request, env);
-      return jsonResponse({ error: "Expected multipart/form-data" }, { status: 415 }, request, env);
-    }
-
-    const incomingForm = await request.formData();
-    const image = incomingForm.get("images") || incomingForm.get("image") || incomingForm.get("file");
-
-    if (!(image instanceof File)) {
-      const allowOrigin = corsHeaders(request, env);
-      return jsonResponse({ error: "Missing image file" }, { status: 400 }, request, env);
-    }
-
-    const plantNetForm = new FormData();
-    plantNetForm.append("organs", "auto");
-    plantNetForm.append("images", image, image.name || "capture.jpg");
-
-    const params = new URLSearchParams({
-      "api-key": env.PLANTNET_API_KEY,
-      lang: "zh",
-      "no-reject": "true",
-    });
-
-    const response = await fetch(`${PLANTNET_URL}?${params.toString()}`, {
-      method: "POST",
-      headers: {
-        "Accept": "application/json",
-      },
-      body: plantNetForm,
-    });
-
-    const allowOrigin = corsHeaders(request, env);
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: {
-        "Content-Type": response.headers.get("Content-Type") || "application/json; charset=utf-8",
-        "Access-Control-Allow-Origin": allowOrigin,
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Max-Age": "86400",
-        Vary: "Origin",
-      },
-    });
   },
 };

@@ -68,10 +68,22 @@ class CameraIdentificationFlowTests(unittest.TestCase):
         self.assertNotEqual(app_main.LOCAL_SNAPSHOT_QUEUE_PATH.parent, ROOT / "flet_app")
 
     def test_worker_404_error_points_to_bad_worker_url(self):
-        message = app_main.worker_error_message(404, "<!DOCTYPE html><html>not found</html>")
+        message = app_main.worker_error_message(404, "error code: 1042")
 
         self.assertIn("辨識服務網址無效", message)
         self.assertIn("404", message)
+
+    def test_plantnet_400_or_404_asks_for_a_plant_photo(self):
+        for status_code in (400, 404):
+            message = app_main.worker_error_message(status_code, '{"message":"Species not found"}')
+
+            self.assertIn("沒有辨識到植物", message)
+            self.assertNotIn("辨識服務網址無效", message)
+
+    def test_recognition_service_error_is_not_retryable_by_default(self):
+        error = app_main.RecognitionServiceError("bad plant photo")
+
+        self.assertFalse(error.retryable)
 
 
 if __name__ == "__main__":

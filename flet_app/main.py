@@ -162,6 +162,12 @@ def capture_to_bytes(capture: Any) -> tuple[bytes, str]:
     raise TypeError("相機回傳了無法辨識的圖片格式")
 
 
+class RecognitionServiceError(RuntimeError):
+    def __init__(self, message: str, retryable: bool = False) -> None:
+        super().__init__(message)
+        self.retryable = retryable
+
+
 def post_image_to_worker_sync(binary: bytes, mime: str) -> dict[str, Any]:
     import requests
 
@@ -171,12 +177,14 @@ def post_image_to_worker_sync(binary: bytes, mime: str) -> dict[str, Any]:
         timeout=30,
     )
     if not response.ok:
-        raise RuntimeError(worker_error_message(response.status_code, response.text))
+        raise RecognitionServiceError(worker_error_message(response.status_code, response.text))
     return response.json()
 
 
 def worker_error_message(status_code: int, text: str) -> str:
     snippet = " ".join((text or "").strip().split())[:120]
+    if status_code in (400, 404) and "1042" not in snippet:
+        return "沒有辨識到植物，請把鏡頭對準葉子、花或果實再拍一次"
     if status_code == 404:
         return f"辨識服務網址無效或 Worker 尚未部署：{status_code} {snippet}"
     return f"辨識服務回應失敗：{status_code} {snippet}"
@@ -201,7 +209,7 @@ async def post_image_to_worker(capture: Any) -> dict[str, Any]:
         response = await fetch(WORKER_URL, {"method": "POST", "body": form})
         text = await response.text()
         if not response.ok:
-            raise RuntimeError(worker_error_message(response.status, text))
+            raise RecognitionServiceError(worker_error_message(response.status, text))
         return json.loads(text)
     except ModuleNotFoundError:
         return await asyncio.to_thread(post_image_to_worker_sync, binary, mime)
@@ -585,6 +593,9 @@ async def run_app(page: ft.Page) -> None:
             image_data = await camera.take_picture()
             try:
                 payload = await post_image_to_worker(image_data)
+            except RecognitionServiceError as error:
+                status.value = str(error)
+                return
             except Exception as error:
                 snapshot_queue.append(make_snapshot(image_data))
                 refresh_pending_snapshots()
