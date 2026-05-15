@@ -134,15 +134,6 @@ def parse_plantnet_result(payload: dict[str, Any]) -> dict[str, Any] | None:
     return primary
 
 
-def plant_candidates_for_gallery(plant: dict[str, Any]) -> list[dict[str, Any]]:
-    candidates = [plant, *(plant.get("alternatives") or [])]
-    return [
-        candidate
-        for candidate in candidates
-        if isinstance(candidate, dict) and candidate.get("zh_name")
-    ]
-
-
 def confidence_text(item: dict[str, Any]) -> str:
     confidence = item.get("confidence", 0)
     if not confidence:
@@ -477,6 +468,7 @@ async def run_app(page: ft.Page) -> None:
                     animate=ft.Animation(220, ft.AnimationCurve.EASE_OUT),
                     tooltip=f"{name} 詳細介紹",
                     on_click=lambda _event, item_name=name, item_data=item: show_gallery_card(item_name, item_data),
+                    on_long_press=lambda _event, item_name=name: confirm_delete_gallery_item(item_name),
                     content=ft.Column(
                         controls=[
                             ft.Text(f"{icon} {badge} {name}", size=14, weight=ft.FontWeight.W_800, color="#3d2a21"),
@@ -498,17 +490,66 @@ async def run_app(page: ft.Page) -> None:
         refresh_gallery()
 
     def add_plant_to_gallery(plant: dict[str, Any]) -> None:
-        candidates = plant_candidates_for_gallery(plant)
-        for candidate in candidates:
-            pokedex[candidate["zh_name"]] = candidate
+        pokedex[plant["zh_name"]] = plant
         if plant.get("is_low_confidence", False):
-            status.value = f"⚠️ 已加入 {len(candidates)} 個辨識候選，建議確認"
+            status.value = f"⚠️ {plant['zh_name']}（信心度低，建議確認）"
         else:
-            status.value = f"辨識成功：已加入 {len(candidates)} 個候選 · {plant['zh_name']} {plant.get('confidence', 0)}%"
+            status.value = f"辨識成功：{plant['zh_name']} · {plant.get('confidence', 0)}%"
         refresh_gallery()
 
     def close_dialog(_event: ft.ControlEvent) -> None:
         page.pop_dialog()
+        page.update()
+
+    def delete_gallery_item(name: str) -> None:
+        if name in pokedex:
+            pokedex.pop(name)
+            save_cached_pokedex(pokedex)
+            status.value = f"已刪除：{name}"
+            refresh_gallery()
+        page.pop_dialog()
+        page.update()
+
+    def clear_gallery() -> None:
+        pokedex.clear()
+        save_cached_pokedex(pokedex)
+        status.value = "已清除探險圖鑑"
+        refresh_gallery()
+        page.pop_dialog()
+        page.update()
+
+    def confirm_delete_gallery_item(name: str) -> None:
+        page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text("刪除圖鑑卡片", size=22, weight=ft.FontWeight.W_900),
+                content=ft.Text(f"要從探險圖鑑刪除「{name}」嗎？", size=15, color="#3d2a21"),
+                actions=[
+                    ft.TextButton("取消", on_click=close_dialog),
+                    ft.TextButton("刪除", icon=ft.Icons.DELETE_OUTLINE, on_click=lambda _event: delete_gallery_item(name)),
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+            )
+        )
+        page.update()
+
+    def confirm_clear_gallery(_event: ft.ControlEvent) -> None:
+        if not pokedex:
+            status.value = "探險圖鑑目前是空的"
+            page.update()
+            return
+        page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text("清除探險圖鑑", size=22, weight=ft.FontWeight.W_900),
+                content=ft.Text("要刪除所有圖鑑卡片嗎？這個動作無法復原。", size=15, color="#3d2a21"),
+                actions=[
+                    ft.TextButton("取消", on_click=close_dialog),
+                    ft.TextButton("全部清除", icon=ft.Icons.DELETE_SWEEP_OUTLINED, on_click=lambda _event: clear_gallery()),
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+            )
+        )
         page.update()
 
     def show_animal_card(name: str) -> None:
@@ -550,12 +591,12 @@ async def run_app(page: ft.Page) -> None:
         if is_low_confidence and confidence > 0:
             warning_text = ft.Container(
                 padding=8,
-                margin=ft.margin.only(bottom=8),
+                margin=ft.Margin.only(bottom=8),
                 bgcolor="#fff3cd",
                 border_radius=8,
                 content=ft.Row(
                     controls=[
-                        ft.Icon(ft.Icons.WARNING_AMBIGUOUS, size=16, color="#856404"),
+                        ft.Icon(ft.Icons.WARNING_AMBER_OUTLINED, size=16, color="#856404"),
                         ft.Text(f"置信度僅 {confidence}%，建議實地確認物種", size=13, color="#856404", weight=ft.FontWeight.W_700),
                     ],
                     spacing=6,
@@ -902,6 +943,12 @@ async def run_app(page: ft.Page) -> None:
                     controls=[
                         ft.Text("🎒", size=30),
                         ft.Text("探險圖鑑", size=28, weight=ft.FontWeight.W_900, color="#3d2a21"),
+                        ft.IconButton(
+                            icon=ft.Icons.DELETE_SWEEP_OUTLINED,
+                            icon_color="#8a5a22",
+                            tooltip="清除圖鑑內容",
+                            on_click=confirm_clear_gallery,
+                        ),
                     ],
                     spacing=8,
                     alignment=ft.MainAxisAlignment.CENTER,

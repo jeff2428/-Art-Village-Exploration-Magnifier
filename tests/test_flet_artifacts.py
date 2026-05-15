@@ -119,6 +119,17 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("show_animal_card", main)
         self.assertIn("page.show_dialog", main)
         self.assertIn("content_area.content = get_animals_view()", main)
+        self.assertIn("ft.Margin.only", main)
+        self.assertNotIn("ft.margin.only", main)
+        self.assertIn("WARNING_AMBER_OUTLINED", main)
+        self.assertNotIn("WARNING_AMBIGUOUS", main)
+        self.assertIn("confirm_clear_gallery", main)
+        self.assertIn("clear_gallery", main)
+        self.assertIn("confirm_delete_gallery_item", main)
+        self.assertIn("delete_gallery_item", main)
+        self.assertIn("on_long_press=lambda _event, item_name=name", main)
+        self.assertIn("清除圖鑑內容", main)
+        self.assertIn("DELETE_SWEEP_OUTLINED", main)
 
     def test_cloudflare_pages_builds_and_patches_loader(self):
         build = (ROOT / "build.sh").read_text(encoding="utf-8")
