@@ -33,11 +33,18 @@ LENS_FRAME_PADDING = 11
 CAMERA_PREVIEW_SIZE = 420
 CAMERA_PREVIEW_OFFSET = -58
 PLANT_ORGAN_OPTIONS = {
+    "auto": "自動",
     "leaf": "葉",
     "flower": "花",
     "fruit": "果",
     "bark": "樹皮",
-    "auto": "自動",
+}
+PLANT_ORGAN_ICONS = {
+    "auto": ft.Icons.AUTO_AWESOME,
+    "leaf": ft.Icons.ECO,
+    "flower": ft.Icons.LOCAL_FLORIST,
+    "fruit": ft.Icons.SPA,
+    "bark": ft.Icons.PARK,
 }
 MAX_CARD_IMAGE_DATA_URL_LENGTH = 180_000
 UNKNOWN_METADATA = {
@@ -656,6 +663,9 @@ async def run_app(page: ft.Page) -> None:
         invasive = data.get("invasive") or UNKNOWN_METADATA["invasive"]
         organ_label = data.get("organ_label") or PLANT_ORGAN_OPTIONS.get(data.get("organ", "auto"), "自動")
 
+        def detail_text(value: str, *, size: int = 13, color: str = "#5c4032", weight: ft.FontWeight | None = None) -> ft.Text:
+            return ft.Text(value, size=size, color=color, weight=weight, selectable=True)
+
         def info_chip(label: str, value: str, detail: str = "") -> ft.Container:
             return ft.Container(
                 padding=10,
@@ -737,8 +747,12 @@ async def run_app(page: ft.Page) -> None:
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
+                scrollable=True,
                 title=ft.Text(f"{data['emoji']} {name}", size=24, weight=ft.FontWeight.W_900, color="#3d2a21"),
-                content=soft_card(
+                content=ft.Container(
+                    width=360,
+                    height=620,
+                    content=soft_card(
                     ft.Column(
                         controls=[
                             image_banner,
@@ -755,8 +769,8 @@ async def run_app(page: ft.Page) -> None:
                                 ],
                                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
                             ),
-                            ft.Text(data.get("eng_name") or "N/A", size=14, color="#6d5140", weight=ft.FontWeight.W_800),
-                            ft.Text(data.get("sci_name") or "", size=12, color="#8a6a54", italic=True),
+                            detail_text(data.get("eng_name") or "N/A", size=14, color="#6d5140", weight=ft.FontWeight.W_800),
+                            detail_text(data.get("sci_name") or "", size=12, color="#8a6a54"),
                             *alias_controls,
                             ft.Row(
                                 controls=[
@@ -775,6 +789,7 @@ async def run_app(page: ft.Page) -> None:
                         spacing=10,
                     ),
                     padding=18,
+                    ),
                 ),
                 actions=[ft.TextButton("關閉", on_click=close_dialog)],
                 actions_alignment=ft.MainAxisAlignment.END,
@@ -812,7 +827,7 @@ async def run_app(page: ft.Page) -> None:
             page.update()
             image_data = await camera.take_picture()
             try:
-                selected_organ = organ_mode.value or "leaf"
+                selected_organ = selected_organ_value()
                 payload = await post_image_to_worker(image_data, selected_organ)
             except RecognitionServiceError as error:
                 status.value = str(error)
@@ -930,20 +945,36 @@ async def run_app(page: ft.Page) -> None:
             alignment=ft.MainAxisAlignment.CENTER,
         ),
     )
-    organ_mode = ft.RadioGroup(
-        value="leaf",
-        content=ft.Row(
-            controls=[
-                ft.Radio(value="leaf", label="葉"),
-                ft.Radio(value="flower", label="花"),
-                ft.Radio(value="fruit", label="果"),
-                ft.Radio(value="bark", label="樹皮"),
-                ft.Radio(value="auto", label="自動"),
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,
-            wrap=True,
-        ),
+    organ_mode = ft.SegmentedButton(
+        selected=["auto"],
+        show_selected_icon=False,
+        segments=[
+            ft.Segment(value=value, icon=ft.Icon(PLANT_ORGAN_ICONS[value]), label=label)
+            for value, label in PLANT_ORGAN_OPTIONS.items()
+        ],
+        padding=ft.Padding.symmetric(horizontal=2, vertical=2),
     )
+
+    def selected_organ_value() -> str:
+        return next(iter(organ_mode.selected or ["auto"]), "auto")
+
+    def organ_selector() -> ft.Container:
+        return ft.Container(
+            padding=8,
+            border_radius=12,
+            bgcolor="#fff8e8",
+            border=border_all(1, "#dfd0bd"),
+            content=ft.Row(
+                controls=[
+                    ft.Text("拍攝部位", size=12, weight=ft.FontWeight.W_900, color="#6d5140"),
+                    organ_mode,
+                ],
+                spacing=8,
+                alignment=ft.MainAxisAlignment.CENTER,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                wrap=True,
+            ),
+        )
 
     def plant_card(name: str, data: dict[str, Any]) -> ft.Container:
         confidence = data.get("confidence", 0)
@@ -1032,17 +1063,7 @@ async def run_app(page: ft.Page) -> None:
     plant_view = ft.Column(
         controls=[
             magnifier_body,
-            soft_card(
-                ft.Column(
-                    controls=[
-                        ft.Text("拍攝部位", size=13, weight=ft.FontWeight.W_900, color="#6d5140"),
-                        organ_mode,
-                    ],
-                    spacing=4,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
-                padding=10,
-            ),
+            organ_selector(),
             ft.Row(
                 controls=[busy_ring, status],
                 spacing=8,
