@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import time
 from pathlib import Path
 
@@ -42,6 +43,17 @@ LOADER_HTML = """
 <script>
   window.__artVillageReady = false;
 
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations()
+      .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+      .catch(() => {});
+  }
+  if ("caches" in window) {
+    caches.keys()
+      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+      .catch(() => {});
+  }
+
   const removeExplorerLoader = () => {
     const loader = document.getElementById("explorer-loader");
     if (loader) loader.remove();
@@ -80,10 +92,19 @@ def build_stamp() -> str:
     return str(int(time.time()))
 
 
-def cache_busting_script(stamp: str) -> str:
+def versioned_app_package_url(index_path: Path, stamp: str) -> str:
+    app_path = index_path.parent / "assets" / "app" / "app.zip"
+    versioned_name = f"app-{stamp}.zip"
+    versioned_path = app_path.with_name(versioned_name)
+    if app_path.exists():
+        shutil.copyfile(app_path, versioned_path)
+    return f"assets/app/{versioned_name}"
+
+
+def cache_busting_script(stamp: str, app_package_url: str) -> str:
     return f"""
 <script id="flet-cache-buster">
-  flet.appPackageUrl = `${{flet.appPackageUrl}}?v={stamp}`;
+  flet.appPackageUrl = "{app_package_url}";
   flet.pyodideUrl = `${{flet.pyodideUrl}}?v={stamp}`;
 </script>
 """
@@ -91,8 +112,10 @@ def cache_busting_script(stamp: str) -> str:
 
 def patch_index(index_path: Path) -> None:
     html = index_path.read_text(encoding="utf-8")
+    stamp = build_stamp()
+    app_package_url = versioned_app_package_url(index_path, stamp)
     if "flet-cache-buster" not in html:
-        html = html.replace('<script src="python.js"></script>', f'{cache_busting_script(build_stamp())}\n  <script src="python.js"></script>', 1)
+        html = html.replace('<script src="python.js"></script>', f'{cache_busting_script(stamp, app_package_url)}\n  <script src="python.js"></script>', 1)
     if "explorer-loader" in html:
         index_path.write_text(html, encoding="utf-8")
         return
