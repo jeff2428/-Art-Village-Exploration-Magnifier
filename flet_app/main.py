@@ -27,6 +27,11 @@ POKEDEX_STORAGE_KEY = "artVillagePokedex"
 LOCAL_CACHE_DIR = Path(tempfile.gettempdir()) / "art-village-exploration-magnifier"
 LOCAL_CACHE_PATH = LOCAL_CACHE_DIR / "local_pokedex_cache.json"
 LOW_CONFIDENCE_THRESHOLD = 70.0
+LENS_VIEWPORT_SIZE = 304
+LENS_FRAME_SIZE = 336
+LENS_FRAME_PADDING = 11
+CAMERA_PREVIEW_SIZE = 420
+CAMERA_PREVIEW_OFFSET = -58
 
 ANIMALS_DB = {
     "貝貝": {
@@ -303,6 +308,15 @@ def mark_explorer_ready() -> None:
         pass
 
 
+def mark_load_timing(name: str) -> None:
+    try:
+        from js import performance  # type: ignore
+
+        performance.mark(name)
+    except Exception:
+        pass
+
+
 async def main(page: ft.Page) -> None:
     try:
         await run_app(page)
@@ -386,23 +400,31 @@ async def run_app(page: ft.Page) -> None:
         ),
     )
     camera_viewport = ft.Stack(
-        width=300,
-        height=300,
+        width=LENS_VIEWPORT_SIZE,
+        height=LENS_VIEWPORT_SIZE,
         clip_behavior=ft.ClipBehavior.HARD_EDGE,
-        controls=[ft.Container(left=0, top=0, width=300, height=300, content=camera_placeholder)],
+        controls=[
+            ft.Container(
+                left=0,
+                top=0,
+                width=LENS_VIEWPORT_SIZE,
+                height=LENS_VIEWPORT_SIZE,
+                content=camera_placeholder,
+            )
+        ],
     )
     camera_frame = ft.Container(
-        width=328,
-        height=328,
-        border_radius=164,
+        width=LENS_FRAME_SIZE,
+        height=LENS_FRAME_SIZE,
+        border_radius=LENS_FRAME_SIZE / 2,
         bgcolor="#4d3026",
-        padding=14,
+        padding=LENS_FRAME_PADDING,
         border=border_all(5, "#2b160f"),
         shadow=ft.BoxShadow(blur_radius=34, color="#442f2529", offset=ft.Offset(0, 14)),
         content=ft.Container(
-            width=300,
-            height=300,
-            border_radius=150,
+            width=LENS_VIEWPORT_SIZE,
+            height=LENS_VIEWPORT_SIZE,
+            border_radius=LENS_VIEWPORT_SIZE / 2,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
             bgcolor="#0f1512",
             content=camera_viewport,
@@ -412,12 +434,12 @@ async def run_app(page: ft.Page) -> None:
     handle_slot = ft.Container(width=120, height=260)
     magnifier_handle_overlap = 24
     magnifier_body = ft.Stack(
-        width=328,
-        height=328 + 260 - magnifier_handle_overlap,
+        width=LENS_FRAME_SIZE,
+        height=LENS_FRAME_SIZE + 260 - magnifier_handle_overlap,
         controls=[
             ft.Container(
-                left=104,
-                top=328 - magnifier_handle_overlap,
+                left=(LENS_FRAME_SIZE - 120) / 2,
+                top=LENS_FRAME_SIZE - magnifier_handle_overlap,
                 width=120,
                 height=260,
                 content=handle_slot,
@@ -427,7 +449,7 @@ async def run_app(page: ft.Page) -> None:
     )
     content_area = ft.Container(width=380)
 
-    def refresh_gallery() -> None:
+    def refresh_gallery(update_page: bool = True) -> None:
         grid.controls.clear()
         for name, item in pokedex.items():
             icon = item.get("emoji", "🌿" if item.get("type") == "plant" else "🐾")
@@ -457,7 +479,8 @@ async def run_app(page: ft.Page) -> None:
                 )
             )
         save_cached_pokedex(pokedex)
-        page.update()
+        if update_page:
+            page.update()
 
     def add_animal_to_gallery(name: str) -> None:
         data = ANIMALS_DB[name]
@@ -619,30 +642,32 @@ async def run_app(page: ft.Page) -> None:
             busy_ring.visible = False
             page.update()
 
-    def render_handle() -> None:
+    def render_handle(update_page: bool = True) -> None:
         handle_slot.content = MagnifierHandle(
             on_switch=switch_camera,
             on_capture=capture_and_identify,
             switch_enabled=len(cameras) > 1,
             capture_enabled=camera_ready,
         )
-        page.update()
+        if update_page:
+            page.update()
 
     async def initialize_camera(_event: ft.ControlEvent | None = None) -> None:
         nonlocal cameras, camera, camera_ready
         try:
+            mark_load_timing("art-village:camera-init-start")
             camera_ready = False
             status.value = "正在啟動相機..."
+            render_handle(update_page=False)
             page.update()
-            render_handle()
             if fc is None:
                 status.value = "此瀏覽器暫時無法載入相機元件"
                 render_handle()
                 return
             if camera is None:
                 camera = fc.Camera(
-                    width=360,
-                    height=360,
+                    width=CAMERA_PREVIEW_SIZE,
+                    height=CAMERA_PREVIEW_SIZE,
                     preview_enabled=True,
                     content=ft.Container(
                         alignment=ft.Alignment(0, 0),
@@ -650,10 +675,16 @@ async def run_app(page: ft.Page) -> None:
                     ),
                 )
                 camera_viewport.controls = [
-                    ft.Container(left=-30, top=-30, width=360, height=360, content=camera)
+                    ft.Container(
+                        left=CAMERA_PREVIEW_OFFSET,
+                        top=CAMERA_PREVIEW_OFFSET,
+                        width=CAMERA_PREVIEW_SIZE,
+                        height=CAMERA_PREVIEW_SIZE,
+                        content=camera,
+                    )
                 ]
                 page.update()
-                await asyncio.sleep(0.8)
+                await asyncio.sleep(0)
             status.value = "正在尋找可用相機..."
             page.update()
             last_error: Exception | None = None
@@ -677,12 +708,24 @@ async def run_app(page: ft.Page) -> None:
                 await camera.initialize(cameras[0], fc.ResolutionPreset.MEDIUM, enable_audio=False)
                 camera_ready = True
                 status.value = "相機已啟動"
+                mark_load_timing("art-village:camera-ready")
             else:
                 status.value = "找不到可用相機"
         except Exception as error:
             camera_ready = False
             status.value = f"相機啟動失敗：{error}"
         render_handle()
+
+    background_tasks: set[asyncio.Task[Any]] = set()
+
+    def create_background_task(coro: Any) -> None:
+        task = asyncio.create_task(coro)
+        background_tasks.add(task)
+        task.add_done_callback(background_tasks.discard)
+
+    async def hydrate_gallery() -> None:
+        await asyncio.sleep(0)
+        refresh_gallery()
 
     mode = ft.RadioGroup(
         value="plant",
@@ -760,18 +803,24 @@ async def run_app(page: ft.Page) -> None:
             ),
         )
 
-    animals_view = ft.Column(
-        controls=[
-            section_label("🐾", "認識動物"),
-            ft.Text("點擊名字，打開牠的介紹卡片。", size=14, color="#6d5140"),
-            ft.Column(
-                controls=[animal_card(name, data) for name, data in ANIMALS_DB.items()],
-                spacing=12,
-            ),
-        ],
-        spacing=14,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-    )
+    animals_view: ft.Column | None = None
+
+    def get_animals_view() -> ft.Column:
+        nonlocal animals_view
+        if animals_view is None:
+            animals_view = ft.Column(
+                controls=[
+                    section_label("🐾", "認識動物"),
+                    ft.Text("點擊名字，打開牠的介紹卡片。", size=14, color="#6d5140"),
+                    ft.Column(
+                        controls=[animal_card(name, data) for name, data in ANIMALS_DB.items()],
+                        spacing=12,
+                    ),
+                ],
+                spacing=14,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            )
+        return animals_view
 
     plant_view = ft.Column(
         controls=[
@@ -789,7 +838,7 @@ async def run_app(page: ft.Page) -> None:
 
     def update_mode(_event: ft.ControlEvent | None = None) -> None:
         if mode.value == "animal":
-            content_area.content = animals_view
+            content_area.content = get_animals_view()
         else:
             content_area.content = plant_view
         page.update()
@@ -879,11 +928,12 @@ async def run_app(page: ft.Page) -> None:
     page.clean()
     page.add(shell)
     content_area.content = plant_view
-    render_handle()
-    refresh_gallery()
+    render_handle(update_page=False)
     page.update()
+    mark_load_timing("art-village:flet-shell-ready")
     mark_explorer_ready()
-    await initialize_camera()
+    create_background_task(hydrate_gallery())
+    create_background_task(initialize_camera())
 
 
 if os.environ.get("FLET_SKIP_RUN") != "1":

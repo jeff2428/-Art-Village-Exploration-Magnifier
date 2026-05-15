@@ -1,8 +1,22 @@
 from pathlib import Path
+import importlib.util
+import os
+import tempfile
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def load_loader_patcher():
+    spec = importlib.util.spec_from_file_location(
+        "patch_flet_loader",
+        ROOT / "scripts" / "patch_flet_loader.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
 
 
 class FletArtifactsTests(unittest.TestCase):
@@ -53,12 +67,17 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("探險放大鏡啟動中", main)
         self.assertIn("探險放大鏡載入失敗", main)
         self.assertNotIn("重新啟動相機", main)
-        self.assertIn("await initialize_camera()", main)
+        self.assertIn("create_background_task(initialize_camera()", main)
+        self.assertIn("create_background_task(hydrate_gallery()", main)
+        self.assertIn("mark_load_timing", main)
+        self.assertIn("art-village:flet-shell-ready", main)
+        self.assertIn("art-village:camera-ready", main)
         self.assertIn("camera_ready", main)
         self.assertIn("capture_enabled=camera_ready", main)
         self.assertIn("camera_viewport", main)
-        self.assertIn("width=360", main)
-        self.assertIn("left=-30", main)
+        self.assertIn("LENS_VIEWPORT_SIZE = 304", main)
+        self.assertIn("CAMERA_PREVIEW_SIZE = 420", main)
+        self.assertIn("CAMERA_PREVIEW_OFFSET = -58", main)
         self.assertIn("POKEDEX_STORAGE_KEY", main)
         self.assertIn("LOCAL_CACHE_DIR", main)
         self.assertIn("tempfile.gettempdir()", main)
@@ -99,7 +118,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("認識動物", main)
         self.assertIn("show_animal_card", main)
         self.assertIn("page.show_dialog", main)
-        self.assertIn("content_area.content = animals_view", main)
+        self.assertIn("content_area.content = get_animals_view()", main)
 
     def test_cloudflare_pages_builds_and_patches_loader(self):
         build = (ROOT / "build.sh").read_text(encoding="utf-8")
@@ -127,6 +146,12 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("探險家載入中", patcher)
         self.assertIn("explorer-pulse", patcher)
         self.assertIn("hasFletContent", patcher)
+        self.assertIn("art-village:loader-start", patcher)
+        self.assertIn("resource_hints", patcher)
+        self.assertIn('rel="preload"', patcher)
+        self.assertIn("assets/app/{versioned_name}", patcher)
+        self.assertIn("pyodide/pyodide.js", patcher)
+        self.assertIn("canvaskit/canvaskit.js", patcher)
         self.assertIn("__artVillageReady", patcher)
         self.assertIn("45000", patcher)
         self.assertIn("serviceWorker", patcher)
@@ -139,6 +164,36 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("pyodideUrl", patcher)
         self.assertIn("flet run -d -w main.py", dev)
         self.assertIn("flet_app/requirements.txt", install_dev)
+
+    def test_loader_patch_injects_preloads_for_versioned_runtime_assets(self):
+        patcher = load_loader_patcher()
+        previous_build_id = os.environ.get("FLET_BUILD_ID")
+        os.environ["FLET_BUILD_ID"] = "unit-test-build"
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                index = root / "index.html"
+                app_dir = root / "assets" / "app"
+                app_dir.mkdir(parents=True)
+                (app_dir / "app.zip").write_bytes(b"fake app package")
+                index.write_text(
+                    "<html><head></head><body><script src=\"python.js\"></script></body></html>",
+                    encoding="utf-8",
+                )
+
+                patcher.patch_index(index)
+
+                html = index.read_text(encoding="utf-8")
+                self.assertTrue((app_dir / "app-unit-test-build.zip").exists())
+                self.assertIn('rel="preload" href="assets/app/app-unit-test-build.zip"', html)
+                self.assertIn('rel="preload" href="pyodide/pyodide.js"', html)
+                self.assertIn('rel="preload" href="canvaskit/canvaskit.js"', html)
+                self.assertIn('flet.appPackageUrl = "assets/app/app-unit-test-build.zip"', html)
+        finally:
+            if previous_build_id is None:
+                os.environ.pop("FLET_BUILD_ID", None)
+            else:
+                os.environ["FLET_BUILD_ID"] = previous_build_id
 
 
 if __name__ == "__main__":

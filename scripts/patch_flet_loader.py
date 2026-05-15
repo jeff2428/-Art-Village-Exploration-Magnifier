@@ -41,6 +41,10 @@ LOADER_HTML = """
   }
 </style>
 <script>
+  try {
+    performance.mark("art-village:loader-start");
+  } catch {}
+
   window.__artVillageReady = false;
   const artVillageBuildId = "__ART_VILLAGE_BUILD_ID__";
 
@@ -119,6 +123,14 @@ def versioned_app_package_url(index_path: Path, stamp: str) -> str:
     return f"assets/app/{versioned_name}"
 
 
+def resource_hints(app_package_url: str) -> str:
+    return f"""
+  <link rel="preload" href="{app_package_url}" as="fetch" crossorigin>
+  <link rel="preload" href="pyodide/pyodide.js" as="script">
+  <link rel="preload" href="canvaskit/canvaskit.js" as="script">
+"""
+
+
 def cache_busting_script(stamp: str, app_package_url: str) -> str:
     return f"""
 <script id="flet-cache-buster">
@@ -133,6 +145,8 @@ def patch_index(index_path: Path) -> None:
     stamp = build_stamp()
     app_package_url = versioned_app_package_url(index_path, stamp)
     loader_html = LOADER_HTML.replace("__ART_VILLAGE_BUILD_ID__", stamp)
+    if 'rel="preload"' not in html:
+        html = html.replace("</head>", f"{resource_hints(app_package_url)}</head>", 1)
     if "flet-cache-buster" not in html:
         html = html.replace('<script src="python.js"></script>', f'{cache_busting_script(stamp, app_package_url)}\n  <script src="python.js"></script>', 1)
     if "explorer-loader" in html:
