@@ -211,6 +211,38 @@ class CameraIdentificationFlowTests(unittest.TestCase):
         self.assertEqual(plant["toxicity"]["label"], "資料待確認")
         self.assertEqual(plant["invasive"]["label"], "資料待確認")
 
+    def test_perenual_metadata_enriches_top_plant_candidate(self):
+        payload = {
+            "perenual": {
+                "status": "ok",
+                "poisonous_to_humans": True,
+                "poisonous_to_pets": True,
+                "invasive": False,
+                "watering": "Average",
+                "sunlight": ["full sun"],
+                "cycle": "Perennial",
+                "description": "Perenual detail text.",
+            },
+            "results": [
+                {
+                    "score": 0.8,
+                    "species": {
+                        "scientificNameWithoutAuthor": "Nerium oleander",
+                        "commonNames": ["夾竹桃", "Oleander"],
+                    },
+                },
+            ],
+        }
+
+        plant = app_main.parse_plantnet_result(payload)
+
+        self.assertEqual(plant["toxicity"]["label"], "有毒")
+        self.assertIn("寵物", plant["toxicity"]["detail"])
+        self.assertEqual(plant["invasive"]["label"], "未列為侵略性")
+        self.assertEqual(plant["care"]["澆水"], "Average")
+        self.assertEqual(plant["metadata_source"], "Perenual")
+        self.assertEqual(plant["desc"], "Perenual detail text.")
+
     def test_card_image_data_url_is_bounded_for_storage(self):
         capture = "data:image/jpeg;base64," + ("a" * 20000)
 

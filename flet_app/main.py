@@ -155,7 +155,52 @@ def metadata_for_scientific_name(scientific: str) -> dict[str, dict[str, str]]:
     }
 
 
-def plant_candidate_from_result(result: dict[str, Any]) -> dict[str, Any]:
+def bool_label(value: Any, true_label: str, false_label: str, unknown_label: str = "資料待確認") -> str:
+    if value is True:
+        return true_label
+    if value is False:
+        return false_label
+    return unknown_label
+
+
+def metadata_from_perenual(perenual: dict[str, Any], fallback: dict[str, dict[str, str]]) -> dict[str, Any]:
+    if perenual.get("status") != "ok":
+        return {
+            "toxicity": dict(fallback["toxicity"]),
+            "invasive": dict(fallback["invasive"]),
+            "care": {},
+            "source": "PlantNet",
+        }
+
+    poisonous_to_humans = perenual.get("poisonous_to_humans")
+    poisonous_to_pets = perenual.get("poisonous_to_pets")
+    invasive = perenual.get("invasive")
+    toxicity_detail = "Perenual 二次查詢資料。"
+    if poisonous_to_pets is True:
+        toxicity_detail += " 另標示可能對寵物有毒。"
+    elif poisonous_to_pets is False:
+        toxicity_detail += " 另標示未列為寵物有毒。"
+
+    return {
+        "toxicity": {
+            "label": bool_label(poisonous_to_humans, "有毒", "未列為有毒"),
+            "detail": toxicity_detail,
+        },
+        "invasive": {
+            "label": bool_label(invasive, "可能具侵略性", "未列為侵略性"),
+            "detail": "Perenual 物種資料，仍建議以在地資料確認。",
+        },
+        "care": {
+            "澆水": perenual.get("watering") or "",
+            "日照": "、".join(perenual.get("sunlight") or []),
+            "生命週期": perenual.get("cycle") or "",
+            "照護難度": perenual.get("care_level") or "",
+        },
+        "source": "Perenual",
+    }
+
+
+def plant_candidate_from_result(result: dict[str, Any], perenual: dict[str, Any] | None = None) -> dict[str, Any]:
     species = result.get("species") or {}
     scientific = species.get("scientificNameWithoutAuthor") or species.get("scientificName") or "Unknown"
     chinese_names, other_names = common_names_by_script(species)
@@ -165,6 +210,9 @@ def plant_candidate_from_result(result: dict[str, Any]) -> dict[str, Any]:
     score = float(result.get("score") or 0)
     confidence = round(score * 100, 1)
     metadata = metadata_for_scientific_name(scientific)
+    enriched_metadata = metadata_from_perenual(perenual or {}, metadata)
+    perenual_description = (perenual or {}).get("description") if (perenual or {}).get("status") == "ok" else ""
+    description = perenual_description or f"PlantNet 推測為 {zh_name}（{scientific}）。"
 
     return {
         "zh_name": zh_name,
@@ -173,11 +221,13 @@ def plant_candidate_from_result(result: dict[str, Any]) -> dict[str, Any]:
         "sci_name": scientific,
         "emoji": "🌿",
         "type": "plant",
-        "desc": f"PlantNet 推測為 {zh_name}（{scientific}）。",
+        "desc": description,
         "confidence": confidence,
         "is_low_confidence": confidence < LOW_CONFIDENCE_THRESHOLD,
-        "toxicity": metadata["toxicity"],
-        "invasive": metadata["invasive"],
+        "toxicity": enriched_metadata["toxicity"],
+        "invasive": enriched_metadata["invasive"],
+        "care": enriched_metadata["care"],
+        "metadata_source": enriched_metadata["source"],
     }
 
 
@@ -186,7 +236,10 @@ def parse_plantnet_result(payload: dict[str, Any]) -> dict[str, Any] | None:
     if not results:
         return None
 
-    candidates = [plant_candidate_from_result(result or {}) for result in results[:4]]
+    candidates = [
+        plant_candidate_from_result(result or {}, payload.get("perenual") if index == 0 else None)
+        for index, result in enumerate(results[:4])
+    ]
     primary = candidates[0]
     primary["alternatives"] = candidates[1:]
     primary["needs_confirmation"] = primary["is_low_confidence"]
@@ -772,6 +825,8 @@ async def run_app(page: ft.Page) -> None:
         captured_image = data.get("captured_image") or {}
         toxicity = data.get("toxicity") or UNKNOWN_METADATA["toxicity"]
         invasive = data.get("invasive") or UNKNOWN_METADATA["invasive"]
+        care = {key: value for key, value in (data.get("care") or {}).items() if value}
+        metadata_source = data.get("metadata_source") or "PlantNet"
         organ_label = data.get("organ_label") or PLANT_ORGAN_OPTIONS.get(data.get("organ", "auto"), "自動")
 
         def detail_text(value: str, *, size: int = 13, color: str = "#5c4032", weight: ft.FontWeight | None = None) -> ft.Text:
@@ -860,6 +915,16 @@ async def run_app(page: ft.Page) -> None:
             info_chip("毒性", toxicity.get("label", "資料待確認"), toxicity.get("detail", "")),
             info_chip("外來種", invasive.get("label", "資料待確認"), invasive.get("detail", "")),
         ]
+        care_controls: list[ft.Control] = []
+        if care:
+            care_controls = [
+                ft.Text("Perenual 植物資料", size=14, color="#3d2a21", weight=ft.FontWeight.W_900),
+                ft.Row(
+                    controls=[info_chip(label, str(value)) for label, value in care.items()],
+                    spacing=8,
+                    wrap=True,
+                ),
+            ]
         dialog_content_height = max(420, min(520, round((page.height or 760) * 0.58)))
         plant_detail_content = ft.Column(
             controls=[
@@ -885,6 +950,8 @@ async def run_app(page: ft.Page) -> None:
                     spacing=8,
                 ),
                 ft.Text(data["desc"], size=14, color="#3d2a21"),
+                *care_controls,
+                ft.Text(f"資料來源：{metadata_source}", size=11, color="#8a6a54"),
                 ft.Text(confidence_text(data), size=13, color="#6d5140"),
                 *alternative_controls,
                 ft.Container(
