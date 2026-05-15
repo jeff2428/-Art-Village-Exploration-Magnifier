@@ -20,7 +20,7 @@ class CameraIdentificationFlowTests(unittest.TestCase):
                     "score": 0.64,
                     "species": {
                         "scientificNameWithoutAuthor": "Ficus microcarpa",
-                        "commonNames": ["榕樹", "Chinese banyan"],
+                        "commonNames": ["榕樹", "正榕", "Chinese banyan"],
                     },
                 },
                 {
@@ -37,10 +37,31 @@ class CameraIdentificationFlowTests(unittest.TestCase):
 
         self.assertIsNotNone(plant)
         self.assertEqual(plant["zh_name"], "榕樹")
+        self.assertEqual(plant["aliases"], ["正榕"])
+        self.assertEqual(plant["eng_name"], "Chinese banyan")
         self.assertEqual(plant["confidence"], 64.0)
+        self.assertFalse(plant["is_low_confidence"])
+        self.assertFalse(plant["needs_confirmation"])
+        self.assertEqual(plant["alternatives"][0]["zh_name"], "垂榕")
+
+    def test_plantnet_result_marks_lower_scores_as_low_confidence(self):
+        payload = {
+            "results": [
+                {
+                    "score": 0.44,
+                    "species": {
+                        "scientificNameWithoutAuthor": "Ficus benjamina",
+                        "commonNames": ["垂榕", "Weeping fig"],
+                    },
+                },
+            ]
+        }
+
+        plant = app_main.parse_plantnet_result(payload)
+
+        self.assertEqual(plant["confidence"], 44.0)
         self.assertTrue(plant["is_low_confidence"])
         self.assertTrue(plant["needs_confirmation"])
-        self.assertEqual(plant["alternatives"][0]["zh_name"], "垂榕")
 
     def test_plantnet_gallery_card_uses_only_top_candidate(self):
         payload = {
@@ -130,6 +151,42 @@ class CameraIdentificationFlowTests(unittest.TestCase):
         error = app_main.RecognitionServiceError("bad plant photo")
 
         self.assertFalse(error.retryable)
+
+    def test_known_metadata_is_attached_by_scientific_name(self):
+        plant = app_main.plant_candidate_from_result(
+            {
+                "score": 0.91,
+                "species": {
+                    "scientificNameWithoutAuthor": "Ficus microcarpa",
+                    "commonNames": ["榕樹", "Chinese banyan"],
+                },
+            }
+        )
+
+        self.assertEqual(plant["toxicity"]["label"], "無明確毒性資料")
+        self.assertEqual(plant["invasive"]["label"], "非外來種")
+
+    def test_unknown_metadata_uses_conservative_pending_labels(self):
+        plant = app_main.plant_candidate_from_result(
+            {
+                "score": 0.91,
+                "species": {
+                    "scientificNameWithoutAuthor": "Unknown plant",
+                    "commonNames": ["未知植物", "Mystery plant"],
+                },
+            }
+        )
+
+        self.assertEqual(plant["toxicity"]["label"], "資料待確認")
+        self.assertEqual(plant["invasive"]["label"], "資料待確認")
+
+    def test_card_image_data_url_is_bounded_for_storage(self):
+        capture = "data:image/jpeg;base64," + ("a" * 20000)
+
+        image = app_main.card_image_from_capture(capture, max_data_url_length=120)
+
+        self.assertEqual(image["src"], "")
+        self.assertEqual(image["label"], "照片過大，未存入圖鑑")
 
 
 if __name__ == "__main__":

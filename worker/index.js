@@ -85,18 +85,22 @@ export default {
 
       const incomingForm = await request.formData();
       const image = incomingForm.get("images") || incomingForm.get("image") || incomingForm.get("file");
+      const organ = String(incomingForm.get("organs") || "").toLowerCase();
+      const allowedOrgans = new Set(["leaf", "flower", "fruit", "bark"]);
 
       if (!isFileLike(image)) {
         return jsonResponse({ error: "Missing image file" }, { status: 400 }, request, env);
       }
 
       const plantNetForm = new FormData();
+      if (allowedOrgans.has(organ)) {
+        plantNetForm.append("organs", organ);
+      }
       plantNetForm.append("images", image, image.name || "capture.jpg");
 
       const params = new URLSearchParams({
         "api-key": env.PLANTNET_API_KEY,
         lang: "zh",
-        "no-reject": "true",
       });
 
       const response = await fetch(`${PLANTNET_URL}?${params.toString()}`, {

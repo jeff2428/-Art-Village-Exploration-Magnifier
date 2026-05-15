@@ -26,12 +26,34 @@ except ImportError:
 POKEDEX_STORAGE_KEY = "artVillagePokedex"
 LOCAL_CACHE_DIR = Path(tempfile.gettempdir()) / "art-village-exploration-magnifier"
 LOCAL_CACHE_PATH = LOCAL_CACHE_DIR / "local_pokedex_cache.json"
-LOW_CONFIDENCE_THRESHOLD = 70.0
+LOW_CONFIDENCE_THRESHOLD = 50.0
 LENS_VIEWPORT_SIZE = 304
 LENS_FRAME_SIZE = 336
 LENS_FRAME_PADDING = 11
 CAMERA_PREVIEW_SIZE = 420
 CAMERA_PREVIEW_OFFSET = -58
+PLANT_ORGAN_OPTIONS = {
+    "leaf": "葉",
+    "flower": "花",
+    "fruit": "果",
+    "bark": "樹皮",
+    "auto": "自動",
+}
+MAX_CARD_IMAGE_DATA_URL_LENGTH = 180_000
+UNKNOWN_METADATA = {
+    "toxicity": {"label": "資料待確認", "detail": "PlantNet 不提供毒性判斷，需查證可靠資料。"},
+    "invasive": {"label": "資料待確認", "detail": "尚未建立此物種的在地外來種資料。"},
+}
+PLANT_METADATA = {
+    "Ficus microcarpa": {
+        "toxicity": {"label": "無明確毒性資料", "detail": "未作食用安全判斷，接觸後仍建議洗手。"},
+        "invasive": {"label": "非外來種", "detail": "台灣常見榕屬樹種，實地仍以地方資料為準。"},
+    },
+    "Hibiscus rosa-sinensis": {
+        "toxicity": {"label": "無明確毒性資料", "detail": "常見觀賞植物，仍不建議任意食用。"},
+        "invasive": {"label": "資料待確認", "detail": "不同地區栽培與逸出狀態不同。"},
+    },
+}
 
 ANIMALS_DB = {
     "貝貝": {
@@ -94,24 +116,49 @@ def section_label(icon: str, text: str) -> ft.Row:
     )
 
 
-def first_common_name(species: dict[str, Any], chinese: bool) -> str | None:
-    for name in species.get("commonNames", []) or []:
+def common_names_by_script(species: dict[str, Any]) -> tuple[list[str], list[str]]:
+    chinese_names: list[str] = []
+    other_names: list[str] = []
+    for raw_name in species.get("commonNames", []) or []:
+        name = str(raw_name).strip()
+        if not name:
+            continue
         has_cjk = any("\u4e00" <= char <= "\u9fff" for char in name)
-        if chinese == has_cjk:
-            return name
-    return None
+        if has_cjk:
+            chinese_names.append(name)
+        else:
+            other_names.append(name)
+    return chinese_names, other_names
+
+
+def first_common_name(species: dict[str, Any], chinese: bool) -> str | None:
+    chinese_names, other_names = common_names_by_script(species)
+    names = chinese_names if chinese else other_names
+    return names[0] if names else None
+
+
+def metadata_for_scientific_name(scientific: str) -> dict[str, dict[str, str]]:
+    metadata = PLANT_METADATA.get(scientific, UNKNOWN_METADATA)
+    return {
+        "toxicity": dict(metadata["toxicity"]),
+        "invasive": dict(metadata["invasive"]),
+    }
 
 
 def plant_candidate_from_result(result: dict[str, Any]) -> dict[str, Any]:
     species = result.get("species") or {}
     scientific = species.get("scientificNameWithoutAuthor") or species.get("scientificName") or "Unknown"
-    zh_name = first_common_name(species, chinese=True) or scientific
-    eng_name = first_common_name(species, chinese=False) or "N/A"
+    chinese_names, other_names = common_names_by_script(species)
+    zh_name = chinese_names[0] if chinese_names else scientific
+    aliases = [name for name in chinese_names[1:] if name != zh_name]
+    eng_name = other_names[0] if other_names else "N/A"
     score = float(result.get("score") or 0)
     confidence = round(score * 100, 1)
+    metadata = metadata_for_scientific_name(scientific)
 
     return {
         "zh_name": zh_name,
+        "aliases": aliases,
         "eng_name": eng_name,
         "sci_name": scientific,
         "emoji": "🌿",
@@ -119,6 +166,8 @@ def plant_candidate_from_result(result: dict[str, Any]) -> dict[str, Any]:
         "desc": f"PlantNet 推測為 {zh_name}（{scientific}）。",
         "confidence": confidence,
         "is_low_confidence": confidence < LOW_CONFIDENCE_THRESHOLD,
+        "toxicity": metadata["toxicity"],
+        "invasive": metadata["invasive"],
     }
 
 
@@ -140,6 +189,19 @@ def confidence_text(item: dict[str, Any]) -> str:
         return ""
     suffix = "，建議確認" if item.get("is_low_confidence") else ""
     return f"信心度 {confidence}%{suffix}"
+
+
+def card_image_from_capture(capture: Any, max_data_url_length: int = MAX_CARD_IMAGE_DATA_URL_LENGTH) -> dict[str, str]:
+    try:
+        if isinstance(capture, str) and capture.startswith("data:") and len(capture) <= max_data_url_length:
+            return {"src": capture, "label": "拍攝照片"}
+        binary, mime = capture_to_bytes(capture)
+        data_url = f"data:{mime};base64,{base64.b64encode(binary).decode('ascii')}"
+        if len(data_url) <= max_data_url_length:
+            return {"src": data_url, "label": "拍攝照片"}
+    except Exception:
+        pass
+    return {"src": "", "label": "照片過大，未存入圖鑑"}
 
 
 def capture_to_bytes(capture: Any) -> tuple[bytes, str]:
@@ -171,12 +233,13 @@ class RecognitionServiceError(RuntimeError):
         self.retryable = retryable
 
 
-def post_image_to_worker_sync(binary: bytes, mime: str) -> dict[str, Any]:
+def post_image_to_worker_sync(binary: bytes, mime: str, organ: str = "leaf") -> dict[str, Any]:
     import requests
 
     response = requests.post(
         WORKER_URL,
         files={"images": ("capture.jpg", binary, mime)},
+        data={"organs": organ},
         timeout=30,
     )
     if not response.ok:
@@ -205,7 +268,7 @@ def worker_error_message(status_code: int, text: str) -> str:
     return f"辨識服務暫時無法處理（{status_code}）"
 
 
-async def post_image_to_worker(capture: Any) -> dict[str, Any]:
+async def post_image_to_worker(capture: Any, organ: str = "leaf") -> dict[str, Any]:
     if "YOUR-WORKER" in WORKER_URL:
         raise RuntimeError("尚未設定 Cloudflare Pages 的 WORKER_URL")
 
@@ -219,6 +282,7 @@ async def post_image_to_worker(capture: Any) -> dict[str, Any]:
         blob = Blob.new([image_array], {"type": mime})
 
         form = FormData.new()
+        form.append("organs", organ)
         form.append("images", blob, "capture.jpg")
 
         fetch_options = to_js({"method": "POST", "body": form}, dict_converter=Object.fromEntries)
@@ -228,7 +292,7 @@ async def post_image_to_worker(capture: Any) -> dict[str, Any]:
             raise RecognitionServiceError(worker_error_message(response.status, text))
         return json.loads(text)
     except ModuleNotFoundError:
-        return await asyncio.to_thread(post_image_to_worker_sync, binary, mime)
+        return await asyncio.to_thread(post_image_to_worker_sync, binary, mime, organ)
 
 
 def load_json_cache(storage_key: str, local_path: Path, fallback: Any) -> Any:
@@ -586,6 +650,47 @@ async def run_app(page: ft.Page) -> None:
         confidence = data.get("confidence", 0)
         is_low_confidence = data.get("is_low_confidence", False)
         alternatives = data.get("alternatives") or []
+        aliases = data.get("aliases") or []
+        captured_image = data.get("captured_image") or {}
+        toxicity = data.get("toxicity") or UNKNOWN_METADATA["toxicity"]
+        invasive = data.get("invasive") or UNKNOWN_METADATA["invasive"]
+        organ_label = data.get("organ_label") or PLANT_ORGAN_OPTIONS.get(data.get("organ", "auto"), "自動")
+
+        def info_chip(label: str, value: str, detail: str = "") -> ft.Container:
+            return ft.Container(
+                padding=10,
+                border_radius=10,
+                bgcolor="#f7f0df",
+                border=border_all(1, "#dfd0bd"),
+                content=ft.Column(
+                    controls=[
+                        ft.Text(label, size=11, color="#8a5a22", weight=ft.FontWeight.W_900),
+                        ft.Text(value, size=13, color="#3d2a21", weight=ft.FontWeight.W_800),
+                        ft.Text(detail, size=10, color="#7a6657") if detail else ft.Container(),
+                    ],
+                    spacing=2,
+                ),
+            )
+
+        image_src = captured_image.get("src", "")
+        image_banner: ft.Control
+        if image_src:
+            image_banner = ft.Container(
+                height=170,
+                border_radius=14,
+                clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                bgcolor="#efe4d1",
+                content=ft.Image(src=image_src, fit=ft.BoxFit.COVER, width=340, height=170),
+            )
+        else:
+            image_banner = ft.Container(
+                height=112,
+                border_radius=14,
+                alignment=ft.Alignment(0, 0),
+                bgcolor="#efe4d1",
+                border=border_all(1, "#dfd0bd"),
+                content=ft.Text(captured_image.get("label") or "尚無拍攝照片", size=13, color="#7a6657", weight=ft.FontWeight.W_800),
+            )
         
         warning_text: ft.Control = ft.Container()
         if is_low_confidence and confidence > 0:
@@ -621,21 +726,53 @@ async def run_app(page: ft.Page) -> None:
                     for candidate in alternatives
                 ],
             ]
+
+        alias_controls: list[ft.Control] = []
+        if aliases:
+            alias_controls = [
+                ft.Text("別名", size=12, color="#8a5a22", weight=ft.FontWeight.W_900),
+                ft.Text("、".join(aliases), size=13, color="#5c4032"),
+            ]
         
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text(f"{data['emoji']} {name}", size=24, weight=ft.FontWeight.W_900),
+                title=ft.Text(f"{data['emoji']} {name}", size=24, weight=ft.FontWeight.W_900, color="#3d2a21"),
                 content=soft_card(
                     ft.Column(
                         controls=[
+                            image_banner,
                             warning_text,
-                            ft.Text(data["desc"], size=15, color="#3d2a21"),
+                            ft.Row(
+                                controls=[
+                                    ft.Text(data["zh_name"], size=22, color="#3d2a21", weight=ft.FontWeight.W_900, expand=True),
+                                    ft.Container(
+                                        padding=ft.Padding.symmetric(horizontal=10, vertical=6),
+                                        border_radius=999,
+                                        bgcolor="#e8bc96",
+                                        content=ft.Text(f"{confidence}%", size=13, color="#3d2a21", weight=ft.FontWeight.W_900),
+                                    ),
+                                ],
+                                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            ),
+                            ft.Text(data.get("eng_name") or "N/A", size=14, color="#6d5140", weight=ft.FontWeight.W_800),
+                            ft.Text(data.get("sci_name") or "", size=12, color="#8a6a54", italic=True),
+                            *alias_controls,
+                            ft.Row(
+                                controls=[
+                                    info_chip("拍攝部位", organ_label),
+                                    info_chip("毒性", toxicity.get("label", "資料待確認"), toxicity.get("detail", "")),
+                                    info_chip("外來種", invasive.get("label", "資料待確認"), invasive.get("detail", "")),
+                                ],
+                                spacing=8,
+                                wrap=True,
+                            ),
+                            ft.Text(data["desc"], size=14, color="#3d2a21"),
                             ft.Text(confidence_text(data), size=13, color="#6d5140"),
                             *alternative_controls,
                             ft.Text("已加入探險圖鑑", size=13, color="#2f7d51", weight=ft.FontWeight.W_800),
                         ],
-                        spacing=8,
+                        spacing=10,
                     ),
                     padding=18,
                 ),
@@ -675,7 +812,8 @@ async def run_app(page: ft.Page) -> None:
             page.update()
             image_data = await camera.take_picture()
             try:
-                payload = await post_image_to_worker(image_data)
+                selected_organ = organ_mode.value or "leaf"
+                payload = await post_image_to_worker(image_data, selected_organ)
             except RecognitionServiceError as error:
                 status.value = str(error)
                 return
@@ -687,6 +825,9 @@ async def run_app(page: ft.Page) -> None:
                 status.value = "找不到匹配的植物"
                 page.update()
                 return
+            plant["organ"] = selected_organ
+            plant["organ_label"] = PLANT_ORGAN_OPTIONS.get(selected_organ, "自動")
+            plant["captured_image"] = card_image_from_capture(image_data)
             add_plant_to_gallery(plant)
         except Exception as error:
             status.value = f"辨識失敗：{error}"
@@ -789,6 +930,20 @@ async def run_app(page: ft.Page) -> None:
             alignment=ft.MainAxisAlignment.CENTER,
         ),
     )
+    organ_mode = ft.RadioGroup(
+        value="leaf",
+        content=ft.Row(
+            controls=[
+                ft.Radio(value="leaf", label="葉"),
+                ft.Radio(value="flower", label="花"),
+                ft.Radio(value="fruit", label="果"),
+                ft.Radio(value="bark", label="樹皮"),
+                ft.Radio(value="auto", label="自動"),
+            ],
+            alignment=ft.MainAxisAlignment.CENTER,
+            wrap=True,
+        ),
+    )
 
     def plant_card(name: str, data: dict[str, Any]) -> ft.Container:
         confidence = data.get("confidence", 0)
@@ -877,6 +1032,17 @@ async def run_app(page: ft.Page) -> None:
     plant_view = ft.Column(
         controls=[
             magnifier_body,
+            soft_card(
+                ft.Column(
+                    controls=[
+                        ft.Text("拍攝部位", size=13, weight=ft.FontWeight.W_900, color="#6d5140"),
+                        organ_mode,
+                    ],
+                    spacing=4,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                padding=10,
+            ),
             ft.Row(
                 controls=[busy_ring, status],
                 spacing=8,
