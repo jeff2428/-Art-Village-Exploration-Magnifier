@@ -42,16 +42,34 @@ LOADER_HTML = """
 </style>
 <script>
   window.__artVillageReady = false;
+  const artVillageBuildId = "__ART_VILLAGE_BUILD_ID__";
 
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations()
-      .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
-      .catch(() => {});
-  }
-  if ("caches" in window) {
-    caches.keys()
-      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
-      .catch(() => {});
+  const shouldRefreshRuntimeCache = () => {
+    try {
+      return localStorage.getItem("artVillageBuildId") !== artVillageBuildId;
+    } catch {
+      return true;
+    }
+  };
+
+  const rememberRuntimeCache = () => {
+    try {
+      localStorage.setItem("artVillageBuildId", artVillageBuildId);
+    } catch {}
+  };
+
+  if (shouldRefreshRuntimeCache()) {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations()
+        .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+        .catch(() => {});
+    }
+    if ("caches" in window) {
+      caches.keys()
+        .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+        .catch(() => {});
+    }
+    rememberRuntimeCache();
   }
 
   const removeExplorerLoader = () => {
@@ -114,15 +132,16 @@ def patch_index(index_path: Path) -> None:
     html = index_path.read_text(encoding="utf-8")
     stamp = build_stamp()
     app_package_url = versioned_app_package_url(index_path, stamp)
+    loader_html = LOADER_HTML.replace("__ART_VILLAGE_BUILD_ID__", stamp)
     if "flet-cache-buster" not in html:
         html = html.replace('<script src="python.js"></script>', f'{cache_busting_script(stamp, app_package_url)}\n  <script src="python.js"></script>', 1)
     if "explorer-loader" in html:
         index_path.write_text(html, encoding="utf-8")
         return
     if "<body>" in html:
-        html = html.replace("<body>", f"<body>\n{LOADER_HTML}", 1)
+        html = html.replace("<body>", f"<body>\n{loader_html}", 1)
     else:
-        html = html.replace("</head>", f"</head>\n<body>\n{LOADER_HTML}", 1)
+        html = html.replace("</head>", f"</head>\n<body>\n{loader_html}", 1)
     index_path.write_text(html, encoding="utf-8")
 
 

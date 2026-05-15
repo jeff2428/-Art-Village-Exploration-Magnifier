@@ -372,6 +372,25 @@ async def run_app(page: ft.Page) -> None:
     )
 
     camera = None
+    camera_placeholder = ft.Container(
+        alignment=ft.Alignment(0, 0),
+        padding=20,
+        content=ft.Column(
+            controls=[
+                ft.Icon(ft.Icons.EXPLORE, size=44, color=ft.Colors.WHITE70),
+                ft.Text("正在準備探險鏡頭", color=ft.Colors.WHITE70, weight=ft.FontWeight.W_700),
+            ],
+            spacing=10,
+            alignment=ft.MainAxisAlignment.CENTER,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+    )
+    camera_viewport = ft.Stack(
+        width=300,
+        height=300,
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
+        controls=[ft.Container(left=0, top=0, width=300, height=300, content=camera_placeholder)],
+    )
     camera_frame = ft.Container(
         width=328,
         height=328,
@@ -386,20 +405,7 @@ async def run_app(page: ft.Page) -> None:
             border_radius=150,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
             bgcolor="#0f1512",
-            border=border_all(8, "#fff8df"),
-            content=ft.Container(
-                alignment=ft.Alignment(0, 0),
-                padding=20,
-                content=ft.Column(
-                    controls=[
-                        ft.Icon(ft.Icons.EXPLORE, size=44, color=ft.Colors.WHITE70),
-                        ft.Text("正在準備探險鏡頭", color=ft.Colors.WHITE70, weight=ft.FontWeight.W_700),
-                    ],
-                    spacing=10,
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
-            ),
+            content=camera_viewport,
         ),
     )
 
@@ -635,14 +641,17 @@ async def run_app(page: ft.Page) -> None:
                 return
             if camera is None:
                 camera = fc.Camera(
-                    expand=True,
+                    width=360,
+                    height=360,
                     preview_enabled=True,
                     content=ft.Container(
                         alignment=ft.Alignment(0, 0),
                         content=ft.Icon(ft.Icons.CENTER_FOCUS_STRONG, size=44, color=ft.Colors.WHITE70),
                     ),
                 )
-                camera_frame.content.content = camera
+                camera_viewport.controls = [
+                    ft.Container(left=-30, top=-30, width=360, height=360, content=camera)
+                ]
                 page.update()
                 await asyncio.sleep(0.8)
             status.value = "正在尋找可用相機..."

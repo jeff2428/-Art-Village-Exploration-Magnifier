@@ -27,4 +27,4 @@ echo "Patching loading screen..." >&2
 python scripts/patch_flet_loader.py
 
 echo "Writing Cloudflare Pages cache headers..." >&2
-python -c "from pathlib import Path; Path('flet_app/build/web/_headers').write_text('''/index.html\n  Cache-Control: no-store\n/flutter_service_worker.js\n  Cache-Control: no-cache, no-store, must-revalidate\n/assets/app/app.zip\n  Cache-Control: no-store\n/assets/app/app-*.zip\n  Cache-Control: no-store\n/pyodide/*\n  Cache-Control: public, max-age=31536000, immutable\n/canvaskit/*\n  Cache-Control: public, max-age=31536000, immutable\n''', encoding='utf-8')"
+python -c "from pathlib import Path; Path('flet_app/build/web/_headers').write_text('''/index.html\n  Cache-Control: no-store\n/flutter_service_worker.js\n  Cache-Control: no-cache, no-store, must-revalidate\n/assets/app/app.zip\n  Cache-Control: no-store\n/assets/app/app-*.zip\n  Cache-Control: public, max-age=31536000, immutable\n/pyodide/*\n  Cache-Control: public, max-age=31536000, immutable\n/canvaskit/*\n  Cache-Control: public, max-age=31536000, immutable\n''', encoding='utf-8')"
