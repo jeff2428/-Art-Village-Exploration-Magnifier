@@ -61,6 +61,10 @@ export default {
     }
 
     try {
+      if (request.method === "GET" || request.method === "HEAD") {
+        return jsonResponse({ results: [] }, { status: 200 }, request, env);
+      }
+
       if (request.method !== "POST") {
         return jsonResponse({ error: "Method not allowed" }, { status: 405 }, request, env);
       }
