@@ -42,6 +42,33 @@ class CameraIdentificationFlowTests(unittest.TestCase):
         self.assertTrue(plant["needs_confirmation"])
         self.assertEqual(plant["alternatives"][0]["zh_name"], "垂榕")
 
+    def test_plantnet_primary_and_alternatives_become_gallery_candidates(self):
+        payload = {
+            "results": [
+                {
+                    "score": 0.88,
+                    "species": {
+                        "scientificNameWithoutAuthor": "Hibiscus rosa-sinensis",
+                        "commonNames": ["朱槿", "Chinese hibiscus"],
+                    },
+                },
+                {
+                    "score": 0.44,
+                    "species": {
+                        "scientificNameWithoutAuthor": "Hibiscus mutabilis",
+                        "commonNames": ["木芙蓉", "Confederate rose"],
+                    },
+                },
+            ]
+        }
+
+        plant = app_main.parse_plantnet_result(payload)
+        candidates = app_main.plant_candidates_for_gallery(plant)
+
+        self.assertEqual([candidate["zh_name"] for candidate in candidates], ["朱槿", "木芙蓉"])
+        self.assertTrue(all(candidate["type"] == "plant" for candidate in candidates))
+        self.assertTrue(all(candidate["desc"] for candidate in candidates))
+
     def test_empty_local_cache_does_not_write_on_startup(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             empty_dict = Path(temp_dir) / "empty_dict.json"

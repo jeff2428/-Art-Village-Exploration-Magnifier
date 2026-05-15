@@ -134,6 +134,15 @@ def parse_plantnet_result(payload: dict[str, Any]) -> dict[str, Any] | None:
     return primary
 
 
+def plant_candidates_for_gallery(plant: dict[str, Any]) -> list[dict[str, Any]]:
+    candidates = [plant, *(plant.get("alternatives") or [])]
+    return [
+        candidate
+        for candidate in candidates
+        if isinstance(candidate, dict) and candidate.get("zh_name")
+    ]
+
+
 def confidence_text(item: dict[str, Any]) -> str:
     confidence = item.get("confidence", 0)
     if not confidence:
@@ -489,11 +498,13 @@ async def run_app(page: ft.Page) -> None:
         refresh_gallery()
 
     def add_plant_to_gallery(plant: dict[str, Any]) -> None:
-        pokedex[plant["zh_name"]] = plant
+        candidates = plant_candidates_for_gallery(plant)
+        for candidate in candidates:
+            pokedex[candidate["zh_name"]] = candidate
         if plant.get("is_low_confidence", False):
-            status.value = f"⚠️ {plant['zh_name']}（信心度低，建議確認）"
+            status.value = f"⚠️ 已加入 {len(candidates)} 個辨識候選，建議確認"
         else:
-            status.value = f"辨識成功：{plant['zh_name']} · {plant.get('confidence', 0)}%"
+            status.value = f"辨識成功：已加入 {len(candidates)} 個候選 · {plant['zh_name']} {plant.get('confidence', 0)}%"
         refresh_gallery()
 
     def close_dialog(_event: ft.ControlEvent) -> None:
