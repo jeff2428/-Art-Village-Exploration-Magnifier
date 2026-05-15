@@ -8,6 +8,11 @@ import flet as ft
 Callback = Optional[Callable[[ft.ControlEvent], None]]
 
 
+def border_all(width: int, color: str) -> ft.Border:
+    side = ft.BorderSide(width, color)
+    return ft.Border(top=side, right=side, bottom=side, left=side)
+
+
 class _PressableRoundButton(ft.GestureDetector):
     def __init__(
         self,
@@ -20,8 +25,9 @@ class _PressableRoundButton(ft.GestureDetector):
         self._button_face = ft.Container(
             width=86,
             height=86,
+            tooltip=label,
             border_radius=43,
-            alignment=ft.alignment.center,
+            alignment=ft.Alignment(0, 0),
             gradient=ft.RadialGradient(
                 center=ft.Alignment(-0.38, -0.45),
                 radius=0.95,
@@ -32,7 +38,7 @@ class _PressableRoundButton(ft.GestureDetector):
                     "#3f2013",
                 ],
             ),
-            border=ft.border.all(3, "#3d1f11"),
+            border=border_all(3, "#3d1f11"),
             shadow=[
                 ft.BoxShadow(
                     blur_radius=18,
@@ -79,13 +85,14 @@ class _PressableRoundButton(ft.GestureDetector):
 
 
 class MagnifierHandle(ft.Stack):
-    """Reusable skeuomorphic leather magnifier handle with two physical buttons."""
+    """Reusable storybook-style leather magnifier handle with two physical buttons."""
 
     def __init__(
         self,
         on_switch: Callback = None,
         on_capture: Callback = None,
         switch_enabled: bool = True,
+        capture_enabled: bool = True,
     ) -> None:
         super().__init__(
             width=120,
@@ -96,7 +103,7 @@ class MagnifierHandle(ft.Stack):
                     top=0,
                     width=120,
                     height=260,
-                    border_radius=ft.border_radius.only(
+                    border_radius=ft.BorderRadius(
                         top_left=60,
                         top_right=60,
                         bottom_left=28,
@@ -112,7 +119,7 @@ class MagnifierHandle(ft.Stack):
                             "#21110c",
                         ],
                     ),
-                    border=ft.border.all(4, "#1a0f0a"),
+                    border=border_all(4, "#1a0f0a"),
                     shadow=[
                         ft.BoxShadow(
                             blur_radius=26,
@@ -128,9 +135,20 @@ class MagnifierHandle(ft.Stack):
                     width=94,
                     height=220,
                     border_radius=47,
-                    border=ft.border.all(3, "#8d6a58"),
+                    border=border_all(3, "#8d6a58"),
                     opacity=0.55,
                 ),
+                *[
+                    ft.Container(
+                        left=55,
+                        top=34 + index * 22,
+                        width=10,
+                        height=4,
+                        border_radius=2,
+                        bgcolor="#c59a7c88",
+                    )
+                    for index in range(9)
+                ],
                 _PressableRoundButton(
                     label="切換鏡頭" if switch_enabled else "無法切換",
                     icon=ft.Icons.CAMERASWITCH,
@@ -139,7 +157,7 @@ class MagnifierHandle(ft.Stack):
                     disabled=not switch_enabled,
                 ),
                 _PressableRoundButton(
-                    label="拍攝",
+                    label="拍攝" if capture_enabled else "準備中",
                     icon=ft.Icons.CAMERA_ALT,
                     top=148,
                     on_click=on_capture,
