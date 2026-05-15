@@ -3,7 +3,6 @@ __pycache__/
 *.py[codz]
 *$py.class
 flet_app/.local_pokedex_cache.json
-flet_app/.local_snapshot_queue.json
 
 # C extensions
 *.so

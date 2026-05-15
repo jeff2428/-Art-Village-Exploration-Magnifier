@@ -24,10 +24,8 @@ except ImportError:
     WORKER_URL = "https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev"
 
 POKEDEX_STORAGE_KEY = "artVillagePokedex"
-SNAPSHOT_QUEUE_STORAGE_KEY = "artVillageSnapshotQueue"
 LOCAL_CACHE_DIR = Path(tempfile.gettempdir()) / "art-village-exploration-magnifier"
 LOCAL_CACHE_PATH = LOCAL_CACHE_DIR / "local_pokedex_cache.json"
-LOCAL_SNAPSHOT_QUEUE_PATH = LOCAL_CACHE_DIR / "local_snapshot_queue.json"
 LOW_CONFIDENCE_THRESHOLD = 70.0
 
 ANIMALS_DB = {
@@ -183,11 +181,19 @@ def post_image_to_worker_sync(binary: bytes, mime: str) -> dict[str, Any]:
 
 def worker_error_message(status_code: int, text: str) -> str:
     snippet = " ".join((text or "").strip().split())[:120]
-    if status_code in (400, 404) and "1042" not in snippet:
-        return "沒有辨識到植物，請把鏡頭對準葉子、花或果實再拍一次"
-    if status_code == 404:
-        return f"辨識服務網址無效或 Worker 尚未部署：{status_code} {snippet}"
-    return f"辨識服務回應失敗：{status_code} {snippet}"
+    if status_code == 404 and "1042" in snippet:
+        return "辨識服務尚未部署，請檢查 Worker 網址"
+    if status_code in (400, 404):
+        return "沒有辨識到植物，請對準葉子、花或果實再拍一次"
+    if status_code in (401, 403):
+        return "辨識服務金鑰未通過，請檢查 Worker 的 PLANTNET_API_KEY"
+    if status_code == 413:
+        return "照片太大，請靠近植物後再拍一次"
+    if status_code == 429:
+        return "辨識服務忙碌，請稍後再試"
+    if 500 <= status_code < 600:
+        return "辨識服務暫時忙碌，請稍後再試"
+    return f"辨識服務暫時無法處理（{status_code}）"
 
 
 async def post_image_to_worker(capture: Any) -> dict[str, Any]:
@@ -267,27 +273,20 @@ def save_cached_pokedex(pokedex: dict[str, dict[str, Any]]) -> None:
     save_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, pokedex)
 
 
-def load_snapshot_queue() -> list[dict[str, Any]]:
-    cached = load_json_cache(SNAPSHOT_QUEUE_STORAGE_KEY, LOCAL_SNAPSHOT_QUEUE_PATH, [])
-    return cached if isinstance(cached, list) else []
+def clear_legacy_snapshot_cache() -> None:
+    try:
+        from js import localStorage  # type: ignore
 
+        localStorage.removeItem("artVillageSnapshotQueue")
+    except Exception:
+        pass
 
-def save_snapshot_queue(queue: list[dict[str, Any]]) -> None:
-    save_json_cache(SNAPSHOT_QUEUE_STORAGE_KEY, LOCAL_SNAPSHOT_QUEUE_PATH, queue)
-
-
-def make_snapshot(capture: Any) -> dict[str, Any]:
-    binary, mime = capture_to_bytes(capture)
-    return {
-        "mime": mime,
-        "data": base64.b64encode(binary).decode("ascii"),
-    }
-
-
-def snapshot_to_capture(snapshot: dict[str, Any]) -> str:
-    mime = snapshot.get("mime") or "image/jpeg"
-    data = snapshot.get("data") or ""
-    return f"data:{mime};base64,{data}"
+    try:
+        legacy_path = LOCAL_CACHE_DIR / "local_snapshot_queue.json"
+        if legacy_path.exists():
+            legacy_path.unlink()
+    except Exception:
+        pass
 
 
 async def main(page: ft.Page) -> None:
@@ -335,23 +334,18 @@ async def run_app(page: ft.Page) -> None:
     page.update()
 
     pokedex: dict[str, dict[str, Any]] = load_cached_pokedex()
-    snapshot_queue: list[dict[str, Any]] = load_snapshot_queue()
+    clear_legacy_snapshot_cache()
     cameras: list[Any] = []
     selected_camera_index = 0
     camera_ready = False
 
-    status = ft.Text("", size=13, color="#6d5140", weight=ft.FontWeight.W_800)
-    pending_text = ft.Text("", size=12, color="#8a5a22", weight=ft.FontWeight.W_800)
-    retry_button = ft.TextButton(
-        content=ft.Row(
-            controls=[
-                ft.Icon(ft.Icons.CLOUD_SYNC, size=16),
-                ft.Text("重送暫存快照"),
-            ],
-            spacing=4,
-        ),
-        tooltip="重新送出離線暫存的拍照快照",
-        visible=False,
+    status = ft.Text(
+        "",
+        size=13,
+        color="#6d5140",
+        weight=ft.FontWeight.W_800,
+        text_align=ft.TextAlign.CENTER,
+        expand=True,
     )
     busy_ring = ft.ProgressRing(width=22, height=22, stroke_width=3, visible=False, color="#8a5a22")
     grid = ft.GridView(
@@ -444,12 +438,6 @@ async def run_app(page: ft.Page) -> None:
             )
         save_cached_pokedex(pokedex)
         page.update()
-
-    def refresh_pending_snapshots() -> None:
-        count = len(snapshot_queue)
-        pending_text.value = f"離線暫存快照：{count} 張" if count else ""
-        retry_button.visible = count > 0
-        save_snapshot_queue(snapshot_queue)
 
     def add_animal_to_gallery(name: str) -> None:
         data = ANIMALS_DB[name]
@@ -597,9 +585,7 @@ async def run_app(page: ft.Page) -> None:
                 status.value = str(error)
                 return
             except Exception as error:
-                snapshot_queue.append(make_snapshot(image_data))
-                refresh_pending_snapshots()
-                status.value = f"辨識暫時失敗，已離線暫存快照：{error}"
+                status.value = f"辨識暫時失敗，請稍後再試：{error}"
                 return
             plant = parse_plantnet_result(payload)
             if plant is None:
@@ -612,37 +598,6 @@ async def run_app(page: ft.Page) -> None:
         finally:
             busy_ring.visible = False
             page.update()
-
-    async def retry_pending_snapshots(_event: ft.ControlEvent) -> None:
-        nonlocal snapshot_queue
-        if not snapshot_queue:
-            return
-
-        status.value = "正在重送暫存快照..."
-        busy_ring.visible = True
-        page.update()
-
-        remaining: list[dict[str, Any]] = []
-        success_count = 0
-        for snapshot in snapshot_queue:
-            try:
-                payload = await post_image_to_worker(snapshot_to_capture(snapshot))
-                plant = parse_plantnet_result(payload)
-                if plant is None:
-                    remaining.append(snapshot)
-                    continue
-                add_plant_to_gallery(plant)
-                success_count += 1
-            except Exception:
-                remaining.append(snapshot)
-
-        snapshot_queue = remaining
-        refresh_pending_snapshots()
-        busy_ring.visible = False
-        status.value = f"暫存快照已重送 {success_count} 張，剩餘 {len(snapshot_queue)} 張"
-        page.update()
-
-    retry_button.on_click = retry_pending_snapshots
 
     def render_handle() -> None:
         handle_slot.content = MagnifierHandle(
@@ -804,8 +759,6 @@ async def run_app(page: ft.Page) -> None:
                 alignment=ft.MainAxisAlignment.CENTER,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
-            pending_text,
-            retry_button,
         ],
         spacing=16,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -905,7 +858,6 @@ async def run_app(page: ft.Page) -> None:
     content_area.content = plant_view
     render_handle()
     refresh_gallery()
-    refresh_pending_snapshots()
     page.update()
     await initialize_camera()
 
