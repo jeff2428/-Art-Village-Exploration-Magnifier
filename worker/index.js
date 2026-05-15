@@ -84,10 +84,15 @@ export default {
     plantNetForm.append("organs", "auto");
     plantNetForm.append("images", image, image.name || "capture.jpg");
 
-    const response = await fetch(`${PLANTNET_URL}?lang=zh&no-reject=true`, {
+    const params = new URLSearchParams({
+      "api-key": env.PLANTNET_API_KEY,
+      lang: "zh",
+      "no-reject": "true",
+    });
+
+    const response = await fetch(`${PLANTNET_URL}?${params.toString()}`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${env.PLANTNET_API_KEY}`,
         "Accept": "application/json",
       },
       body: plantNetForm,

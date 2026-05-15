@@ -18,6 +18,8 @@ class FletArtifactsTests(unittest.TestCase):
 
         self.assertIn("env.PLANTNET_API_KEY", worker)
         self.assertNotIn("2b1004", worker)
+        self.assertIn('"api-key": env.PLANTNET_API_KEY', worker)
+        self.assertNotIn("Authorization", worker)
         self.assertIn("github.io", worker)
         self.assertIn("pages.dev", worker)
         self.assertIn("ALLOWED_ORIGIN", worker)
