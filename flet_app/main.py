@@ -2151,24 +2151,37 @@ async def run_app(page: ft.Page) -> None:
         ),
     )
 
-    preload_complete = False
-    preload_shell_built = False
+    shell_ready = False
+    shell_loaded = False
 
-    async def preload_ui_components() -> None:
-        """在背景預先建立主頁面 UI 組件"""
-        nonlocal preload_complete, preload_shell_built
-        await asyncio.sleep(0)
+    loading_overlay = ft.Container(
+        expand=True,
+        alignment=ft.Alignment(0, 0),
+        content=ft.Column(
+            controls=[
+                ft.ProgressRing(width=48, height=48, stroke_width=4, color="#8a5a22"),
+                ft.Text("正在準備探險工具...", size=16, color="#6d5140", weight=ft.FontWeight.W_700),
+            ],
+            spacing=20,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+    )
+
+    async def build_shell() -> None:
+        """建立放大鏡主頁面"""
+        nonlocal shell_ready, shell_loaded
+        if shell_loaded:
+            return
+        shell_loaded = True
 
         content_area.content = plant_view
         render_handle(update_page=False)
 
-        preload_shell_built = True
-        mark_load_timing("art-village:preload-ui-ready")
+        if pokedex:
+            refresh_gallery(update_page=False)
 
-        await asyncio.sleep(0)
-
-        preload_complete = True
-        mark_load_timing("art-village:preload-complete")
+        shell_ready = True
+        mark_load_timing("art-village:shell-ready")
 
     async def start_exploration() -> None:
         start_button.disabled = True
@@ -2177,24 +2190,22 @@ async def run_app(page: ft.Page) -> None:
 
         mark_load_timing("art-village:user-start")
 
-        if not preload_complete:
+        if not shell_ready:
+            welcome_screen.content.controls.append(loading_overlay)
+            page.update()
+
             await asyncio.sleep(0)
+            await build_shell()
+
+            welcome_screen.content.controls.pop()
+            page.update()
 
         welcome_screen.visible = False
         page.add(shell)
         page.update()
 
-        mark_load_timing("art-village:flet-shell-ready")
+        mark_load_timing("art-village:exploration-start")
         mark_explorer_ready()
-
-        if not preload_shell_built:
-            content_area.content = plant_view
-            render_handle(update_page=False)
-            page.update()
-
-        if pokedex:
-            refresh_gallery(update_page=False)
-            page.update()
 
         create_background_task(initialize_camera())
 
@@ -2204,8 +2215,6 @@ async def run_app(page: ft.Page) -> None:
 
     page.update()
     mark_load_timing("art-village:welcome-ready")
-
-    create_background_task(preload_ui_components())
 
 
 if os.environ.get("FLET_SKIP_RUN") != "1":
