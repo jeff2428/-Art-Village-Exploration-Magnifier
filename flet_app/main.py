@@ -2151,39 +2151,55 @@ async def run_app(page: ft.Page) -> None:
         ),
     )
 
+    preload_progress = 0
     shell_ready = False
-    shell_loaded = False
+
+    progress_bar = ft.ProgressBar(width=260, bar_height=6, value=0, color="#8a5a22", bgcolor="#dccfc0")
+    progress_percent = ft.Text("0%", size=14, color="#6d5140", weight=ft.FontWeight.W_800)
+    loading_text = ft.Text("正在準備探險工具...", size=16, color="#6d5140", weight=ft.FontWeight.W_700)
 
     loading_overlay = ft.Container(
         expand=True,
         alignment=ft.Alignment(0, 0),
         content=ft.Column(
             controls=[
-                ft.ProgressRing(width=48, height=48, stroke_width=4, color="#8a5a22"),
-                ft.Text("正在準備探險工具...", size=16, color="#6d5140", weight=ft.FontWeight.W_700),
+                loading_text,
+                ft.Container(height=8),
+                progress_bar,
+                progress_percent,
             ],
-            spacing=20,
+            spacing=8,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         ),
     )
 
-    async def build_shell() -> None:
-        """建立放大鏡主頁面"""
-        nonlocal shell_ready, shell_loaded
-        if shell_loaded:
-            return
-        shell_loaded = True
+    async def preload_shell() -> None:
+        """使用者在看歡迎頁時，背景預載放大鏡頁面"""
+        nonlocal preload_progress, shell_ready
+
+        preload_progress = 10
+        await asyncio.sleep(0)
 
         content_area.content = plant_view
+        preload_progress = 50
+        await asyncio.sleep(0)
+
         render_handle(update_page=False)
+        preload_progress = 70
+        await asyncio.sleep(0)
 
         if pokedex:
             refresh_gallery(update_page=False)
+        preload_progress = 90
+        await asyncio.sleep(0)
 
         shell_ready = True
+        preload_progress = 100
         mark_load_timing("art-village:shell-ready")
 
     async def start_exploration() -> None:
+        nonlocal preload_progress
+
         start_button.disabled = True
         start_button.text = "準備中..."
         page.update()
@@ -2194,8 +2210,18 @@ async def run_app(page: ft.Page) -> None:
             welcome_screen.content.controls.append(loading_overlay)
             page.update()
 
-            await asyncio.sleep(0)
-            await build_shell()
+            while preload_progress < 100:
+                progress_bar.value = preload_progress / 100
+                progress_percent.value = f"{preload_progress}%"
+                loading_text.value = "載入中..."
+                page.update()
+                await asyncio.sleep(0.05)
+
+            progress_bar.value = 1.0
+            progress_percent.value = "100%"
+            loading_text.value = "即將開始..."
+            page.update()
+            await asyncio.sleep(0.2)
 
             welcome_screen.content.controls.pop()
             page.update()
@@ -2215,6 +2241,8 @@ async def run_app(page: ft.Page) -> None:
 
     page.update()
     mark_load_timing("art-village:welcome-ready")
+
+    create_background_task(preload_shell())
 
 
 if os.environ.get("FLET_SKIP_RUN") != "1":
