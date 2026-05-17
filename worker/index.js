@@ -2,6 +2,7 @@ const PLANTNET_URL = "https://my-api.plantnet.org/v2/identify/all";
 const PERENUAL_SPECIES_LIST_URL = "https://perenual.com/api/v2/species-list";
 const PERENUAL_DETAILS_URL = "https://perenual.com/api/v2/species/details";
 const ALLOWED_PAGES_DOMAINS = ["pages.dev", "github.io"];
+const PERENUAL_CACHE_SECONDS = 7 * 24 * 60 * 60;
 
 function corsHeaders(request, env = {}) {
   const origin = request.headers.get("Origin") || "";
@@ -33,7 +34,7 @@ function jsonResponse(body, init, request, env) {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Access-Control-Allow-Origin": allowOrigin,
-      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
       "Access-Control-Max-Age": "86400",
       Vary: "Origin",
@@ -135,6 +136,61 @@ async function fetchPerenualMetadata(scientificName, env) {
   }
 }
 
+async function fetchPerenualMetadataCached(scientificName, env) {
+  const startedAt = Date.now();
+  if (!scientificName) {
+    return {
+      metadata: { status: "missing_scientific_name", source: "Perenual" },
+      timing: { perenual_ms: Date.now() - startedAt },
+    };
+  }
+  if (!env.PERENUAL_API_KEY) {
+    return {
+      metadata: { status: "not_configured", source: "Perenual", query: scientificName },
+      timing: { perenual_ms: Date.now() - startedAt },
+    };
+  }
+
+  const cacheUrl = new URL("https://art-village-metadata-cache.local/perenual");
+  cacheUrl.searchParams.set("scientificName", normalizeScientificName(scientificName));
+  const cacheKey = new Request(cacheUrl.toString(), { method: "GET" });
+
+  try {
+    const cachedResponse = await caches.default.match(cacheKey);
+    if (cachedResponse) {
+      const cached = await cachedResponse.json();
+      return {
+        metadata: { ...cached, status: "cached", source: cached.source || "Perenual" },
+        timing: { perenual_ms: Date.now() - startedAt, perenual_cache: "hit" },
+      };
+    }
+  } catch {
+    // Cache is an optimization; metadata lookup should still work if it fails.
+  }
+
+  const metadata = await fetchPerenualMetadata(scientificName, env);
+  if (metadata.status === "ok") {
+    try {
+      await caches.default.put(
+        cacheKey,
+        new Response(JSON.stringify(metadata), {
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": `public, max-age=${PERENUAL_CACHE_SECONDS}`,
+          },
+        }),
+      );
+    } catch {
+      // Ignore cache write failures and return the fresh metadata.
+    }
+  }
+
+  return {
+    metadata,
+    timing: { perenual_ms: Date.now() - startedAt, perenual_cache: "miss" },
+  };
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
@@ -143,7 +199,7 @@ export default {
         status: 204,
         headers: {
           "Access-Control-Allow-Origin": allowOrigin,
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type",
           "Access-Control-Max-Age": "86400",
           Vary: "Origin",
@@ -152,6 +208,33 @@ export default {
     }
 
     try {
+      const requestUrl = new URL(request.url);
+
+      if (request.method === "GET" && requestUrl.pathname === "/metadata") {
+        const totalStartedAt = Date.now();
+        const scientificName = requestUrl.searchParams.get("scientificName") || "";
+        const { metadata, timing } = await fetchPerenualMetadataCached(scientificName, env);
+        return jsonResponse(
+          {
+            ...metadata,
+            timing: {
+              ...timing,
+              total_ms: Date.now() - totalStartedAt,
+            },
+          },
+          {
+            status: scientificName ? 200 : 400,
+            headers: {
+              "Cache-Control": metadata.status === "cached" || metadata.status === "ok"
+                ? `public, max-age=${PERENUAL_CACHE_SECONDS}`
+                : "no-store",
+            },
+          },
+          request,
+          env,
+        );
+      }
+
       if (request.method === "GET" || request.method === "HEAD") {
         return jsonResponse(
           { error: "App version expired. Refresh the page before identifying plants." },
@@ -194,6 +277,8 @@ export default {
         lang: "zh",
       });
 
+      const totalStartedAt = Date.now();
+      const plantNetStartedAt = Date.now();
       const response = await fetch(`${PLANTNET_URL}?${params.toString()}`, {
         method: "POST",
         headers: {
@@ -201,15 +286,17 @@ export default {
         },
         body: plantNetForm,
       });
+      const plantnetMs = Date.now() - plantNetStartedAt;
 
       const allowOrigin = corsHeaders(request, env);
       const responseText = await response.text();
       const responseHeaders = {
         "Content-Type": response.headers.get("Content-Type") || "application/json; charset=utf-8",
         "Access-Control-Allow-Origin": allowOrigin,
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Max-Age": "86400",
+        "Server-Timing": `plantnet;dur=${plantnetMs}`,
         Vary: "Origin",
       };
 
@@ -222,7 +309,15 @@ export default {
       }
 
       const plantNetPayload = JSON.parse(responseText);
-      plantNetPayload.perenual = await fetchPerenualMetadata(topScientificName(plantNetPayload), env);
+      const scientificName = topScientificName(plantNetPayload);
+      plantNetPayload.perenual = env.PERENUAL_API_KEY && scientificName
+        ? { status: "pending", source: "Perenual", query: scientificName }
+        : { status: env.PERENUAL_API_KEY ? "missing_scientific_name" : "not_configured", source: "Perenual", query: scientificName };
+      plantNetPayload.timing = {
+        plantnet_ms: plantnetMs,
+        perenual_ms: 0,
+        total_ms: Date.now() - totalStartedAt,
+      };
 
       return new Response(JSON.stringify(plantNetPayload), {
         status: response.status,

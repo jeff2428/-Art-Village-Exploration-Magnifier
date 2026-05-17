@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>探險放大鏡 Web Prototype</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: system-ui, "Microsoft JhengHei", sans-serif;
+        background: #e8f6f5;
+        color: #3d2a21;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 20px;
+      }
+
+      main {
+        width: min(430px, 100%);
+        display: grid;
+        gap: 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 30px;
+        text-align: center;
+      }
+
+      label,
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      input,
+      select,
+      button,
+      section {
+        border: 1px solid #d7c8b9;
+        border-radius: 8px;
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 10px;
+        background: #fffdf4;
+        color: #3d2a21;
+      }
+
+      section {
+        background: #fffdf4;
+        padding: 14px;
+        display: grid;
+        gap: 10px;
+      }
+
+      video,
+      canvas {
+        width: 100%;
+        aspect-ratio: 1;
+        object-fit: cover;
+        border-radius: 8px;
+        background: #2b2b2b;
+      }
+
+      button {
+        min-height: 44px;
+        padding: 10px 12px;
+        border: 0;
+        border-radius: 8px;
+        background: #2f7d51;
+        color: white;
+        font-weight: 800;
+      }
+
+      button.secondary {
+        background: #8a5a22;
+      }
+
+      button:disabled {
+        opacity: 0.55;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .result {
+        white-space: pre-wrap;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>探險放大鏡</h1>
+      <section>
+        <label>
+          Worker URL
+          <input id="workerUrl" value="https://art-village-magnifier.jeff2428.workers.dev">
+        </label>
+        <label>
+          拍攝部位
+          <select id="organ">
+            <option value="auto">自動</option>
+            <option value="leaf">葉</option>
+            <option value="flower">花</option>
+            <option value="fruit">果</option>
+            <option value="bark">樹皮</option>
+          </select>
+        </label>
+      </section>
+
+      <section>
+        <video id="camera" autoplay playsinline muted></video>
+        <canvas id="snapshot" width="720" height="720" hidden></canvas>
+        <div class="row">
+          <button id="startCamera" class="secondary">啟動相機</button>
+          <button id="identify" disabled>拍攝辨識</button>
+        </div>
+      </section>
+
+      <section>
+        <strong>量測結果</strong>
+        <div id="status" class="result">等待操作</div>
+      </section>
+    </main>
+
+    <script>
+      const workerUrl = document.querySelector("#workerUrl");
+      const organ = document.querySelector("#organ");
+      const camera = document.querySelector("#camera");
+      const canvas = document.querySelector("#snapshot");
+      const status = document.querySelector("#status");
+      const startCamera = document.querySelector("#startCamera");
+      const identify = document.querySelector("#identify");
+
+      performance.mark("prototype:loader-start");
+
+      const setStatus = (value) => {
+        status.textContent = value;
+      };
+
+      startCamera.addEventListener("click", async () => {
+        performance.mark("prototype:camera-init-start");
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+        camera.srcObject = stream;
+        await camera.play();
+        performance.mark("prototype:camera-ready");
+        identify.disabled = false;
+        setStatus("相機已啟動");
+      });
+
+      identify.addEventListener("click", async () => {
+        identify.disabled = true;
+        performance.mark("prototype:identify-start");
+        const context = canvas.getContext("2d");
+        context.drawImage(camera, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+        const form = new FormData();
+        if (organ.value !== "auto") {
+          form.append("organs", organ.value);
+        }
+        form.append("images", blob, "capture.jpg");
+
+        const startedAt = performance.now();
+        try {
+          const response = await fetch(workerUrl.value, { method: "POST", body: form });
+          const payload = await response.json();
+          const elapsed = Math.round(performance.now() - startedAt);
+          performance.mark("prototype:identify-primary-ready");
+          const result = payload.results?.[0];
+          const species = result?.species || {};
+          const scientificName = species.scientificNameWithoutAuthor || species.scientificName || "Unknown";
+          const confidence = Math.round((result?.score || 0) * 1000) / 10;
+          setStatus([
+            `HTTP：${response.status}`,
+            `總等待：${elapsed}ms`,
+            `Worker timing：${JSON.stringify(payload.timing || {})}`,
+            `辨識：${scientificName}`,
+            `信心度：${confidence}%`,
+            `Perenual：${payload.perenual?.status || "none"}`,
+          ].join("\n"));
+        } catch (error) {
+          setStatus(`辨識失敗：${error.message}`);
+        } finally {
+          identify.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

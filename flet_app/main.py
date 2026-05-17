@@ -8,6 +8,7 @@ import os
 import tempfile
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import flet as ft
 
@@ -758,7 +759,7 @@ def bool_label(value: Any, true_label: str, false_label: str, unknown_label: str
 
 
 def metadata_from_perenual(perenual: dict[str, Any], fallback: dict[str, dict[str, str]]) -> dict[str, Any]:
-    if perenual.get("status") != "ok":
+    if perenual.get("status") not in ("ok", "cached"):
         return {
             "toxicity": dict(fallback["toxicity"]),
             "invasive": dict(fallback["invasive"]),
@@ -805,7 +806,7 @@ def plant_candidate_from_result(result: dict[str, Any], perenual: dict[str, Any]
     confidence = round(score * 100, 1)
     metadata = metadata_for_scientific_name(scientific)
     enriched_metadata = metadata_from_perenual(perenual or {}, metadata)
-    perenual_description = (perenual or {}).get("description") if (perenual or {}).get("status") == "ok" else ""
+    perenual_description = (perenual or {}).get("description") if (perenual or {}).get("status") in ("ok", "cached") else ""
     description = perenual_description or f"PlantNet 推測為 {zh_name}（{scientific}）。"
 
     return {
@@ -822,6 +823,7 @@ def plant_candidate_from_result(result: dict[str, Any], perenual: dict[str, Any]
         "invasive": enriched_metadata["invasive"],
         "care": enriched_metadata["care"],
         "metadata_source": enriched_metadata["source"],
+        "metadata_status": (perenual or {}).get("status", "not_requested"),
     }
 
 
@@ -1001,6 +1003,35 @@ def worker_error_message(status_code: int, text: str) -> str:
     if 500 <= status_code < 600:
         return "辨識服務暫時忙碌，請稍後再試"
     return f"辨識服務暫時無法處理（{status_code}）"
+
+
+def metadata_url_for_scientific_name(scientific_name: str) -> str:
+    return f"{WORKER_URL.rstrip('/')}/metadata?scientificName={quote(scientific_name)}"
+
+
+def get_metadata_from_worker_sync(scientific_name: str) -> dict[str, Any]:
+    import requests
+
+    response = requests.get(metadata_url_for_scientific_name(scientific_name), timeout=20)
+    if not response.ok:
+        raise RecognitionServiceError(worker_error_message(response.status_code, response.text))
+    return response.json()
+
+
+async def get_metadata_from_worker(scientific_name: str) -> dict[str, Any]:
+    if "YOUR-WORKER" in WORKER_URL:
+        raise RuntimeError("尚未設定 Cloudflare Pages 的 WORKER_URL")
+
+    try:
+        from js import fetch  # type: ignore
+
+        response = await fetch(metadata_url_for_scientific_name(scientific_name))
+        text = await response.text()
+        if not response.ok:
+            raise RecognitionServiceError(worker_error_message(response.status, text))
+        return json.loads(text)
+    except ModuleNotFoundError:
+        return await asyncio.to_thread(get_metadata_from_worker_sync, scientific_name)
 
 
 async def post_image_to_worker(capture: Any, organ: str = "leaf") -> dict[str, Any]:
@@ -1338,6 +1369,35 @@ async def run_app(page: ft.Page) -> None:
             status.value = f"辨識成功：{plant['zh_name']} · {plant.get('confidence', 0)}%"
         refresh_gallery()
 
+    async def refresh_plant_metadata(plant: dict[str, Any]) -> None:
+        scientific_name = plant.get("sci_name") or ""
+        if not scientific_name or plant.get("metadata_status") not in ("pending", "error"):
+            return
+        try:
+            metadata_payload = await get_metadata_from_worker(scientific_name)
+            if metadata_payload.get("status") not in ("ok", "cached"):
+                plant["metadata_status"] = metadata_payload.get("status", "error")
+                pokedex[plant["zh_name"]] = plant
+                save_cached_pokedex(pokedex)
+                return
+            fallback = metadata_for_scientific_name(scientific_name)
+            enriched_metadata = metadata_from_perenual(metadata_payload, fallback)
+            plant["toxicity"] = enriched_metadata["toxicity"]
+            plant["invasive"] = enriched_metadata["invasive"]
+            plant["care"] = enriched_metadata["care"]
+            plant["metadata_source"] = enriched_metadata["source"]
+            plant["metadata_status"] = metadata_payload.get("status", "ok")
+            if metadata_payload.get("description"):
+                plant["desc"] = metadata_payload["description"]
+            pokedex[plant["zh_name"]] = plant
+            status.value = f"{plant['zh_name']} 的 Perenual 資料已補上"
+            refresh_gallery(update_page=False)
+            page.update()
+        except Exception:
+            plant["metadata_status"] = "error"
+            pokedex[plant["zh_name"]] = plant
+            save_cached_pokedex(pokedex)
+
     def close_dialog(_event: ft.ControlEvent) -> None:
         page.pop_dialog()
         page.update()
@@ -1465,6 +1525,8 @@ async def run_app(page: ft.Page) -> None:
         invasive = data.get("invasive") or UNKNOWN_METADATA["invasive"]
         care = {key: value for key, value in (data.get("care") or {}).items() if value}
         metadata_source = data.get("metadata_source") or "PlantNet"
+        metadata_status = data.get("metadata_status") or "not_requested"
+        worker_timing = data.get("worker_timing") or {}
         organ_label = data.get("organ_label") or PLANT_ORGAN_OPTIONS.get(data.get("organ", "auto"), "自動")
 
         def detail_text(value: str, *, size: int = 13, color: str = "#5c4032", weight: ft.FontWeight | None = None) -> ft.Text:
@@ -1563,6 +1625,10 @@ async def run_app(page: ft.Page) -> None:
                     wrap=True,
                 ),
             ]
+        metadata_note = "Perenual 資料背景載入中" if metadata_status == "pending" else f"資料來源：{metadata_source}"
+        timing_note = ""
+        if worker_timing.get("total_ms") is not None:
+            timing_note = f"端點耗時：{worker_timing.get('total_ms')}ms（PlantNet {worker_timing.get('plantnet_ms', 'N/A')}ms）"
         dialog_content_height = max(420, min(520, round((page.height or 760) * 0.58)))
         plant_detail_content = ft.Column(
             controls=[
@@ -1589,7 +1655,8 @@ async def run_app(page: ft.Page) -> None:
                 ),
                 ft.Text(data["desc"], size=14, color="#3d2a21"),
                 *care_controls,
-                ft.Text(f"資料來源：{metadata_source}", size=11, color="#8a6a54"),
+                ft.Text(metadata_note, size=11, color="#8a6a54"),
+                ft.Text(timing_note, size=11, color="#8a6a54") if timing_note else ft.Container(),
                 ft.Text(confidence_text(data), size=13, color="#6d5140"),
                 *alternative_controls,
                 ft.Container(
@@ -1663,10 +1730,12 @@ async def run_app(page: ft.Page) -> None:
             busy_ring.visible = True
             page.update()
             show_recognition_loading_card()
+            mark_load_timing("art-village:identify-start")
             image_data = await camera.take_picture()
             try:
                 selected_organ = selected_organ_value()
                 payload = await post_image_to_worker(image_data, selected_organ)
+                mark_load_timing("art-village:identify-primary-ready")
             except RecognitionServiceError as error:
                 status.value = str(error)
                 close_recognition_loading_card(update_page=False)
@@ -1684,9 +1753,12 @@ async def run_app(page: ft.Page) -> None:
             plant["organ"] = selected_organ
             plant["organ_label"] = PLANT_ORGAN_OPTIONS.get(selected_organ, "自動")
             plant["captured_image"] = card_image_from_capture(image_data)
+            plant["worker_timing"] = payload.get("timing") or {}
             add_plant_to_gallery(plant)
             close_recognition_loading_card(update_page=False)
             show_plant_card(plant["zh_name"], plant)
+            if plant.get("metadata_status") == "pending":
+                create_background_task(refresh_plant_metadata(plant))
         except Exception as error:
             status.value = f"辨識失敗：{error}"
             close_recognition_loading_card(update_page=False)
