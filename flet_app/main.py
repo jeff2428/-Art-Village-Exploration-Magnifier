@@ -1228,6 +1228,9 @@ async def run_app(page: ft.Page) -> None:
         ),
     )
 
+    preload_progress = 0
+    shell_ready = False
+
     start_button = ft.ElevatedButton(
         "開始探險",
         style=ft.ButtonStyle(
@@ -1238,7 +1241,21 @@ async def run_app(page: ft.Page) -> None:
         ),
     )
 
+    progress_bar = ft.ProgressBar(width=260, bar_height=6, value=0, color="#8a5a22", bgcolor="#dccfc0")
+    progress_percent = ft.Text("0%", size=14, color="#6d5140", weight=ft.FontWeight.W_800)
+    loading_text = ft.Text("正在準備探險工具...", size=15, color="#6d5140", weight=ft.FontWeight.W_700)
+
+    preload_section = ft.Container(
+        padding=ft.Padding.only(top=20),
+        content=ft.Column(
+            controls=[loading_text, ft.Container(height=6), progress_bar, progress_percent],
+            spacing=4,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+    )
+
     welcome_screen.content.controls.append(start_button)
+    welcome_screen.content.controls.append(preload_section)
 
     page.clean()
     page.add(welcome_screen)
@@ -2150,30 +2167,7 @@ async def run_app(page: ft.Page) -> None:
         ),
     )
 
-    preload_progress = 0
-    shell_ready = False
-
-    progress_bar = ft.ProgressBar(width=260, bar_height=6, value=0, color="#8a5a22", bgcolor="#dccfc0")
-    progress_percent = ft.Text("0%", size=14, color="#6d5140", weight=ft.FontWeight.W_800)
-    loading_text = ft.Text("正在準備探險工具...", size=16, color="#6d5140", weight=ft.FontWeight.W_700)
-
-    loading_overlay = ft.Container(
-        expand=True,
-        alignment=ft.Alignment(0, 0),
-        content=ft.Column(
-            controls=[
-                loading_text,
-                ft.Container(height=8),
-                progress_bar,
-                progress_percent,
-            ],
-            spacing=8,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        ),
-    )
-
     async def preload_shell() -> None:
-        """使用者在看歡迎頁時，背景預載放大鏡頁面"""
         nonlocal preload_progress, shell_ready
 
         preload_progress = 10
@@ -2197,33 +2191,23 @@ async def run_app(page: ft.Page) -> None:
         mark_load_timing("art-village:shell-ready")
 
     async def start_exploration() -> None:
-        nonlocal preload_progress
-
         start_button.disabled = True
         start_button.text = "準備中..."
         page.update()
 
         mark_load_timing("art-village:user-start")
 
-        if not shell_ready:
-            welcome_screen.content.controls.append(loading_overlay)
+        while not shell_ready:
+            progress_bar.value = preload_progress / 100
+            progress_percent.value = f"{preload_progress}%"
             page.update()
+            await asyncio.sleep(0.05)
 
-            while preload_progress < 100:
-                progress_bar.value = preload_progress / 100
-                progress_percent.value = f"{preload_progress}%"
-                loading_text.value = "載入中..."
-                page.update()
-                await asyncio.sleep(0.05)
-
-            progress_bar.value = 1.0
-            progress_percent.value = "100%"
-            loading_text.value = "即將開始..."
-            page.update()
-            await asyncio.sleep(0.2)
-
-            welcome_screen.content.controls.pop()
-            page.update()
+        progress_bar.value = 1.0
+        progress_percent.value = "100%"
+        loading_text.value = "即將開始..."
+        page.update()
+        await asyncio.sleep(0.2)
 
         welcome_screen.visible = False
         page.add(shell)
