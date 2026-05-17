@@ -1241,21 +1241,36 @@ async def run_app(page: ft.Page) -> None:
         ),
     )
 
-    progress_bar = ft.ProgressBar(width=260, bar_height=6, value=0, color="#8a5a22", bgcolor="#dccfc0")
-    progress_percent = ft.Text("0%", size=14, color="#6d5140", weight=ft.FontWeight.W_800)
-    loading_text = ft.Text("正在準備探險工具...", size=15, color="#6d5140", weight=ft.FontWeight.W_700)
+    EMOJI_CYCLE = ["🔍", "🌿", "🐾", "🎒", "🌸", "🍃", "🐕"]
+    LOADING_MESSAGES = [
+        "正在呼喚小夥伴們...",
+        "翻開植物圖鑑中...",
+        "準備探險裝備...",
+        "啟動放大鏡...",
+        "即將出發！",
+    ]
 
-    preload_section = ft.Container(
-        padding=ft.Padding.only(top=20),
+    loading_emoji = ft.Text("🔍", size=56, text_align=ft.TextAlign.CENTER)
+    loading_message = ft.Text(LOADING_MESSAGES[0], size=16, color="#6d5140", weight=ft.FontWeight.W_700)
+
+    loading_carousel = ft.Container(
+        expand=True,
+        alignment=ft.Alignment(0, 0),
         content=ft.Column(
-            controls=[loading_text, ft.Container(height=6), progress_bar, progress_percent],
+            controls=[
+                ft.Container(height=40),
+                loading_emoji,
+                ft.Container(height=12),
+                ft.ProgressRing(width=36, height=36, stroke_width=4, color="#8a5a22"),
+                ft.Container(height=16),
+                loading_message,
+            ],
             spacing=4,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         ),
     )
 
     welcome_screen.content.controls.append(start_button)
-    welcome_screen.content.controls.append(preload_section)
 
     page.clean()
     page.add(welcome_screen)
@@ -2197,17 +2212,29 @@ async def run_app(page: ft.Page) -> None:
 
         mark_load_timing("art-village:user-start")
 
-        while not shell_ready:
-            progress_bar.value = preload_progress / 100
-            progress_percent.value = f"{preload_progress}%"
+        if not shell_ready:
+            welcome_screen.content.controls.append(loading_carousel)
             page.update()
-            await asyncio.sleep(0.05)
 
-        progress_bar.value = 1.0
-        progress_percent.value = "100%"
-        loading_text.value = "即將開始..."
-        page.update()
-        await asyncio.sleep(0.2)
+            emoji_idx = 0
+            msg_idx = 0
+            tick = 0
+            while not shell_ready:
+                tick += 1
+                if tick % 10 == 0:
+                    emoji_idx = (emoji_idx + 1) % len(EMOJI_CYCLE)
+                    loading_emoji.value = EMOJI_CYCLE[emoji_idx]
+                if tick % 25 == 0:
+                    msg_idx = (msg_idx + 1) % len(LOADING_MESSAGES)
+                    loading_message.value = LOADING_MESSAGES[msg_idx]
+                page.update()
+                await asyncio.sleep(0.05)
+
+            loading_message.value = "準備完成！"
+            page.update()
+            await asyncio.sleep(0.3)
+
+            welcome_screen.content.controls.pop()
 
         welcome_screen.visible = False
         page.add(shell)
