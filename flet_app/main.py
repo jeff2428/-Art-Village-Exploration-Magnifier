@@ -1039,6 +1039,7 @@ async def run_app(page: ft.Page) -> None:
             plant["organ_label"] = PLANT_ORGAN_OPTIONS.get(selected_organ, "自動")
             plant["captured_image"] = card_image_from_capture(image_data)
             add_plant_to_gallery(plant)
+            show_plant_card(plant["zh_name"], plant)
         except Exception as error:
             status.value = f"辨識失敗：{error}"
         finally:

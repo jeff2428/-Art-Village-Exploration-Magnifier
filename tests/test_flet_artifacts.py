@@ -147,6 +147,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("外來種", main)
         self.assertIn("尚無拍攝照片", main)
         self.assertIn("post_image_to_worker(image_data, selected_organ)", main)
+        self.assertIn('show_plant_card(plant["zh_name"], plant)', main)
         self.assertIn("alternatives", main)
         self.assertIn("建議確認", main)
         self.assertIn("clear_legacy_snapshot_cache", main)
