@@ -1228,9 +1228,6 @@ async def run_app(page: ft.Page) -> None:
         ),
     )
 
-    preload_progress = 0
-    shell_ready = False
-
     start_button = ft.ElevatedButton(
         "開始探險",
         style=ft.ButtonStyle(
@@ -2182,29 +2179,6 @@ async def run_app(page: ft.Page) -> None:
         ),
     )
 
-    async def preload_shell() -> None:
-        nonlocal preload_progress, shell_ready
-
-        preload_progress = 10
-        await asyncio.sleep(0)
-
-        content_area.content = plant_view
-        preload_progress = 50
-        await asyncio.sleep(0)
-
-        render_handle(update_page=False)
-        preload_progress = 70
-        await asyncio.sleep(0)
-
-        if pokedex:
-            refresh_gallery(update_page=False)
-        preload_progress = 90
-        await asyncio.sleep(0)
-
-        shell_ready = True
-        preload_progress = 100
-        mark_load_timing("art-village:shell-ready")
-
     async def start_exploration() -> None:
         start_button.disabled = True
         start_button.text = "準備中..."
@@ -2212,30 +2186,26 @@ async def run_app(page: ft.Page) -> None:
 
         mark_load_timing("art-village:user-start")
 
-        if not shell_ready:
-            welcome_screen.content.controls.append(loading_carousel)
+        welcome_screen.content.controls.append(loading_carousel)
+        page.update()
+
+        for i in range(5):
+            loading_emoji.value = EMOJI_CYCLE[i % len(EMOJI_CYCLE)]
+            loading_message.value = LOADING_MESSAGES[i % len(LOADING_MESSAGES)]
             page.update()
+            await asyncio.sleep(0.08)
 
-            emoji_idx = 0
-            msg_idx = 0
-            tick = 0
-            while not shell_ready:
-                tick += 1
-                if tick % 10 == 0:
-                    emoji_idx = (emoji_idx + 1) % len(EMOJI_CYCLE)
-                    loading_emoji.value = EMOJI_CYCLE[emoji_idx]
-                if tick % 25 == 0:
-                    msg_idx = (msg_idx + 1) % len(LOADING_MESSAGES)
-                    loading_message.value = LOADING_MESSAGES[msg_idx]
-                page.update()
-                await asyncio.sleep(0.05)
+        content_area.content = plant_view
+        render_handle(update_page=False)
+        if pokedex:
+            refresh_gallery(update_page=False)
 
-            loading_message.value = "準備完成！"
-            page.update()
-            await asyncio.sleep(0.3)
+        mark_load_timing("art-village:shell-ready")
+        loading_message.value = "準備完成！"
+        page.update()
+        await asyncio.sleep(0.3)
 
-            welcome_screen.content.controls.pop()
-
+        welcome_screen.content.controls.pop()
         welcome_screen.visible = False
         page.add(shell)
         page.update()
@@ -2251,8 +2221,6 @@ async def run_app(page: ft.Page) -> None:
 
     page.update()
     mark_load_timing("art-village:welcome-ready")
-
-    create_background_task(preload_shell())
 
 
 if os.environ.get("FLET_SKIP_RUN") != "1":
