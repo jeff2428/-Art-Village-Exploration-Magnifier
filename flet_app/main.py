@@ -1243,7 +1243,6 @@ async def run_app(page: ft.Page) -> None:
     page.clean()
     page.add(welcome_screen)
     page.update()
-    mark_load_timing("art-village:welcome-ready")
 
     status = ft.Text(
         "",
@@ -2237,7 +2236,7 @@ async def run_app(page: ft.Page) -> None:
 
         report_performance(page)
 
-    start_button.on_click = lambda _: start_exploration()
+    start_button.on_click = lambda _: create_background_task(start_exploration())
 
     page.update()
     mark_load_timing("art-village:welcome-ready")
