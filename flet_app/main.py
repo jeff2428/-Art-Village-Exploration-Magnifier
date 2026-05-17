@@ -2189,16 +2189,21 @@ async def run_app(page: ft.Page) -> None:
         welcome_screen.content.controls.append(loading_carousel)
         page.update()
 
+        async def build_shell():
+            content_area.content = plant_view
+            render_handle(update_page=False)
+            if pokedex:
+                refresh_gallery(update_page=False)
+
+        build_task = asyncio.create_task(build_shell())
+
         for i in range(5):
             loading_emoji.value = EMOJI_CYCLE[i % len(EMOJI_CYCLE)]
             loading_message.value = LOADING_MESSAGES[i % len(LOADING_MESSAGES)]
             page.update()
             await asyncio.sleep(0.08)
 
-        content_area.content = plant_view
-        render_handle(update_page=False)
-        if pokedex:
-            refresh_gallery(update_page=False)
+        await build_task
 
         mark_load_timing("art-village:shell-ready")
         loading_message.value = "準備完成！"
