@@ -1194,19 +1194,6 @@ async def run_app(page: ft.Page) -> None:
     page.bgcolor = "#f3efd9"
     page.scroll = ft.ScrollMode.AUTO
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
-    page.add(
-        ft.Container(
-            padding=16,
-            alignment=ft.Alignment(0, 0),
-            content=ft.Text(
-                "探險放大鏡啟動中...",
-                size=22,
-                weight=ft.FontWeight.W_900,
-                color="#3d2a21",
-            ),
-        )
-    )
-    page.update()
 
     pokedex: dict[str, dict[str, Any]] = load_cached_pokedex()
     clear_legacy_snapshot_cache()
@@ -1216,6 +1203,47 @@ async def run_app(page: ft.Page) -> None:
     camera_initializing = False
     recognition_loading_visible = False
     zoom_level = MIN_CAMERA_ZOOM
+
+    welcome_screen = ft.Container(
+        width=430,
+        padding=ft.Padding.symmetric(vertical=60, horizontal=24),
+        content=ft.Column(
+            controls=[
+                ft.Text("🔍", size=80, text_align=ft.TextAlign.CENTER),
+                ft.Text("探險放大鏡", size=32, weight=ft.FontWeight.W_900, 
+                       text_align=ft.TextAlign.CENTER, color="#3d2a21"),
+                ft.Text("藝素村的自然探險工具", size=18, weight=ft.FontWeight.W_700,
+                       text_align=ft.TextAlign.CENTER, color="#5c4032"),
+                ft.Container(height=16),
+                ft.Text("🌿 拍攝並辨識植物物種", size=15, color="#6d5140"),
+                ft.Text("🐾 認識村里的動物朋友", size=15, color="#6d5140"),
+                ft.Text("🎒 建立你的探險圖鑑", size=15, color="#6d5140"),
+                ft.Container(height=24),
+                ft.Text("使用相機功能需要瀏覽器授權，", size=13, color="#8a6a54"),
+                ft.Text("請確保使用 HTTPS 或 localhost 網址", size=13, color="#8a6a54"),
+                ft.Container(height=32),
+            ],
+            spacing=12,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+    )
+
+    start_button = ft.ElevatedButton(
+        "開始探險",
+        style=ft.ButtonStyle(
+            padding=ft.Padding.symmetric(horizontal=40, vertical=18),
+            text_style=ft.TextStyle(size=18, weight=ft.FontWeight.W_900),
+            bgcolor="#8a5a22",
+            color="#ffffff",
+        ),
+    )
+
+    welcome_screen.content.controls.append(start_button)
+
+    page.clean()
+    page.add(welcome_screen)
+    page.update()
+    mark_load_timing("art-village:welcome-ready")
 
     status = ft.Text(
         "",
@@ -2127,47 +2155,41 @@ async def run_app(page: ft.Page) -> None:
         ),
     )
 
-    welcome_screen = ft.Container(
-        width=430,
-        padding=ft.Padding.symmetric(vertical=60, horizontal=24),
-        content=ft.Column(
-            controls=[
-                ft.Text("🔍", size=80, text_align=ft.TextAlign.CENTER),
-                ft.Text("探險放大鏡", size=32, weight=ft.FontWeight.W_900, 
-                       text_align=ft.TextAlign.CENTER, color="#3d2a21"),
-                ft.Text("點擊開始使用相機辨識植物", size=16, 
-                       text_align=ft.TextAlign.CENTER, color="#6d5140"),
-                ft.ElevatedButton(
-                    "開始探險",
-                    on_click=lambda _: start_exploration(),
-                    style=ft.ButtonStyle(
-                        padding=ft.Padding.symmetric(horizontal=40, vertical=18),
-                        text_style=ft.TextStyle(size=18, weight=ft.FontWeight.W_900),
-                    ),
-                ),
-            ],
-            spacing=28,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        ),
-    )
+    loading_indicator = ft.ProgressRing(width=40, height=40, stroke_width=4, color="#8a5a22")
+    loading_text = ft.Text("正在準備探險工具...", size=16, color="#6d5140", weight=ft.FontWeight.W_700)
 
     async def start_exploration() -> None:
-        welcome_screen.visible = False
-        shell.visible = True
+        start_button.disabled = True
+        start_button.text = "載入中..."
+        welcome_screen.content.controls[-1] = ft.Column(
+            controls=[loading_indicator, loading_text],
+            spacing=16,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        )
         page.update()
+        
         mark_load_timing("art-village:user-start")
+        
+        await asyncio.sleep(0.3)
+        
+        page.clean()
+        page.add(shell)
+        content_area.content = plant_view
+        render_handle(update_page=False)
+        page.update()
+        
+        mark_load_timing("art-village:flet-shell-ready")
+        mark_explorer_ready()
+        
+        create_background_task(hydrate_gallery())
         create_background_task(initialize_camera())
+        
+        report_performance(page)
 
-    page.clean()
-    shell.visible = False
-    page.add(welcome_screen, shell)
-    content_area.content = plant_view
-    render_handle(update_page=False)
+    start_button.on_click = lambda _: start_exploration()
+
     page.update()
-    mark_load_timing("art-village:flet-shell-ready")
-    mark_explorer_ready()
-    create_background_task(hydrate_gallery())
-    report_performance(page)
+    mark_load_timing("art-village:welcome-ready")
 
 
 if os.environ.get("FLET_SKIP_RUN") != "1":
