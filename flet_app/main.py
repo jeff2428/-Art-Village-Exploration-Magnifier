@@ -1061,14 +1061,43 @@ async def post_image_to_worker(capture: Any, organ: str = "leaf") -> dict[str, A
         return await asyncio.to_thread(post_image_to_worker_sync, binary, mime, organ)
 
 
-def load_json_cache(storage_key: str, local_path: Path, fallback: Any) -> Any:
+async def _cache_get(key: str) -> str | None:
+    try:
+        from js import caches as js_caches  # type: ignore
+
+        cache = await js_caches.open("art-village-pokedex")
+        response = await cache.match(key)
+        if response is None:
+            return None
+        return await response.text()
+    except Exception:
+        return None
+
+
+async def _cache_set(key: str, value: str) -> None:
+    try:
+        from js import caches as js_caches, Response as JsResponse  # type: ignore
+
+        cache = await js_caches.open("art-village-pokedex")
+        await cache.put(key, JsResponse.new(value, {"headers": {"Content-Type": "application/json"}}))
+    except Exception:
+        pass
+
+
+async def load_json_cache(storage_key: str, local_path: Path, fallback: Any) -> Any:
+    raw = await _cache_get(storage_key)
+    if raw:
+        try:
+            return json.loads(raw)
+        except Exception:
+            pass
+
     try:
         from js import localStorage  # type: ignore
 
         raw = localStorage.getItem(storage_key)
         if raw:
-            cached = json.loads(raw)
-            return cached
+            return json.loads(raw)
     except Exception:
         pass
 
@@ -1083,8 +1112,11 @@ def load_json_cache(storage_key: str, local_path: Path, fallback: Any) -> Any:
         return fallback
 
 
-def save_json_cache(storage_key: str, local_path: Path, data: Any) -> None:
+async def save_json_cache(storage_key: str, local_path: Path, data: Any) -> None:
     serialized = json.dumps(data, ensure_ascii=False)
+
+    await _cache_set(storage_key, serialized)
+
     try:
         from js import localStorage  # type: ignore
 
@@ -1104,7 +1136,7 @@ def save_json_cache(storage_key: str, local_path: Path, data: Any) -> None:
         return
 
 
-MAX_POKEDEX_STORAGE_BYTES = 3_800_000
+MAX_POKEDEX_STORAGE_BYTES = 50_000_000
 
 
 def validate_pokedex_size(pokedex: dict[str, dict[str, Any]]) -> int | None:
@@ -1113,18 +1145,17 @@ def validate_pokedex_size(pokedex: dict[str, dict[str, Any]]) -> int | None:
     return size if size > MAX_POKEDEX_STORAGE_BYTES else None
 
 
-def save_cached_pokedex(pokedex: dict[str, dict[str, Any]]) -> None:
+async def save_cached_pokedex(pokedex: dict[str, dict[str, Any]]) -> None:
     for _ in range(3):
         oversize = validate_pokedex_size(pokedex)
         if not oversize:
-            save_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, pokedex)
+            await save_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, pokedex)
             return
         trim_pokedex_images(pokedex)
-    save_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, pokedex)
+    await save_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, pokedex)
 
 
 def trim_pokedex_images(pokedex: dict[str, dict[str, Any]]) -> None:
-    """當 localStorage 容量不足時，移除最舊的照片釋放空間"""
     if not pokedex:
         return
 
@@ -1138,24 +1169,11 @@ def trim_pokedex_images(pokedex: dict[str, dict[str, Any]]) -> None:
     items_with_images.sort(key=lambda x: len(x[1].get("captured_image", {}).get("src", "")))
     name, entry = items_with_images[-1]
     entry["captured_image"] = {"src": "", "label": "照片已移除（容量不足）"}
-    save_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, pokedex)
 
 
-def load_cached_pokedex() -> dict[str, dict[str, Any]]:
-    cached = load_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, {})
+async def load_cached_pokedex() -> dict[str, dict[str, Any]]:
+    cached = await load_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, {})
     return cached if isinstance(cached, dict) else {}
-
-
-def save_cached_pokedex(pokedex: dict[str, dict[str, Any]]) -> None:
-    for attempt in range(3):
-        try:
-            save_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, pokedex)
-            return
-        except Exception:
-            if attempt < 2:
-                trim_pokedex_images(pokedex)
-            else:
-                return
 
 
 def clear_legacy_snapshot_cache() -> None:
@@ -1240,7 +1258,7 @@ async def run_app(page: ft.Page) -> None:
     page.scroll = ft.ScrollMode.AUTO
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
-    pokedex: dict[str, dict[str, Any]] = load_cached_pokedex()
+    pokedex: dict[str, dict[str, Any]] = await load_cached_pokedex()
     clear_legacy_snapshot_cache()
     cameras: list[Any] = []
     selected_camera_index = 0
@@ -1469,7 +1487,7 @@ async def run_app(page: ft.Page) -> None:
                     ),
                 )
             )
-        save_cached_pokedex(pokedex)
+        create_background_task(save_cached_pokedex(pokedex))
         if update_page:
             page.update()
 
@@ -1496,7 +1514,7 @@ async def run_app(page: ft.Page) -> None:
             if metadata_payload.get("status") not in ("ok", "cached"):
                 plant["metadata_status"] = metadata_payload.get("status", "error")
                 pokedex[plant["zh_name"]] = plant
-                save_cached_pokedex(pokedex)
+                await save_cached_pokedex(pokedex)
                 return
             fallback = metadata_for_scientific_name(scientific_name)
             enriched_metadata = metadata_from_perenual(metadata_payload, fallback)
@@ -1514,7 +1532,7 @@ async def run_app(page: ft.Page) -> None:
         except Exception:
             plant["metadata_status"] = "error"
             pokedex[plant["zh_name"]] = plant
-            save_cached_pokedex(pokedex)
+            await save_cached_pokedex(pokedex)
 
     def close_dialog(_event: ft.ControlEvent) -> None:
         page.pop_dialog()
@@ -1555,7 +1573,7 @@ async def run_app(page: ft.Page) -> None:
     def delete_gallery_item(name: str) -> None:
         if name in pokedex:
             pokedex.pop(name)
-            save_cached_pokedex(pokedex)
+            create_background_task(save_cached_pokedex(pokedex))
             status.value = f"已刪除：{name}"
             refresh_gallery()
         page.pop_dialog()
@@ -1563,7 +1581,7 @@ async def run_app(page: ft.Page) -> None:
 
     def clear_gallery() -> None:
         pokedex.clear()
-        save_cached_pokedex(pokedex)
+        create_background_task(save_cached_pokedex(pokedex))
         status.value = "已清除探險圖鑑"
         refresh_gallery()
         page.pop_dialog()
