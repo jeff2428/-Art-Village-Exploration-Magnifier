@@ -27,4 +27,22 @@ echo "Patching loading screen..." >&2
 python scripts/patch_flet_loader.py
 
 echo "Writing Cloudflare Pages cache headers..." >&2
-python -c "from pathlib import Path; Path('flet_app/build/web/_headers').write_text('''/index.html\n  Cache-Control: no-store\n/flutter_service_worker.js\n  Cache-Control: no-cache, no-store, must-revalidate\n/assets/app/app.zip\n  Cache-Control: no-store\n/assets/app/app-*.zip\n  Cache-Control: public, max-age=31536000, immutable\n/pyodide/*\n  Cache-Control: public, max-age=31536000, immutable\n/canvaskit/*\n  Cache-Control: public, max-age=31536000, immutable\n''', encoding='utf-8')"
+python -c "from pathlib import Path; Path('flet_app/build/web/_headers').write_text('''/index.html
+  Cache-Control: no-store
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-credentialed
+/flutter_service_worker.js
+  Cache-Control: no-cache, no-store, must-revalidate
+/assets/app/app.zip
+  Cache-Control: no-store
+/assets/app/app-*.zip
+  Cache-Control: public, max-age=31536000, immutable
+/pyodide/*
+  Cache-Control: public, max-age=31536000, immutable
+/canvaskit/*
+  Cache-Control: public, max-age=31536000, immutable
+/*.wasm
+  Cache-Control: public, max-age=31536000, immutable
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+''', encoding='utf-8')"

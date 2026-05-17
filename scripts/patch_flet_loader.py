@@ -89,6 +89,14 @@ LOADER_HTML = """
   const waitForFlet = window.setInterval(() => {
     if (window.__artVillageReady === true) {
       window.clearInterval(waitForFlet);
+      try {
+        performance.mark("art-village:flet-ready");
+        performance.measure("art-village:loader-duration", "art-village:loader-start", "art-village:flet-ready");
+        const measure = performance.getEntriesByName("art-village:loader-duration")[0];
+        if (measure) {
+          console.log(`🔍 探險放大鏡載入完成：${measure.duration.toFixed(0)}ms`);
+        }
+      } catch {}
       window.setTimeout(removeExplorerLoader, 450);
     }
   }, 250);
@@ -131,6 +139,99 @@ def resource_hints(app_package_url: str) -> str:
 """
 
 
+def service_worker_registration_script() -> str:
+    return """
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => console.log('🔍 Service Worker 已註冊:', reg.scope))
+        .catch((err) => console.warn('🔍 Service Worker 註冊失敗:', err));
+    });
+  }
+</script>
+"""
+
+
+def generate_service_worker(sw_path: Path, stamp: str) -> None:
+    sw_content = f"""
+const CACHE_VERSION = '{stamp}';
+const CACHE_NAME = `art-village-${{CACHE_VERSION}}`;
+
+const IMMUTABLE_ASSETS = [
+  '/pyodide/pyodide.js',
+  '/pyodide/pyodide.asm.wasm',
+  '/pyodide/pyodide.asm.data',
+  '/canvaskit/canvaskit.js',
+  '/canvaskit/canvaskit.wasm',
+];
+
+self.addEventListener('install', (event) => {{
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {{
+      console.log('[SW] 快取不變資源');
+      return cache.addAll(IMMUTABLE_ASSETS);
+    }}).catch(err => console.warn('[SW] 快取失敗:', err))
+  );
+  self.skipWaiting();
+}});
+
+self.addEventListener('activate', (event) => {{
+  event.waitUntil(
+    caches.keys().then((keys) => {{
+      return Promise.all(
+        keys.filter((key) => key !== CACHE_NAME)
+            .map((key) => {{
+              console.log('[SW] 清除舊快取:', key);
+              return caches.delete(key);
+            }})
+      );
+    }})
+  );
+  self.clients.claim();
+}});
+
+self.addEventListener('fetch', (event) => {{
+  const url = new URL(event.request.url);
+  
+  if (url.pathname.includes('/pyodide/') || url.pathname.includes('/canvaskit/')) {{
+    event.respondWith(
+      caches.match(event.request).then((response) => {{
+        return response || fetch(event.request).then((fetchResponse) => {{
+          return caches.open(CACHE_NAME).then((cache) => {{
+            cache.put(event.request, fetchResponse.clone());
+            return fetchResponse;
+          }});
+        }});
+      }})
+    );
+    return;
+  }}
+  
+  if (url.pathname.includes('/assets/app/app-')) {{
+    event.respondWith(
+      caches.open(CACHE_NAME).then((cache) => {{
+        return cache.match(event.request).then((cachedResponse) => {{
+          const fetchPromise = fetch(event.request).then((networkResponse) => {{
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          }});
+          return cachedResponse || fetchPromise;
+        }});
+      }})
+    );
+    return;
+  }}
+  
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
+}});
+"""
+    sw_path.write_text(sw_content.strip(), encoding="utf-8")
+    print(f"[SW] 已生成 Service Worker: {sw_path}")
+
+
 def cache_busting_script(stamp: str, app_package_url: str) -> str:
     return f"""
 <script id="flet-cache-buster">
@@ -149,13 +250,13 @@ def patch_index(index_path: Path) -> None:
         html = html.replace("</head>", f"{resource_hints(app_package_url)}</head>", 1)
     if "flet-cache-buster" not in html:
         html = html.replace('<script src="python.js"></script>', f'{cache_busting_script(stamp, app_package_url)}\n  <script src="python.js"></script>', 1)
-    if "explorer-loader" in html:
-        index_path.write_text(html, encoding="utf-8")
-        return
-    if "<body>" in html:
-        html = html.replace("<body>", f"<body>\n{loader_html}", 1)
-    else:
-        html = html.replace("</head>", f"</head>\n<body>\n{loader_html}", 1)
+    if "explorer-loader" not in html:
+        if "<body>" in html:
+            html = html.replace("<body>", f"<body>\n{loader_html}", 1)
+        else:
+            html = html.replace("</head>", f"</head>\n<body>\n{loader_html}", 1)
+    if "serviceWorker" not in html:
+        html = html.replace("</body>", f"{service_worker_registration_script()}</body>", 1)
     index_path.write_text(html, encoding="utf-8")
 
 
@@ -172,5 +273,13 @@ def resolve_index_path() -> Path:
     )
 
 
+def resolve_sw_path(index_path: Path) -> Path:
+    return index_path.parent / "sw.js"
+
+
 if __name__ == "__main__":
-    patch_index(resolve_index_path())
+    index_path = resolve_index_path()
+    stamp = build_stamp()
+    patch_index(index_path)
+    sw_path = resolve_sw_path(index_path)
+    generate_service_worker(sw_path, stamp)

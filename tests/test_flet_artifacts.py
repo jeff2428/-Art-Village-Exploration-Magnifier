@@ -216,6 +216,10 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("on_long_press=lambda _event, item_name=name", main)
         self.assertIn("清除圖鑑內容", main)
         self.assertIn("DELETE_SWEEP_OUTLINED", main)
+        self.assertIn("welcome_screen", main)
+        self.assertIn("start_exploration", main)
+        self.assertIn("report_performance", main)
+        self.assertIn("shell.visible = False", main)
 
     def test_lightweight_web_prototype_exists_for_framework_comparison(self):
         prototype = (ROOT / "prototype" / "index.html").read_text(encoding="utf-8")
@@ -268,6 +272,13 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("flet-cache-buster", patcher)
         self.assertIn("appPackageUrl", patcher)
         self.assertIn("pyodideUrl", patcher)
+        self.assertIn("performance.measure", patcher)
+        self.assertIn("loader-duration", patcher)
+        self.assertIn("generate_service_worker", patcher)
+        self.assertIn("sw.js", patcher)
+        self.assertIn("Cross-Origin-Opener-Policy", build)
+        self.assertIn("Cross-Origin-Embedder-Policy", build)
+        self.assertIn("require-credentialed", build)
         self.assertIn("flet run -d -w main.py", dev)
         self.assertIn("flet_app/requirements.txt", install_dev)
 

@@ -1147,6 +1147,23 @@ def mark_load_timing(name: str) -> None:
         pass
 
 
+def report_performance(page: ft.Page) -> None:
+    try:
+        page.run_js("""
+        try {
+          const marks = performance.getEntriesByType("mark");
+          const measures = performance.getEntriesByType("measure");
+          console.log("🔍 探險放大鏡效能報告");
+          marks.forEach(m => console.log(`  Mark: ${m.name} @ ${m.startTime.toFixed(0)}ms`));
+          measures.forEach(m => console.log(`  ${m.name}: ${m.duration.toFixed(0)}ms`));
+        } catch (e) {
+          console.warn("效能報告失敗:", e);
+        }
+        """)
+    except Exception:
+        pass
+
+
 async def main(page: ft.Page) -> None:
     try:
         await run_app(page)
@@ -2110,15 +2127,47 @@ async def run_app(page: ft.Page) -> None:
         ),
     )
 
+    welcome_screen = ft.Container(
+        width=430,
+        padding=ft.Padding.symmetric(vertical=60, horizontal=24),
+        content=ft.Column(
+            controls=[
+                ft.Text("🔍", size=80, text_align=ft.TextAlign.CENTER),
+                ft.Text("探險放大鏡", size=32, weight=ft.FontWeight.W_900, 
+                       text_align=ft.TextAlign.CENTER, color="#3d2a21"),
+                ft.Text("點擊開始使用相機辨識植物", size=16, 
+                       text_align=ft.TextAlign.CENTER, color="#6d5140"),
+                ft.ElevatedButton(
+                    "開始探險",
+                    on_click=lambda _: start_exploration(),
+                    style=ft.ButtonStyle(
+                        padding=ft.Padding.symmetric(horizontal=40, vertical=18),
+                        text_style=ft.TextStyle(size=18, weight=ft.FontWeight.W_900),
+                    ),
+                ),
+            ],
+            spacing=28,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+    )
+
+    async def start_exploration() -> None:
+        welcome_screen.visible = False
+        shell.visible = True
+        page.update()
+        mark_load_timing("art-village:user-start")
+        create_background_task(initialize_camera())
+
     page.clean()
-    page.add(shell)
+    shell.visible = False
+    page.add(welcome_screen, shell)
     content_area.content = plant_view
     render_handle(update_page=False)
     page.update()
     mark_load_timing("art-village:flet-shell-ready")
     mark_explorer_ready()
     create_background_task(hydrate_gallery())
-    create_background_task(initialize_camera())
+    report_performance(page)
 
 
 if os.environ.get("FLET_SKIP_RUN") != "1":
