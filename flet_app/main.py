@@ -65,6 +65,600 @@ PLANT_METADATA = {
     },
 }
 
+SIMPLIFIED_TO_TRADITIONAL = str.maketrans(
+    {
+        "万": "萬",
+        "与": "與",
+        "丛": "叢",
+        "东": "東",
+        "丝": "絲",
+        "两": "兩",
+        "严": "嚴",
+        "丧": "喪",
+        "个": "個",
+        "丰": "豐",
+        "临": "臨",
+        "为": "為",
+        "丽": "麗",
+        "举": "舉",
+        "义": "義",
+        "乌": "烏",
+        "乐": "樂",
+        "乔": "喬",
+        "习": "習",
+        "乡": "鄉",
+        "书": "書",
+        "买": "買",
+        "乱": "亂",
+        "争": "爭",
+        "于": "於",
+        "亏": "虧",
+        "云": "雲",
+        "亚": "亞",
+        "产": "產",
+        "亩": "畝",
+        "亲": "親",
+        "亿": "億",
+        "仅": "僅",
+        "从": "從",
+        "仑": "崙",
+        "仓": "倉",
+        "仪": "儀",
+        "们": "們",
+        "价": "價",
+        "众": "眾",
+        "优": "優",
+        "会": "會",
+        "传": "傳",
+        "伤": "傷",
+        "伦": "倫",
+        "伞": "傘",
+        "伟": "偉",
+        "侧": "側",
+        "侨": "僑",
+        "侦": "偵",
+        "侠": "俠",
+        "侣": "侶",
+        "侥": "僥",
+        "侩": "儈",
+        "侪": "儕",
+        "侬": "儂",
+        "俣": "俁",
+        "俦": "儔",
+        "俨": "儼",
+        "俩": "倆",
+        "俪": "儷",
+        "俭": "儉",
+        "债": "債",
+        "倾": "傾",
+        "偻": "僂",
+        "偿": "償",
+        "储": "儲",
+        "儿": "兒",
+        "兑": "兌",
+        "兰": "蘭",
+        "关": "關",
+        "兴": "興",
+        "养": "養",
+        "兽": "獸",
+        "内": "內",
+        "冈": "岡",
+        "册": "冊",
+        "写": "寫",
+        "军": "軍",
+        "农": "農",
+        "冲": "沖",
+        "决": "決",
+        "况": "況",
+        "冻": "凍",
+        "净": "淨",
+        "凉": "涼",
+        "减": "減",
+        "凑": "湊",
+        "凤": "鳳",
+        "凭": "憑",
+        "凯": "凱",
+        "击": "擊",
+        "凿": "鑿",
+        "划": "劃",
+        "刘": "劉",
+        "则": "則",
+        "刚": "剛",
+        "创": "創",
+        "删": "刪",
+        "别": "別",
+        "刬": "剗",
+        "刭": "剄",
+        "剂": "劑",
+        "剑": "劍",
+        "办": "辦",
+        "务": "務",
+        "动": "動",
+        "励": "勵",
+        "劲": "勁",
+        "劳": "勞",
+        "势": "勢",
+        "勋": "勳",
+        "匀": "勻",
+        "区": "區",
+        "医": "醫",
+        "华": "華",
+        "协": "協",
+        "单": "單",
+        "卖": "賣",
+        "卢": "盧",
+        "卫": "衛",
+        "却": "卻",
+        "厂": "廠",
+        "厅": "廳",
+        "历": "歷",
+        "厉": "厲",
+        "压": "壓",
+        "厌": "厭",
+        "厕": "廁",
+        "厢": "廂",
+        "县": "縣",
+        "参": "參",
+        "双": "雙",
+        "发": "發",
+        "变": "變",
+        "叙": "敘",
+        "叶": "葉",
+        "号": "號",
+        "叹": "嘆",
+        "后": "後",
+        "向": "向",
+        "吓": "嚇",
+        "吕": "呂",
+        "吗": "嗎",
+        "启": "啟",
+        "吴": "吳",
+        "员": "員",
+        "呐": "吶",
+        "呕": "嘔",
+        "呖": "嚦",
+        "呗": "唄",
+        "员": "員",
+        "周": "週",
+        "咏": "詠",
+        "咙": "嚨",
+        "咛": "嚀",
+        "咸": "鹹",
+        "响": "響",
+        "哑": "啞",
+        "哗": "嘩",
+        "哟": "喲",
+        "唤": "喚",
+        "啬": "嗇",
+        "喷": "噴",
+        "团": "團",
+        "园": "園",
+        "圆": "圓",
+        "图": "圖",
+        "圣": "聖",
+        "场": "場",
+        "坏": "壞",
+        "块": "塊",
+        "坚": "堅",
+        "坛": "壇",
+        "坝": "壩",
+        "坞": "塢",
+        "坟": "墳",
+        "坠": "墜",
+        "垄": "壟",
+        "垅": "壟",
+        "垆": "壚",
+        "垒": "壘",
+        "垦": "墾",
+        "垩": "堊",
+        "垫": "墊",
+        "垭": "埡",
+        "垯": "墶",
+        "垱": "壋",
+        "垲": "塏",
+        "垴": "堖",
+        "埘": "塒",
+        "埙": "塤",
+        "埚": "堝",
+        "堑": "塹",
+        "塆": "壪",
+        "墙": "牆",
+        "壮": "壯",
+        "声": "聲",
+        "壳": "殼",
+        "壶": "壺",
+        "处": "處",
+        "备": "備",
+        "复": "復",
+        "头": "頭",
+        "夹": "夾",
+        "夺": "奪",
+        "奋": "奮",
+        "奖": "獎",
+        "奥": "奧",
+        "妆": "妝",
+        "妇": "婦",
+        "妈": "媽",
+        "妩": "嫵",
+        "妪": "嫗",
+        "姗": "姍",
+        "姜": "薑",
+        "娄": "婁",
+        "娅": "婭",
+        "娆": "嬈",
+        "娇": "嬌",
+        "娈": "孌",
+        "娱": "娛",
+        "娲": "媧",
+        "娴": "嫻",
+        "婴": "嬰",
+        "婵": "嬋",
+        "孙": "孫",
+        "学": "學",
+        "宁": "寧",
+        "宝": "寶",
+        "实": "實",
+        "宠": "寵",
+        "审": "審",
+        "宪": "憲",
+        "宫": "宮",
+        "宽": "寬",
+        "宾": "賓",
+        "寝": "寢",
+        "对": "對",
+        "寻": "尋",
+        "导": "導",
+        "寿": "壽",
+        "将": "將",
+        "尔": "爾",
+        "尘": "塵",
+        "尝": "嘗",
+        "尧": "堯",
+        "层": "層",
+        "屉": "屜",
+        "届": "屆",
+        "属": "屬",
+        "岁": "歲",
+        "岂": "豈",
+        "岗": "崗",
+        "岛": "島",
+        "岭": "嶺",
+        "岳": "嶽",
+        "峡": "峽",
+        "峣": "嶢",
+        "峤": "嶠",
+        "峥": "崢",
+        "峦": "巒",
+        "巅": "巔",
+        "币": "幣",
+        "帅": "帥",
+        "师": "師",
+        "帐": "帳",
+        "帘": "簾",
+        "帜": "幟",
+        "带": "帶",
+        "帧": "幀",
+        "帮": "幫",
+        "干": "乾",
+        "并": "並",
+        "广": "廣",
+        "庄": "莊",
+        "庆": "慶",
+        "庐": "廬",
+        "库": "庫",
+        "应": "應",
+        "庙": "廟",
+        "庞": "龐",
+        "废": "廢",
+        "开": "開",
+        "异": "異",
+        "弃": "棄",
+        "张": "張",
+        "弥": "彌",
+        "弯": "彎",
+        "弹": "彈",
+        "强": "強",
+        "归": "歸",
+        "当": "當",
+        "录": "錄",
+        "彦": "彥",
+        "彻": "徹",
+        "径": "徑",
+        "忆": "憶",
+        "忧": "憂",
+        "忾": "愾",
+        "树": "樹",
+        "桠": "椏",
+        "桡": "橈",
+        "桢": "楨",
+        "档": "檔",
+        "桤": "榿",
+        "桥": "橋",
+        "桦": "樺",
+        "桧": "檜",
+        "桨": "槳",
+        "桩": "樁",
+        "梦": "夢",
+        "梨": "梨",
+        "梼": "檮",
+        "棁": "梲",
+        "棂": "欞",
+        "椁": "槨",
+        "椟": "櫝",
+        "椠": "槧",
+        "椤": "欏",
+        "楼": "樓",
+        "榄": "欖",
+        "榅": "榲",
+        "榇": "櫬",
+        "榈": "櫚",
+        "榉": "櫸",
+        "槚": "檟",
+        "槛": "檻",
+        "槟": "檳",
+        "槠": "櫧",
+        "横": "橫",
+        "樯": "檣",
+        "樱": "櫻",
+        "橥": "櫫",
+        "橱": "櫥",
+        "橹": "櫓",
+        "橼": "櫞",
+        "檩": "檁",
+        "欢": "歡",
+        "欧": "歐",
+        "岁": "歲",
+        "汉": "漢",
+        "汤": "湯",
+        "沟": "溝",
+        "没": "沒",
+        "泽": "澤",
+        "洁": "潔",
+        "浅": "淺",
+        "浆": "漿",
+        "润": "潤",
+        "涩": "澀",
+        "渊": "淵",
+        "渍": "漬",
+        "渐": "漸",
+        "湾": "灣",
+        "湿": "濕",
+        "滞": "滯",
+        "满": "滿",
+        "滤": "濾",
+        "滥": "濫",
+        "滨": "濱",
+        "滩": "灘",
+        "漓": "灕",
+        "潇": "瀟",
+        "潜": "潛",
+        "澜": "瀾",
+        "濒": "瀕",
+        "灭": "滅",
+        "灯": "燈",
+        "灵": "靈",
+        "灾": "災",
+        "炉": "爐",
+        "点": "點",
+        "炼": "煉",
+        "烂": "爛",
+        "烟": "煙",
+        "热": "熱",
+        "焕": "煥",
+        "爱": "愛",
+        "爷": "爺",
+        "牵": "牽",
+        "犊": "犢",
+        "状": "狀",
+        "独": "獨",
+        "狭": "狹",
+        "狮": "獅",
+        "狰": "猙",
+        "获": "獲",
+        "献": "獻",
+        "玛": "瑪",
+        "环": "環",
+        "现": "現",
+        "玱": "瑲",
+        "珐": "琺",
+        "珑": "瓏",
+        "珰": "璫",
+        "琏": "璉",
+        "琐": "瑣",
+        "琼": "瓊",
+        "瑶": "瑤",
+        "瓒": "瓚",
+        "瓯": "甌",
+        "电": "電",
+        "画": "畫",
+        "畅": "暢",
+        "畴": "疇",
+        "疗": "療",
+        "疟": "瘧",
+        "疠": "癘",
+        "疡": "瘍",
+        "疬": "癧",
+        "疮": "瘡",
+        "疯": "瘋",
+        "痈": "癰",
+        "痉": "痙",
+        "痒": "癢",
+        "痨": "癆",
+        "瘗": "瘞",
+        "瘘": "瘺",
+        "瘪": "癟",
+        "瘫": "癱",
+        "癞": "癩",
+        "皱": "皺",
+        "皲": "皸",
+        "盏": "盞",
+        "盐": "鹽",
+        "监": "監",
+        "盖": "蓋",
+        "盗": "盜",
+        "盘": "盤",
+        "眍": "瞘",
+        "着": "著",
+        "睁": "睜",
+        "睐": "睞",
+        "瞒": "瞞",
+        "矫": "矯",
+        "矾": "礬",
+        "矿": "礦",
+        "码": "碼",
+        "砖": "磚",
+        "砚": "硯",
+        "砜": "碸",
+        "砺": "礪",
+        "砻": "礱",
+        "砾": "礫",
+        "础": "礎",
+        "硁": "硜",
+        "硕": "碩",
+        "硖": "硤",
+        "硗": "磽",
+        "硙": "磑",
+        "确": "確",
+        "硷": "鹼",
+        "碍": "礙",
+        "碛": "磧",
+        "碜": "磣",
+        "礼": "禮",
+        "祎": "禕",
+        "祯": "禎",
+        "祷": "禱",
+        "祸": "禍",
+        "禀": "稟",
+        "禄": "祿",
+        "禅": "禪",
+        "离": "離",
+        "种": "種",
+        "积": "積",
+        "称": "稱",
+        "秽": "穢",
+        "稆": "穭",
+        "税": "稅",
+        "稳": "穩",
+        "穑": "穡",
+        "穷": "窮",
+        "窃": "竊",
+        "窍": "竅",
+        "窑": "窯",
+        "窜": "竄",
+        "窝": "窩",
+        "窥": "窺",
+        "窦": "竇",
+        "竞": "競",
+        "笃": "篤",
+        "笋": "筍",
+        "笔": "筆",
+        "笕": "筧",
+        "笺": "箋",
+        "笼": "籠",
+        "笾": "籩",
+        "筑": "築",
+        "筛": "篩",
+        "筜": "簹",
+        "筝": "箏",
+        "筹": "籌",
+        "签": "簽",
+        "简": "簡",
+        "箓": "籙",
+        "箦": "簀",
+        "箧": "篋",
+        "箨": "籜",
+        "箩": "籮",
+        "箪": "簞",
+        "箫": "簫",
+        "篑": "簣",
+        "篓": "簍",
+        "篮": "籃",
+        "篱": "籬",
+        "簖": "籪",
+        "籁": "籟",
+        "籴": "糴",
+        "类": "類",
+        "籼": "秈",
+        "粜": "糶",
+        "粝": "糲",
+        "粤": "粵",
+        "粪": "糞",
+        "粮": "糧",
+        "糁": "糝",
+        "糇": "餱",
+        "紧": "緊",
+        "絷": "縶",
+        "纤": "纖",
+        "约": "約",
+        "级": "級",
+        "纪": "紀",
+        "纫": "紉",
+        "纬": "緯",
+        "纯": "純",
+        "纱": "紗",
+        "纲": "綱",
+        "纳": "納",
+        "纵": "縱",
+        "纶": "綸",
+        "纷": "紛",
+        "纸": "紙",
+        "纹": "紋",
+        "纺": "紡",
+        "纽": "紐",
+        "线": "線",
+        "练": "練",
+        "组": "組",
+        "绅": "紳",
+        "细": "細",
+        "织": "織",
+        "终": "終",
+        "绊": "絆",
+        "绍": "紹",
+        "绎": "繹",
+        "经": "經",
+        "绑": "綁",
+        "绒": "絨",
+        "结": "結",
+        "绕": "繞",
+        "绘": "繪",
+        "给": "給",
+        "络": "絡",
+        "绝": "絕",
+        "统": "統",
+        "绢": "絹",
+        "绣": "繡",
+        "继": "繼",
+        "绩": "績",
+        "绪": "緒",
+        "续": "續",
+        "绳": "繩",
+        "维": "維",
+        "绵": "綿",
+        "绶": "綬",
+        "绷": "繃",
+        "绸": "綢",
+        "综": "綜",
+        "绽": "綻",
+        "绿": "綠",
+        "缀": "綴",
+        "缁": "緇",
+        "缂": "緙",
+        "缃": "緗",
+        "缄": "緘",
+        "缅": "緬",
+        "缆": "纜",
+        "缇": "緹",
+        "缈": "緲",
+        "缉": "緝",
+        "缋": "繢",
+    }
+)
+
+
+def to_traditional_chinese(text: str) -> str:
+    return text.translate(SIMPLIFIED_TO_TRADITIONAL)
+
+
 ANIMALS_DB = {
     "貝貝": {
         "type": "animal",
@@ -135,7 +729,7 @@ def common_names_by_script(species: dict[str, Any]) -> tuple[list[str], list[str
             continue
         has_cjk = any("\u4e00" <= char <= "\u9fff" for char in name)
         if has_cjk:
-            chinese_names.append(name)
+            chinese_names.append(to_traditional_chinese(name))
         else:
             other_names.append(name)
     return chinese_names, other_names
@@ -395,13 +989,13 @@ def worker_error_message(status_code: int, text: str) -> str:
     if status_code in (400, 404):
         return "沒有辨識到植物，請對準葉子、花或果實再拍一次"
     if status_code == 405:
-        return "辨識服務方法錯誤，請重新整理頁面後再試"
+        return "辨識服務方法錯誤，請稍後再試"
     if status_code in (401, 403):
         return "辨識服務金鑰未通過，請檢查 Worker 的 PLANTNET_API_KEY"
     if status_code == 413:
         return "照片太大，請靠近植物後再拍一次"
     if status_code == 426:
-        return "前端版本過舊，請重新整理頁面後再拍一次"
+        return "前端版本過舊，請稍後再拍一次"
     if status_code == 429:
         return "辨識服務忙碌，請稍後再試"
     if 500 <= status_code < 600:
@@ -571,6 +1165,8 @@ async def run_app(page: ft.Page) -> None:
     cameras: list[Any] = []
     selected_camera_index = 0
     camera_ready = False
+    camera_initializing = False
+    recognition_loading_visible = False
     zoom_level = MIN_CAMERA_ZOOM
 
     status = ft.Text(
@@ -582,6 +1178,16 @@ async def run_app(page: ft.Page) -> None:
         expand=True,
     )
     busy_ring = ft.ProgressRing(width=22, height=22, stroke_width=3, visible=False, color="#8a5a22")
+    restart_camera_button = ft.TextButton(
+        content=ft.Row(
+            controls=[
+                ft.Icon(ft.Icons.VIDEOCAM, size=16),
+                ft.Text("重新啟動相機"),
+            ],
+            spacing=4,
+        ),
+        tooltip="重新請求相機權限並啟動鏡頭",
+    )
     grid = ft.GridView(
         expand=False,
         max_extent=180,
@@ -735,6 +1341,38 @@ async def run_app(page: ft.Page) -> None:
     def close_dialog(_event: ft.ControlEvent) -> None:
         page.pop_dialog()
         page.update()
+
+    def show_recognition_loading_card() -> None:
+        nonlocal recognition_loading_visible
+        recognition_loading_visible = True
+        page.show_dialog(
+            ft.AlertDialog(
+                modal=True,
+                title=ft.Text("辨識中", size=24, weight=ft.FontWeight.W_900, color="#3d2a21"),
+                content=soft_card(
+                    ft.Column(
+                        controls=[
+                            ft.ProgressRing(width=34, height=34, stroke_width=4, color="#8a5a22"),
+                            ft.Text("正在分析拍攝內容", size=16, weight=ft.FontWeight.W_900, color="#3d2a21"),
+                            ft.Text("請稍候，完成後會自動顯示辨識結果卡片。", size=13, color="#6d5140"),
+                        ],
+                        spacing=12,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    padding=20,
+                ),
+            )
+        )
+        page.update()
+
+    def close_recognition_loading_card(update_page: bool = True) -> None:
+        nonlocal recognition_loading_visible
+        if not recognition_loading_visible:
+            return
+        page.pop_dialog()
+        recognition_loading_visible = False
+        if update_page:
+            page.update()
 
     def delete_gallery_item(name: str) -> None:
         if name in pokedex:
@@ -1014,34 +1652,44 @@ async def run_app(page: ft.Page) -> None:
     async def capture_and_identify(_event: ft.ControlEvent) -> None:
         try:
             if camera is None or not camera_ready:
-                status.value = "相機準備中，請稍候"
+                if not camera_initializing:
+                    status.value = "相機尚未就緒，正在重新啟動..."
+                    create_background_task(initialize_camera())
+                else:
+                    status.value = "相機準備中，請稍候"
                 page.update()
                 return
             status.value = "正在拍攝並辨識..."
             busy_ring.visible = True
             page.update()
+            show_recognition_loading_card()
             image_data = await camera.take_picture()
             try:
                 selected_organ = selected_organ_value()
                 payload = await post_image_to_worker(image_data, selected_organ)
             except RecognitionServiceError as error:
                 status.value = str(error)
+                close_recognition_loading_card(update_page=False)
                 return
             except Exception as error:
                 status.value = f"辨識暫時失敗，請稍後再試：{error}"
+                close_recognition_loading_card(update_page=False)
                 return
             plant = parse_plantnet_result(payload)
             if plant is None:
                 status.value = "找不到匹配的植物"
+                close_recognition_loading_card(update_page=False)
                 page.update()
                 return
             plant["organ"] = selected_organ
             plant["organ_label"] = PLANT_ORGAN_OPTIONS.get(selected_organ, "自動")
             plant["captured_image"] = card_image_from_capture(image_data)
             add_plant_to_gallery(plant)
+            close_recognition_loading_card(update_page=False)
             show_plant_card(plant["zh_name"], plant)
         except Exception as error:
             status.value = f"辨識失敗：{error}"
+            close_recognition_loading_card(update_page=False)
         finally:
             busy_ring.visible = False
             page.update()
@@ -1061,11 +1709,16 @@ async def run_app(page: ft.Page) -> None:
             page.update()
 
     async def initialize_camera(_event: ft.ControlEvent | None = None) -> None:
-        nonlocal cameras, camera, camera_ready, selected_camera_index
+        nonlocal cameras, camera, camera_ready, camera_initializing, selected_camera_index
+        if camera_initializing:
+            status.value = "相機正在啟動中，請稍候"
+            page.update()
+            return
+        camera_initializing = True
         try:
             mark_load_timing("art-village:camera-init-start")
             camera_ready = False
-            status.value = "正在啟動相機..."
+            status.value = "正在啟動相機，若瀏覽器詢問權限請按允許..."
             render_handle(update_page=False)
             page.update()
             if fc is None:
@@ -1091,12 +1744,13 @@ async def run_app(page: ft.Page) -> None:
             last_error: Exception | None = None
             for attempt in range(3):
                 try:
-                    cameras = await camera.get_available_cameras()
+                    cameras = await asyncio.wait_for(camera.get_available_cameras(), timeout=8)
                     last_error = None
                     break
                 except Exception as error:
                     last_error = error
-                    if "TimeoutException" not in str(error) or attempt == 2:
+                    error_text = str(error)
+                    if ("TimeoutException" not in error_text and "TimeoutError" not in error_text) or attempt == 2:
                         break
                     status.value = f"相機元件準備中，正在重試 {attempt + 2}/3..."
                     page.update()
@@ -1106,18 +1760,36 @@ async def run_app(page: ft.Page) -> None:
             if cameras:
                 cameras = select_preferred_cameras(cameras)
                 selected_camera_index = 0
-                status.value = "正在初始化相機..."
-                page.update()
-                await camera.initialize(cameras[0], fc.ResolutionPreset.MEDIUM, enable_audio=False)
-                camera_ready = True
-                status.value = "相機已啟動"
-                mark_load_timing("art-village:camera-ready")
+                last_error = None
+                for index, camera_description in enumerate(cameras):
+                    selected_camera_index = index
+                    status.value = f"正在初始化相機 {index + 1}/{len(cameras)}..."
+                    page.update()
+                    try:
+                        await asyncio.wait_for(
+                            camera.initialize(camera_description, fc.ResolutionPreset.MEDIUM, enable_audio=False),
+                            timeout=12,
+                        )
+                        camera_ready = True
+                        status.value = "相機已啟動"
+                        mark_load_timing("art-village:camera-ready")
+                        break
+                    except Exception as error:
+                        last_error = error
+                        camera_ready = False
+                        await asyncio.sleep(0.4)
+                if not camera_ready:
+                    raise last_error or RuntimeError("沒有鏡頭可以初始化")
             else:
-                status.value = "找不到可用相機"
+                status.value = "找不到可用相機，請確認瀏覽器相機權限已允許"
         except Exception as error:
             camera_ready = False
-            status.value = f"相機啟動失敗：{error}"
+            status.value = f"相機啟動失敗：{error}。請確認網址是 HTTPS 或 127.0.0.1，並允許相機權限。"
+        finally:
+            camera_initializing = False
         render_handle()
+
+    restart_camera_button.on_click = initialize_camera
 
     background_tasks: set[asyncio.Task[Any]] = set()
 
@@ -1265,6 +1937,7 @@ async def run_app(page: ft.Page) -> None:
                 alignment=ft.MainAxisAlignment.CENTER,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
             ),
+            restart_camera_button,
         ],
         spacing=16,
         horizontal_alignment=ft.CrossAxisAlignment.CENTER,

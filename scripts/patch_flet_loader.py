@@ -101,7 +101,7 @@ LOADER_HTML = """
 
   window.setTimeout(() => {
     const text = document.querySelector("#explorer-loader .explorer-text");
-    if (text) text.textContent = "載入時間較久，請稍候或重新整理頁面";
+    if (text) text.textContent = "載入時間較久，正在準備探險工具...";
   }, 20000);
 </script>
 """

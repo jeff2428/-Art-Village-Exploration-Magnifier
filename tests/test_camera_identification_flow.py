@@ -63,6 +63,31 @@ class CameraIdentificationFlowTests(unittest.TestCase):
         self.assertTrue(plant["is_low_confidence"])
         self.assertTrue(plant["needs_confirmation"])
 
+    def test_plantnet_candidates_are_normalized_to_traditional_chinese(self):
+        payload = {
+            "results": [
+                {
+                    "score": 0.82,
+                    "species": {
+                        "scientificNameWithoutAuthor": "Ficus microcarpa",
+                        "commonNames": ["榕树", "Chinese banyan"],
+                    },
+                },
+                {
+                    "score": 0.42,
+                    "species": {
+                        "scientificNameWithoutAuthor": "Ficus benjamina",
+                        "commonNames": ["垂叶榕", "Weeping fig"],
+                    },
+                },
+            ]
+        }
+
+        plant = app_main.parse_plantnet_result(payload)
+
+        self.assertEqual(plant["zh_name"], "榕樹")
+        self.assertEqual(plant["alternatives"][0]["zh_name"], "垂葉榕")
+
     def test_plantnet_gallery_card_uses_only_top_candidate(self):
         payload = {
             "results": [
@@ -169,14 +194,16 @@ class CameraIdentificationFlowTests(unittest.TestCase):
     def test_method_error_asks_for_refresh_without_raw_payload(self):
         message = app_main.worker_error_message(405, '{"error":"Method not allowed"}')
 
-        self.assertIn("重新整理", message)
+        self.assertIn("稍後再試", message)
+        self.assertNotIn("重新整理", message)
         self.assertNotIn("Method not allowed", message)
 
     def test_expired_app_error_asks_for_refresh(self):
         message = app_main.worker_error_message(426, '{"error":"App version expired"}')
 
         self.assertIn("版本過舊", message)
-        self.assertIn("重新整理", message)
+        self.assertIn("稍後", message)
+        self.assertNotIn("重新整理", message)
 
     def test_recognition_service_error_is_not_retryable_by_default(self):
         error = app_main.RecognitionServiceError("bad plant photo")

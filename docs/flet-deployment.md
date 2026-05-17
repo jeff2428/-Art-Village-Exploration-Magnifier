@@ -8,6 +8,7 @@ Deploy the proxy Worker from `worker/` and set the PlantNet key as an encrypted 
 cd worker
 npx wrangler deploy
 npx wrangler secret put PLANTNET_API_KEY
+npx wrangler secret put PERENUAL_API_KEY
 ```
 
 Requests from Cloudflare Pages `https://*.pages.dev` origins are allowed by CORS. If you use a custom domain, set an `ALLOWED_ORIGIN` Worker variable such as `https://example.com`.
@@ -20,7 +21,7 @@ If the Worker is connected to Git, use these Worker build settings:
 - Root directory: `/`
 - Production branch: `main`
 
-Add `PLANTNET_API_KEY` in Worker Variables and secrets.
+Add `PLANTNET_API_KEY` and `PERENUAL_API_KEY` in Worker Variables and secrets. PlantNet performs image identification; Perenual is used afterward for the identified plant's toxicity and care details. If `PERENUAL_API_KEY` is missing, plant identification still works, but the app falls back to conservative local metadata.
 
 ## Cloudflare Pages
 
