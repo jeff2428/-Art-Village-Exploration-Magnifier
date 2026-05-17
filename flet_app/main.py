@@ -1104,13 +1104,58 @@ def save_json_cache(storage_key: str, local_path: Path, data: Any) -> None:
         return
 
 
+MAX_POKEDEX_STORAGE_BYTES = 3_800_000
+
+
+def validate_pokedex_size(pokedex: dict[str, dict[str, Any]]) -> int | None:
+    serialized = json.dumps(pokedex, ensure_ascii=False)
+    size = len(serialized.encode("utf-8"))
+    return size if size > MAX_POKEDEX_STORAGE_BYTES else None
+
+
+def save_cached_pokedex(pokedex: dict[str, dict[str, Any]]) -> None:
+    for _ in range(3):
+        oversize = validate_pokedex_size(pokedex)
+        if not oversize:
+            save_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, pokedex)
+            return
+        trim_pokedex_images(pokedex)
+    save_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, pokedex)
+
+
+def trim_pokedex_images(pokedex: dict[str, dict[str, Any]]) -> None:
+    """當 localStorage 容量不足時，移除最舊的照片釋放空間"""
+    if not pokedex:
+        return
+
+    items_with_images = [
+        (name, entry) for name, entry in pokedex.items()
+        if isinstance(entry, dict) and entry.get("captured_image", {}).get("src")
+    ]
+    if not items_with_images:
+        return
+
+    items_with_images.sort(key=lambda x: len(x[1].get("captured_image", {}).get("src", "")))
+    name, entry = items_with_images[-1]
+    entry["captured_image"] = {"src": "", "label": "照片已移除（容量不足）"}
+    save_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, pokedex)
+
+
 def load_cached_pokedex() -> dict[str, dict[str, Any]]:
     cached = load_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, {})
     return cached if isinstance(cached, dict) else {}
 
 
 def save_cached_pokedex(pokedex: dict[str, dict[str, Any]]) -> None:
-    save_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, pokedex)
+    for attempt in range(3):
+        try:
+            save_json_cache(POKEDEX_STORAGE_KEY, LOCAL_CACHE_PATH, pokedex)
+            return
+        except Exception:
+            if attempt < 2:
+                trim_pokedex_images(pokedex)
+            else:
+                return
 
 
 def clear_legacy_snapshot_cache() -> None:
