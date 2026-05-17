@@ -1915,10 +1915,6 @@ async def run_app(page: ft.Page) -> None:
         background_tasks.add(task)
         task.add_done_callback(background_tasks.discard)
 
-    async def hydrate_gallery() -> None:
-        await asyncio.sleep(0)
-        refresh_gallery()
-
     mode = ft.RadioGroup(
         value="plant",
         content=ft.Row(
@@ -2155,41 +2151,61 @@ async def run_app(page: ft.Page) -> None:
         ),
     )
 
-    loading_indicator = ft.ProgressRing(width=40, height=40, stroke_width=4, color="#8a5a22")
-    loading_text = ft.Text("正在準備探險工具...", size=16, color="#6d5140", weight=ft.FontWeight.W_700)
+    preload_complete = False
+    preload_shell_built = False
+
+    async def preload_ui_components() -> None:
+        """在背景預先建立主頁面 UI 組件"""
+        nonlocal preload_complete, preload_shell_built
+        await asyncio.sleep(0)
+
+        content_area.content = plant_view
+        render_handle(update_page=False)
+
+        preload_shell_built = True
+        mark_load_timing("art-village:preload-ui-ready")
+
+        await asyncio.sleep(0)
+
+        preload_complete = True
+        mark_load_timing("art-village:preload-complete")
 
     async def start_exploration() -> None:
         start_button.disabled = True
-        start_button.text = "載入中..."
-        welcome_screen.content.controls[-1] = ft.Column(
-            controls=[loading_indicator, loading_text],
-            spacing=16,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        )
+        start_button.text = "準備中..."
         page.update()
-        
+
         mark_load_timing("art-village:user-start")
-        
-        await asyncio.sleep(0.3)
-        
-        page.clean()
+
+        if not preload_complete:
+            await asyncio.sleep(0)
+
+        welcome_screen.visible = False
         page.add(shell)
-        content_area.content = plant_view
-        render_handle(update_page=False)
         page.update()
-        
+
         mark_load_timing("art-village:flet-shell-ready")
         mark_explorer_ready()
-        
-        create_background_task(hydrate_gallery())
+
+        if not preload_shell_built:
+            content_area.content = plant_view
+            render_handle(update_page=False)
+            page.update()
+
+        if pokedex:
+            refresh_gallery(update_page=False)
+            page.update()
+
         create_background_task(initialize_camera())
-        
+
         report_performance(page)
 
     start_button.on_click = lambda _: start_exploration()
 
     page.update()
     mark_load_timing("art-village:welcome-ready")
+
+    create_background_task(preload_ui_components())
 
 
 if os.environ.get("FLET_SKIP_RUN") != "1":
