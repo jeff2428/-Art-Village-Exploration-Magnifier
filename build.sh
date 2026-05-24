@@ -38,7 +38,7 @@ echo "Writing Cloudflare Pages cache headers..." >&2
 python -c "from pathlib import Path; Path('flet_app/build/web/_headers').write_text('''/index.html
   Cache-Control: no-store
   Cross-Origin-Opener-Policy: same-origin
-  Cross-Origin-Embedder-Policy: require-credentialed
+  Cross-Origin-Embedder-Policy: credentialless
 /flutter_service_worker.js
   Cache-Control: no-cache, no-store, must-revalidate
 /assets/app/app.zip

@@ -294,7 +294,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("sw.js", patcher)
         self.assertIn("Cross-Origin-Opener-Policy", build)
         self.assertIn("Cross-Origin-Embedder-Policy", build)
-        self.assertIn("require-credentialed", build)
+        self.assertIn("credentialless", build)
         package_patcher = (ROOT / "scripts" / "patch_flet_app_package.py").read_text(encoding="utf-8")
         self.assertIn("local_python_modules", package_patcher)
         self.assertIn("admin/animals.json", package_patcher)
