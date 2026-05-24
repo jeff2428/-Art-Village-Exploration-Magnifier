@@ -17,6 +17,11 @@ try:
 except Exception:
     fc = None  # type: ignore[assignment]
 
+try:
+    from PIL import Image
+except ImportError:
+    Image = None  # type: ignore[assignment]
+
 from magnifier_handle import MagnifierHandle
 
 try:
@@ -66,601 +71,45 @@ PLANT_METADATA = {
     },
 }
 
-SIMPLIFIED_TO_TRADITIONAL = str.maketrans(
-    {
-        "万": "萬",
-        "与": "與",
-        "丛": "叢",
-        "东": "東",
-        "丝": "絲",
-        "两": "兩",
-        "严": "嚴",
-        "丧": "喪",
-        "个": "個",
-        "丰": "豐",
-        "临": "臨",
-        "为": "為",
-        "丽": "麗",
-        "举": "舉",
-        "义": "義",
-        "乌": "烏",
-        "乐": "樂",
-        "乔": "喬",
-        "习": "習",
-        "乡": "鄉",
-        "书": "書",
-        "买": "買",
-        "乱": "亂",
-        "争": "爭",
-        "于": "於",
-        "亏": "虧",
-        "云": "雲",
-        "亚": "亞",
-        "产": "產",
-        "亩": "畝",
-        "亲": "親",
-        "亿": "億",
-        "仅": "僅",
-        "从": "從",
-        "仑": "崙",
-        "仓": "倉",
-        "仪": "儀",
-        "们": "們",
-        "价": "價",
-        "众": "眾",
-        "优": "優",
-        "会": "會",
-        "传": "傳",
-        "伤": "傷",
-        "伦": "倫",
-        "伞": "傘",
-        "伟": "偉",
-        "侧": "側",
-        "侨": "僑",
-        "侦": "偵",
-        "侠": "俠",
-        "侣": "侶",
-        "侥": "僥",
-        "侩": "儈",
-        "侪": "儕",
-        "侬": "儂",
-        "俣": "俁",
-        "俦": "儔",
-        "俨": "儼",
-        "俩": "倆",
-        "俪": "儷",
-        "俭": "儉",
-        "债": "債",
-        "倾": "傾",
-        "偻": "僂",
-        "偿": "償",
-        "储": "儲",
-        "儿": "兒",
-        "兑": "兌",
-        "兰": "蘭",
-        "关": "關",
-        "兴": "興",
-        "养": "養",
-        "兽": "獸",
-        "内": "內",
-        "冈": "岡",
-        "册": "冊",
-        "写": "寫",
-        "军": "軍",
-        "农": "農",
-        "冲": "沖",
-        "决": "決",
-        "况": "況",
-        "冻": "凍",
-        "净": "淨",
-        "凉": "涼",
-        "减": "減",
-        "凑": "湊",
-        "凤": "鳳",
-        "凭": "憑",
-        "凯": "凱",
-        "击": "擊",
-        "凿": "鑿",
-        "划": "劃",
-        "刘": "劉",
-        "则": "則",
-        "刚": "剛",
-        "创": "創",
-        "删": "刪",
-        "别": "別",
-        "刬": "剗",
-        "刭": "剄",
-        "剂": "劑",
-        "剑": "劍",
-        "办": "辦",
-        "务": "務",
-        "动": "動",
-        "励": "勵",
-        "劲": "勁",
-        "劳": "勞",
-        "势": "勢",
-        "勋": "勳",
-        "匀": "勻",
-        "区": "區",
-        "医": "醫",
-        "华": "華",
-        "协": "協",
-        "单": "單",
-        "卖": "賣",
-        "卢": "盧",
-        "卫": "衛",
-        "却": "卻",
-        "厂": "廠",
-        "厅": "廳",
-        "历": "歷",
-        "厉": "厲",
-        "压": "壓",
-        "厌": "厭",
-        "厕": "廁",
-        "厢": "廂",
-        "县": "縣",
-        "参": "參",
-        "双": "雙",
-        "发": "發",
-        "变": "變",
-        "叙": "敘",
-        "叶": "葉",
-        "号": "號",
-        "叹": "嘆",
-        "后": "後",
-        "向": "向",
-        "吓": "嚇",
-        "吕": "呂",
-        "吗": "嗎",
-        "启": "啟",
-        "吴": "吳",
-        "员": "員",
-        "呐": "吶",
-        "呕": "嘔",
-        "呖": "嚦",
-        "呗": "唄",
-        "员": "員",
-        "周": "週",
-        "咏": "詠",
-        "咙": "嚨",
-        "咛": "嚀",
-        "咸": "鹹",
-        "响": "響",
-        "哑": "啞",
-        "哗": "嘩",
-        "哟": "喲",
-        "唤": "喚",
-        "啬": "嗇",
-        "喷": "噴",
-        "团": "團",
-        "园": "園",
-        "圆": "圓",
-        "图": "圖",
-        "圣": "聖",
-        "场": "場",
-        "坏": "壞",
-        "块": "塊",
-        "坚": "堅",
-        "坛": "壇",
-        "坝": "壩",
-        "坞": "塢",
-        "坟": "墳",
-        "坠": "墜",
-        "垄": "壟",
-        "垅": "壟",
-        "垆": "壚",
-        "垒": "壘",
-        "垦": "墾",
-        "垩": "堊",
-        "垫": "墊",
-        "垭": "埡",
-        "垯": "墶",
-        "垱": "壋",
-        "垲": "塏",
-        "垴": "堖",
-        "埘": "塒",
-        "埙": "塤",
-        "埚": "堝",
-        "堑": "塹",
-        "塆": "壪",
-        "墙": "牆",
-        "壮": "壯",
-        "声": "聲",
-        "壳": "殼",
-        "壶": "壺",
-        "处": "處",
-        "备": "備",
-        "复": "復",
-        "头": "頭",
-        "夹": "夾",
-        "夺": "奪",
-        "奋": "奮",
-        "奖": "獎",
-        "奥": "奧",
-        "妆": "妝",
-        "妇": "婦",
-        "妈": "媽",
-        "妩": "嫵",
-        "妪": "嫗",
-        "姗": "姍",
-        "姜": "薑",
-        "娄": "婁",
-        "娅": "婭",
-        "娆": "嬈",
-        "娇": "嬌",
-        "娈": "孌",
-        "娱": "娛",
-        "娲": "媧",
-        "娴": "嫻",
-        "婴": "嬰",
-        "婵": "嬋",
-        "孙": "孫",
-        "学": "學",
-        "宁": "寧",
-        "宝": "寶",
-        "实": "實",
-        "宠": "寵",
-        "审": "審",
-        "宪": "憲",
-        "宫": "宮",
-        "宽": "寬",
-        "宾": "賓",
-        "寝": "寢",
-        "对": "對",
-        "寻": "尋",
-        "导": "導",
-        "寿": "壽",
-        "将": "將",
-        "尔": "爾",
-        "尘": "塵",
-        "尝": "嘗",
-        "尧": "堯",
-        "层": "層",
-        "屉": "屜",
-        "届": "屆",
-        "属": "屬",
-        "岁": "歲",
-        "岂": "豈",
-        "岗": "崗",
-        "岛": "島",
-        "岭": "嶺",
-        "岳": "嶽",
-        "峡": "峽",
-        "峣": "嶢",
-        "峤": "嶠",
-        "峥": "崢",
-        "峦": "巒",
-        "巅": "巔",
-        "币": "幣",
-        "帅": "帥",
-        "师": "師",
-        "帐": "帳",
-        "帘": "簾",
-        "帜": "幟",
-        "带": "帶",
-        "帧": "幀",
-        "帮": "幫",
-        "干": "乾",
-        "并": "並",
-        "广": "廣",
-        "庄": "莊",
-        "庆": "慶",
-        "庐": "廬",
-        "库": "庫",
-        "应": "應",
-        "庙": "廟",
-        "庞": "龐",
-        "废": "廢",
-        "开": "開",
-        "异": "異",
-        "弃": "棄",
-        "张": "張",
-        "弥": "彌",
-        "弯": "彎",
-        "弹": "彈",
-        "强": "強",
-        "归": "歸",
-        "当": "當",
-        "录": "錄",
-        "彦": "彥",
-        "彻": "徹",
-        "径": "徑",
-        "忆": "憶",
-        "忧": "憂",
-        "忾": "愾",
-        "树": "樹",
-        "桠": "椏",
-        "桡": "橈",
-        "桢": "楨",
-        "档": "檔",
-        "桤": "榿",
-        "桥": "橋",
-        "桦": "樺",
-        "桧": "檜",
-        "桨": "槳",
-        "桩": "樁",
-        "梦": "夢",
-        "梨": "梨",
-        "梼": "檮",
-        "棁": "梲",
-        "棂": "欞",
-        "椁": "槨",
-        "椟": "櫝",
-        "椠": "槧",
-        "椤": "欏",
-        "楼": "樓",
-        "榄": "欖",
-        "榅": "榲",
-        "榇": "櫬",
-        "榈": "櫚",
-        "榉": "櫸",
-        "槚": "檟",
-        "槛": "檻",
-        "槟": "檳",
-        "槠": "櫧",
-        "横": "橫",
-        "樯": "檣",
-        "樱": "櫻",
-        "橥": "櫫",
-        "橱": "櫥",
-        "橹": "櫓",
-        "橼": "櫞",
-        "檩": "檁",
-        "欢": "歡",
-        "欧": "歐",
-        "岁": "歲",
-        "汉": "漢",
-        "汤": "湯",
-        "沟": "溝",
-        "没": "沒",
-        "泽": "澤",
-        "洁": "潔",
-        "浅": "淺",
-        "浆": "漿",
-        "润": "潤",
-        "涩": "澀",
-        "渊": "淵",
-        "渍": "漬",
-        "渐": "漸",
-        "湾": "灣",
-        "湿": "濕",
-        "滞": "滯",
-        "满": "滿",
-        "滤": "濾",
-        "滥": "濫",
-        "滨": "濱",
-        "滩": "灘",
-        "漓": "灕",
-        "潇": "瀟",
-        "潜": "潛",
-        "澜": "瀾",
-        "濒": "瀕",
-        "灭": "滅",
-        "灯": "燈",
-        "灵": "靈",
-        "灾": "災",
-        "炉": "爐",
-        "点": "點",
-        "炼": "煉",
-        "烂": "爛",
-        "烟": "煙",
-        "热": "熱",
-        "焕": "煥",
-        "爱": "愛",
-        "爷": "爺",
-        "牵": "牽",
-        "犊": "犢",
-        "状": "狀",
-        "独": "獨",
-        "狭": "狹",
-        "狮": "獅",
-        "狰": "猙",
-        "获": "獲",
-        "献": "獻",
-        "玛": "瑪",
-        "环": "環",
-        "现": "現",
-        "玱": "瑲",
-        "珐": "琺",
-        "珑": "瓏",
-        "珰": "璫",
-        "琏": "璉",
-        "琐": "瑣",
-        "琼": "瓊",
-        "瑶": "瑤",
-        "瓒": "瓚",
-        "瓯": "甌",
-        "电": "電",
-        "画": "畫",
-        "畅": "暢",
-        "畴": "疇",
-        "疗": "療",
-        "疟": "瘧",
-        "疠": "癘",
-        "疡": "瘍",
-        "疬": "癧",
-        "疮": "瘡",
-        "疯": "瘋",
-        "痈": "癰",
-        "痉": "痙",
-        "痒": "癢",
-        "痨": "癆",
-        "瘗": "瘞",
-        "瘘": "瘺",
-        "瘪": "癟",
-        "瘫": "癱",
-        "癞": "癩",
-        "皱": "皺",
-        "皲": "皸",
-        "盏": "盞",
-        "盐": "鹽",
-        "监": "監",
-        "盖": "蓋",
-        "盗": "盜",
-        "盘": "盤",
-        "眍": "瞘",
-        "着": "著",
-        "睁": "睜",
-        "睐": "睞",
-        "瞒": "瞞",
-        "矫": "矯",
-        "矾": "礬",
-        "矿": "礦",
-        "码": "碼",
-        "砖": "磚",
-        "砚": "硯",
-        "砜": "碸",
-        "砺": "礪",
-        "砻": "礱",
-        "砾": "礫",
-        "础": "礎",
-        "硁": "硜",
-        "硕": "碩",
-        "硖": "硤",
-        "硗": "磽",
-        "硙": "磑",
-        "确": "確",
-        "硷": "鹼",
-        "碍": "礙",
-        "碛": "磧",
-        "碜": "磣",
-        "礼": "禮",
-        "祎": "禕",
-        "祯": "禎",
-        "祷": "禱",
-        "祸": "禍",
-        "禀": "稟",
-        "禄": "祿",
-        "禅": "禪",
-        "离": "離",
-        "种": "種",
-        "积": "積",
-        "称": "稱",
-        "秽": "穢",
-        "稆": "穭",
-        "税": "稅",
-        "稳": "穩",
-        "穑": "穡",
-        "穷": "窮",
-        "窃": "竊",
-        "窍": "竅",
-        "窑": "窯",
-        "窜": "竄",
-        "窝": "窩",
-        "窥": "窺",
-        "窦": "竇",
-        "竞": "競",
-        "笃": "篤",
-        "笋": "筍",
-        "笔": "筆",
-        "笕": "筧",
-        "笺": "箋",
-        "笼": "籠",
-        "笾": "籩",
-        "筑": "築",
-        "筛": "篩",
-        "筜": "簹",
-        "筝": "箏",
-        "筹": "籌",
-        "签": "簽",
-        "简": "簡",
-        "箓": "籙",
-        "箦": "簀",
-        "箧": "篋",
-        "箨": "籜",
-        "箩": "籮",
-        "箪": "簞",
-        "箫": "簫",
-        "篑": "簣",
-        "篓": "簍",
-        "篮": "籃",
-        "篱": "籬",
-        "簖": "籪",
-        "籁": "籟",
-        "籴": "糴",
-        "类": "類",
-        "籼": "秈",
-        "粜": "糶",
-        "粝": "糲",
-        "粤": "粵",
-        "粪": "糞",
-        "粮": "糧",
-        "糁": "糝",
-        "糇": "餱",
-        "紧": "緊",
-        "絷": "縶",
-        "纤": "纖",
-        "约": "約",
-        "级": "級",
-        "纪": "紀",
-        "纫": "紉",
-        "纬": "緯",
-        "纯": "純",
-        "纱": "紗",
-        "纲": "綱",
-        "纳": "納",
-        "纵": "縱",
-        "纶": "綸",
-        "纷": "紛",
-        "纸": "紙",
-        "纹": "紋",
-        "纺": "紡",
-        "纽": "紐",
-        "线": "線",
-        "练": "練",
-        "组": "組",
-        "绅": "紳",
-        "细": "細",
-        "织": "織",
-        "终": "終",
-        "绊": "絆",
-        "绍": "紹",
-        "绎": "繹",
-        "经": "經",
-        "绑": "綁",
-        "绒": "絨",
-        "结": "結",
-        "绕": "繞",
-        "绘": "繪",
-        "给": "給",
-        "络": "絡",
-        "绝": "絕",
-        "统": "統",
-        "绢": "絹",
-        "绣": "繡",
-        "继": "繼",
-        "绩": "績",
-        "绪": "緒",
-        "续": "續",
-        "绳": "繩",
-        "维": "維",
-        "绵": "綿",
-        "绶": "綬",
-        "绷": "繃",
-        "绸": "綢",
-        "综": "綜",
-        "绽": "綻",
-        "绿": "綠",
-        "缀": "綴",
-        "缁": "緇",
-        "缂": "緙",
-        "缃": "緗",
-        "缄": "緘",
-        "缅": "緬",
-        "缆": "纜",
-        "缇": "緹",
-        "缈": "緲",
-        "缉": "緝",
-        "缋": "繢",
-    }
-)
+try:
+    import opencc
+
+    _opencc_converter = opencc.OpenCC('s2t')
+
+    def to_traditional_chinese(text: str) -> str:
+        return _opencc_converter.convert(text)
+except ImportError:
+    def to_traditional_chinese(text: str) -> str:
+        return text
 
 
-def to_traditional_chinese(text: str) -> str:
-    return text.translate(SIMPLIFIED_TO_TRADITIONAL)
+def load_animals_db() -> dict[str, dict[str, Any]]:
+    """載入 admin/animals.json，若失敗則回退到內建資料。"""
+    json_path = Path(__file__).resolve().parent.parent / "admin" / "animals.json"
+    try:
+        raw = json_path.read_text(encoding="utf-8")
+        data = json.loads(raw)
+        animals_list = data.get("animals", [])
+        db: dict[str, dict[str, Any]] = {}
+        for entry in animals_list:
+            name = entry.get("name", "")
+            if name:
+                db[name] = {
+                    "type": "animal",
+                    "emoji": entry.get("emoji", "🐾"),
+                    "role": entry.get("role", ""),
+                    "desc": entry.get("desc", ""),
+                    "portrait": entry.get("portrait", ""),
+                    "photos": entry.get("photos", []),
+                }
+        if db:
+            return db
+    except Exception:
+        pass
+    return {}
 
 
-ANIMALS_DB = {
+ANIMALS_DB = load_animals_db() or {
     "貝貝": {
         "type": "animal",
         "emoji": "🐶",
@@ -701,11 +150,11 @@ def border_all(width: int, color: str) -> ft.Border:
 
 def soft_card(content: ft.Control, padding: int = 16) -> ft.Container:
     return ft.Container(
-        bgcolor="#fffdf4",
+        bgcolor=THEME["CARD_BG"],
         border_radius=16,
         padding=padding,
-        border=border_all(1, "#dccfc0"),
-        shadow=ft.BoxShadow(blur_radius=16, color="#2b130814", offset=ft.Offset(0, 8)),
+        border=border_all(1, THEME["CARD_BORDER"]),
+        shadow=ft.BoxShadow(blur_radius=16, color=THEME["SHADOW_CARD"], offset=ft.Offset(0, 8)),
         content=content,
     )
 
@@ -714,7 +163,7 @@ def section_label(icon: str, text: str) -> ft.Row:
     return ft.Row(
         controls=[
             ft.Text(icon, size=24),
-            ft.Text(text, size=24, weight=ft.FontWeight.W_900, color="#3d2a21"),
+            ft.Text(text, size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
         ],
         spacing=8,
         alignment=ft.MainAxisAlignment.CENTER,
@@ -855,7 +304,9 @@ def card_image_from_capture(capture: Any, max_data_url_length: int = MAX_CARD_IM
         if isinstance(capture, str) and capture.startswith("data:") and len(capture) <= max_data_url_length:
             return {"src": capture, "label": "拍攝照片"}
         binary, mime = capture_to_bytes(capture)
-        data_url = f"data:{mime};base64,{base64.b64encode(binary).decode('ascii')}"
+        if "image" in mime:
+            binary = compress_image(binary, mime)
+        data_url = f"data:image/jpeg;base64,{base64.b64encode(binary).decode('ascii')}"
         if len(data_url) <= max_data_url_length:
             return {"src": data_url, "label": "拍攝照片"}
     except Exception:
@@ -1136,7 +587,55 @@ async def save_json_cache(storage_key: str, local_path: Path, data: Any) -> None
         return
 
 
+THEME = {
+    "PAGE_BG": "#f3efd9",
+    "CARD_BG": "#fffdf4",
+    "CARD_BORDER": "#dccfc0",
+    "CARD_BORDER_ALT": "#d7c8b9",
+    "TITLE": "#3d2a21",
+    "BODY": "#6d5140",
+    "BODY_DARK": "#5c4032",
+    "MUTED": "#8a6a54",
+    "ACCENT": "#8a5a22",
+    "GREEN": "#2f7d51",
+    "WHITE": "#ffffff",
+    "SHADOW_CARD": "#2b130814",
+    "SHADOW_CARD2": "#2b130812",
+    "SHADOW_GALLERY": "#2b130810",
+    "SHADOW_CAMERA": "#442f2529",
+    "DETAIL_BG": "#f7f0df",
+    "DETAIL_BORDER": "#dfd0bd",
+    "WARNING_BG": "#fff3cd",
+    "WARNING_TEXT": "#856404",
+    "ANIMAL_ROLE": "#7a4b38",
+    "CAMERA_BG": "#4d3026",
+    "CAMERA_BORDER": "#2b160f",
+    "CAMERA_INNER": "#0f1512",
+    "ORGAN_BG": "#fff8e8",
+    "PERENUAL_BG": "#efe4d1",
+    "CONFIDENCE_BG": "#e8bc96",
+    "DETAIL_TEXT": "#7a6657",
+}
+
 MAX_POKEDEX_STORAGE_BYTES = 50_000_000
+MAX_IMAGE_WIDTH = 800
+IMAGE_COMPRESSION_QUALITY = 85
+
+
+def compress_image(binary: bytes, mime: str) -> bytes:
+    try:
+        from io import BytesIO
+
+        image = Image.open(BytesIO(binary))
+        if image.width > MAX_IMAGE_WIDTH:
+            ratio = MAX_IMAGE_WIDTH / image.width
+            new_height = int(image.height * ratio)
+            image = image.resize((MAX_IMAGE_WIDTH, new_height), Image.LANCZOS)
+        buffer = BytesIO()
+        image.save(buffer, format="JPEG", quality=IMAGE_COMPRESSION_QUALITY, optimize=True)
+        return buffer.getvalue()
+    except Exception:
+        return binary
 
 
 def validate_pokedex_size(pokedex: dict[str, dict[str, Any]]) -> int | None:
@@ -1232,15 +731,15 @@ async def main(page: ft.Page) -> None:
         await run_app(page)
     except Exception as error:
         page.clean()
-        page.bgcolor = "#f3efd9"
+        page.bgcolor = THEME["PAGE_BG"]
         page.add(
             ft.Container(
                 padding=24,
                 alignment=ft.Alignment(0, 0),
                 content=ft.Column(
                     [
-                        ft.Text("探險放大鏡載入失敗", size=26, weight=ft.FontWeight.W_900, color="#3d2a21"),
-                        ft.Text(str(error), size=14, color="#5c4032", selectable=True),
+                        ft.Text("探險放大鏡載入失敗", size=26, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
+                        ft.Text(str(error), size=14, color=THEME["BODY_DARK"], selectable=True),
                     ],
                     spacing=12,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -1254,7 +753,7 @@ async def run_app(page: ft.Page) -> None:
     page.title = "藝素村探險放大鏡"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 16
-    page.bgcolor = "#f3efd9"
+    page.bgcolor = THEME["PAGE_BG"]
     page.scroll = ft.ScrollMode.AUTO
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER
 
@@ -1274,16 +773,16 @@ async def run_app(page: ft.Page) -> None:
             controls=[
                 ft.Text("🔍", size=80, text_align=ft.TextAlign.CENTER),
                 ft.Text("探險放大鏡", size=32, weight=ft.FontWeight.W_900, 
-                       text_align=ft.TextAlign.CENTER, color="#3d2a21"),
+                       text_align=ft.TextAlign.CENTER, color=THEME["TITLE"]),
                 ft.Text("藝素村的自然探險工具", size=18, weight=ft.FontWeight.W_700,
-                       text_align=ft.TextAlign.CENTER, color="#5c4032"),
+                       text_align=ft.TextAlign.CENTER, color=THEME["BODY_DARK"]),
                 ft.Container(height=16),
-                ft.Text("🌿 拍攝並辨識植物物種", size=15, color="#6d5140"),
-                ft.Text("🐾 認識村里的動物朋友", size=15, color="#6d5140"),
-                ft.Text("🎒 建立你的探險圖鑑", size=15, color="#6d5140"),
+                ft.Text("🌿 拍攝並辨識植物物種", size=15, color=THEME["BODY"]),
+                ft.Text("🐾 認識村里的動物朋友", size=15, color=THEME["BODY"]),
+                ft.Text("🎒 建立你的探險圖鑑", size=15, color=THEME["BODY"]),
                 ft.Container(height=24),
-                ft.Text("使用相機功能需要瀏覽器授權，", size=13, color="#8a6a54"),
-                ft.Text("請確保使用 HTTPS 或 localhost 網址", size=13, color="#8a6a54"),
+                ft.Text("使用相機功能需要瀏覽器授權，", size=13, color=THEME["MUTED"]),
+                ft.Text("請確保使用 HTTPS 或 localhost 網址", size=13, color=THEME["MUTED"]),
                 ft.Container(height=32),
             ],
             spacing=12,
@@ -1296,8 +795,8 @@ async def run_app(page: ft.Page) -> None:
         style=ft.ButtonStyle(
             padding=ft.Padding.symmetric(horizontal=40, vertical=18),
             text_style=ft.TextStyle(size=18, weight=ft.FontWeight.W_900),
-            bgcolor="#8a5a22",
-            color="#ffffff",
+            bgcolor=THEME["ACCENT"],
+            color=THEME["WHITE"],
         ),
     )
 
@@ -1311,7 +810,7 @@ async def run_app(page: ft.Page) -> None:
     ]
 
     loading_emoji = ft.Text("🔍", size=56, text_align=ft.TextAlign.CENTER)
-    loading_message = ft.Text(LOADING_MESSAGES[0], size=16, color="#6d5140", weight=ft.FontWeight.W_700)
+    loading_message = ft.Text(LOADING_MESSAGES[0], size=16, color=THEME["BODY"], weight=ft.FontWeight.W_700)
 
     loading_carousel = ft.Container(
         expand=True,
@@ -1321,7 +820,7 @@ async def run_app(page: ft.Page) -> None:
                 ft.Container(height=40),
                 loading_emoji,
                 ft.Container(height=12),
-                ft.ProgressRing(width=36, height=36, stroke_width=4, color="#8a5a22"),
+                ft.ProgressRing(width=36, height=36, stroke_width=4, color=THEME["ACCENT"]),
                 ft.Container(height=16),
                 loading_message,
             ],
@@ -1339,12 +838,12 @@ async def run_app(page: ft.Page) -> None:
     status = ft.Text(
         "",
         size=13,
-        color="#6d5140",
+        color=THEME["BODY"],
         weight=ft.FontWeight.W_800,
         text_align=ft.TextAlign.CENTER,
         expand=True,
     )
-    busy_ring = ft.ProgressRing(width=22, height=22, stroke_width=3, visible=False, color="#8a5a22")
+    busy_ring = ft.ProgressRing(width=22, height=22, stroke_width=3, visible=False, color=THEME["ACCENT"])
     restart_camera_button = ft.TextButton(
         content=ft.Row(
             controls=[
@@ -1425,16 +924,16 @@ async def run_app(page: ft.Page) -> None:
         width=LENS_FRAME_SIZE,
         height=LENS_FRAME_SIZE,
         border_radius=LENS_FRAME_SIZE / 2,
-        bgcolor="#4d3026",
+        bgcolor=THEME["CAMERA_BG"],
         padding=LENS_FRAME_PADDING,
-        border=border_all(5, "#2b160f"),
-        shadow=ft.BoxShadow(blur_radius=34, color="#442f2529", offset=ft.Offset(0, 14)),
+        border=border_all(5, THEME["CAMERA_BORDER"]),
+        shadow=ft.BoxShadow(blur_radius=34, color=THEME["SHADOW_CAMERA"], offset=ft.Offset(0, 14)),
         content=ft.Container(
             width=LENS_VIEWPORT_SIZE,
             height=LENS_VIEWPORT_SIZE,
             border_radius=LENS_VIEWPORT_SIZE / 2,
             clip_behavior=ft.ClipBehavior.HARD_EDGE,
-            bgcolor="#0f1512",
+            bgcolor=THEME["CAMERA_INNER"],
             content=camera_viewport,
         ),
     )
@@ -1457,36 +956,46 @@ async def run_app(page: ft.Page) -> None:
     )
     content_area = ft.Container(width=380)
 
-    def refresh_gallery(update_page: bool = True) -> None:
-        grid.controls.clear()
-        for name, item in pokedex.items():
-            icon = item.get("emoji", "🌿" if item.get("type") == "plant" else "🐾")
-            is_low_confidence = item.get("is_low_confidence", False)
-            badge = "⚠️" if is_low_confidence else ""
-            subtitle = confidence_text(item) or item.get("role", "")
+    _gallery_card_map: dict[str, ft.Container] = {}
 
-            grid.controls.append(
-                ft.Container(
-                    bgcolor="#fffdf4",
-                    border_radius=12,
-                    padding=12,
-                    alignment=ft.Alignment(0, 0),
-                    border=border_all(1, "#d7c8b9"),
-                    shadow=ft.BoxShadow(blur_radius=10, color="#2b130810", offset=ft.Offset(0, 5)),
-                    animate=ft.Animation(220, ft.AnimationCurve.EASE_OUT),
-                    tooltip=f"{name} 詳細介紹",
-                    on_click=lambda _event, item_name=name, item_data=item: show_gallery_card(item_name, item_data),
-                    on_long_press=lambda _event, item_name=name: confirm_delete_gallery_item(item_name),
-                    content=ft.Column(
-                        controls=[
-                            ft.Text(f"{icon} {badge} {name}", size=14, weight=ft.FontWeight.W_800, color="#3d2a21"),
-                            ft.Text(subtitle, size=11, color="#6d5140"),
-                        ],
-                        spacing=2,
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    ),
-                )
-            )
+    def _build_gallery_card(name: str, item: dict[str, Any]) -> ft.Container:
+        icon = item.get("emoji", "🌿" if item.get("type") == "plant" else "🐾")
+        is_low_confidence = item.get("is_low_confidence", False)
+        badge = "⚠️" if is_low_confidence else ""
+        subtitle = confidence_text(item) or item.get("role", "")
+        return ft.Container(
+            bgcolor=THEME["CARD_BG"],
+            border_radius=12,
+            padding=12,
+            alignment=ft.Alignment(0, 0),
+            border=border_all(1, THEME["CARD_BORDER_ALT"]),
+            shadow=ft.BoxShadow(blur_radius=10, color=THEME["SHADOW_GALLERY"], offset=ft.Offset(0, 5)),
+            animate=ft.Animation(220, ft.AnimationCurve.EASE_OUT),
+            tooltip=f"{name} 詳細介紹",
+            on_click=lambda _event, item_name=name, item_data=item: show_gallery_card(item_name, item_data),
+            on_long_press=lambda _event, item_name=name: confirm_delete_gallery_item(item_name),
+            content=ft.Column(
+                controls=[
+                    ft.Text(f"{icon} {badge} {name}", size=14, weight=ft.FontWeight.W_800, color=THEME["TITLE"]),
+                    ft.Text(subtitle, size=11, color=THEME["BODY"]),
+                ],
+                spacing=2,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+        )
+
+    def refresh_gallery(update_page: bool = True) -> None:
+        for name in list(_gallery_card_map):
+            if name not in pokedex:
+                card = _gallery_card_map.pop(name)
+                if card in grid.controls:
+                    grid.controls.remove(card)
+        for name, item in pokedex.items():
+            if name in _gallery_card_map:
+                continue
+            card = _build_gallery_card(name, item)
+            _gallery_card_map[name] = card
+            grid.controls.append(card)
         create_background_task(save_cached_pokedex(pokedex))
         if update_page:
             page.update()
@@ -1544,13 +1053,13 @@ async def run_app(page: ft.Page) -> None:
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text("辨識中", size=24, weight=ft.FontWeight.W_900, color="#3d2a21"),
+                title=ft.Text("辨識中", size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
                 content=soft_card(
                     ft.Column(
                         controls=[
-                            ft.ProgressRing(width=34, height=34, stroke_width=4, color="#8a5a22"),
-                            ft.Text("正在分析拍攝內容", size=16, weight=ft.FontWeight.W_900, color="#3d2a21"),
-                            ft.Text("請稍候，完成後會自動顯示辨識結果卡片。", size=13, color="#6d5140"),
+                            ft.ProgressRing(width=34, height=34, stroke_width=4, color=THEME["ACCENT"]),
+                            ft.Text("正在分析拍攝內容", size=16, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
+                            ft.Text("請稍候，完成後會自動顯示辨識結果卡片。", size=13, color=THEME["BODY"]),
                         ],
                         spacing=12,
                         horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -1581,9 +1090,10 @@ async def run_app(page: ft.Page) -> None:
 
     def clear_gallery() -> None:
         pokedex.clear()
+        _gallery_card_map.clear()
+        grid.controls.clear()
         create_background_task(save_cached_pokedex(pokedex))
         status.value = "已清除探險圖鑑"
-        refresh_gallery()
         page.pop_dialog()
         page.update()
 
@@ -1592,7 +1102,7 @@ async def run_app(page: ft.Page) -> None:
             ft.AlertDialog(
                 modal=True,
                 title=ft.Text("刪除圖鑑卡片", size=22, weight=ft.FontWeight.W_900),
-                content=ft.Text(f"要從探險圖鑑刪除「{name}」嗎？", size=15, color="#3d2a21"),
+                content=ft.Text(f"要從探險圖鑑刪除「{name}」嗎？", size=15, color=THEME["TITLE"]),
                 actions=[
                     ft.TextButton("取消", on_click=close_dialog),
                     ft.TextButton("刪除", icon=ft.Icons.DELETE_OUTLINE, on_click=lambda _event: delete_gallery_item(name)),
@@ -1611,7 +1121,7 @@ async def run_app(page: ft.Page) -> None:
             ft.AlertDialog(
                 modal=True,
                 title=ft.Text("清除探險圖鑑", size=22, weight=ft.FontWeight.W_900),
-                content=ft.Text("要刪除所有圖鑑卡片嗎？這個動作無法復原。", size=15, color="#3d2a21"),
+                content=ft.Text("要刪除所有圖鑑卡片嗎？這個動作無法復原。", size=15, color=THEME["TITLE"]),
                 actions=[
                     ft.TextButton("取消", on_click=close_dialog),
                     ft.TextButton("全部清除", icon=ft.Icons.DELETE_SWEEP_OUTLINED, on_click=lambda _event: clear_gallery()),
@@ -1624,20 +1134,74 @@ async def run_app(page: ft.Page) -> None:
     def show_animal_card(name: str) -> None:
         data = ANIMALS_DB[name]
         add_animal_to_gallery(name)
+        portrait_src = data.get("portrait", "")
+        photos = data.get("photos", []) or []
+        
+        portrait_control: ft.Control
+        if portrait_src:
+            portrait_control = ft.Container(
+                height=200,
+                border_radius=14,
+                clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                content=ft.Image(src=portrait_src, fit=ft.BoxFit.COVER, width=340, height=200),
+            )
+        else:
+            portrait_control = ft.Container(
+                height=120,
+                border_radius=14,
+                alignment=ft.Alignment(0, 0),
+                bgcolor=THEME["PERENUAL_BG"],
+                border=border_all(1, THEME["DETAIL_BORDER"]),
+                content=ft.Text("尚無大頭貼", size=13, color=THEME["DETAIL_TEXT"], weight=ft.FontWeight.W_800),
+            )
+        
+        photo_controls: list[ft.Control] = []
+        if photos:
+            photo_thumbs = [
+                ft.Container(
+                    width=64,
+                    height=64,
+                    border_radius=8,
+                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                    content=ft.Image(src=photo, fit=ft.BoxFit.COVER),
+                )
+                for photo in photos[:6]
+            ]
+            photo_controls = [
+                ft.Text("生活照", size=12, color=THEME["MUTED"], weight=ft.FontWeight.W_900),
+                ft.Row(controls=photo_thumbs, spacing=6, wrap=True),
+            ]
+            if len(photos) > 6:
+                photo_controls.append(ft.Text(f"+{len(photos) - 6} 張更多照片", size=11, color=THEME["MUTED"]))
+        
+        dialog_content_height = max(420, min(520, round((page.height or 760) * 0.58)))
+        
         page.show_dialog(
             ft.AlertDialog(
                 modal=True,
-                title=ft.Text(f"{data['emoji']} {name}", size=24, weight=ft.FontWeight.W_900),
-                content=soft_card(
-                    ft.Column(
-                        controls=[
-                            ft.Text(data["role"], size=14, color="#7a4b38", weight=ft.FontWeight.W_800),
-                            ft.Text(data["desc"], size=15, color="#3d2a21"),
-                            ft.Text("已加入探險圖鑑", size=13, color="#2f7d51", weight=ft.FontWeight.W_800),
-                        ],
-                        spacing=8,
+                scrollable=True,
+                title=ft.Text(f"{data['emoji']} {name}", size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
+                content=ft.Container(
+                    width=360,
+                    height=dialog_content_height,
+                    content=soft_card(
+                        ft.Column(
+                            controls=[
+                                portrait_control,
+                                *photo_controls,
+                                ft.Container(height=8),
+                                ft.Text(data["role"], size=14, color=THEME["ANIMAL_ROLE"], weight=ft.FontWeight.W_800),
+                                ft.Text(data["desc"], size=15, color=THEME["TITLE"]),
+                                ft.Container(
+                                    padding=ft.Padding.only(top=8),
+                                    content=ft.Text("已加入探險圖鑑", size=13, color=THEME["GREEN"], weight=ft.FontWeight.W_800),
+                                ),
+                            ],
+                            spacing=8,
+                            scroll=ft.ScrollMode.AUTO,
+                        ),
+                        padding=14,
                     ),
-                    padding=18,
                 ),
                 actions=[ft.TextButton("關閉", on_click=close_dialog)],
                 actions_alignment=ft.MainAxisAlignment.END,
@@ -1665,20 +1229,20 @@ async def run_app(page: ft.Page) -> None:
         worker_timing = data.get("worker_timing") or {}
         organ_label = data.get("organ_label") or PLANT_ORGAN_OPTIONS.get(data.get("organ", "auto"), "自動")
 
-        def detail_text(value: str, *, size: int = 13, color: str = "#5c4032", weight: ft.FontWeight | None = None) -> ft.Text:
+        def detail_text(value: str, *, size: int = 13, color: str = THEME["BODY_DARK"], weight: ft.FontWeight | None = None) -> ft.Text:
             return ft.Text(value, size=size, color=color, weight=weight, selectable=True)
 
         def info_chip(label: str, value: str, detail: str = "") -> ft.Container:
             return ft.Container(
                 padding=10,
                 border_radius=10,
-                bgcolor="#f7f0df",
-                border=border_all(1, "#dfd0bd"),
+                bgcolor=THEME["DETAIL_BG"],
+                border=border_all(1, THEME["DETAIL_BORDER"]),
                 content=ft.Column(
                     controls=[
-                        ft.Text(label, size=11, color="#8a5a22", weight=ft.FontWeight.W_900),
-                        ft.Text(value, size=13, color="#3d2a21", weight=ft.FontWeight.W_800),
-                        ft.Text(detail, size=10, color="#7a6657") if detail else ft.Container(),
+                        ft.Text(label, size=11, color=THEME["ACCENT"], weight=ft.FontWeight.W_900),
+                        ft.Text(value, size=13, color=THEME["TITLE"], weight=ft.FontWeight.W_800),
+                        ft.Text(detail, size=10, color=THEME["DETAIL_TEXT"]) if detail else ft.Container(),
                     ],
                     spacing=2,
                 ),
@@ -1691,7 +1255,7 @@ async def run_app(page: ft.Page) -> None:
                 height=170,
                 border_radius=14,
                 clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                bgcolor="#efe4d1",
+                bgcolor=THEME["PERENUAL_BG"],
                 content=ft.Image(src=image_src, fit=ft.BoxFit.COVER, width=340, height=170),
             )
         else:
@@ -1699,9 +1263,9 @@ async def run_app(page: ft.Page) -> None:
                 height=112,
                 border_radius=14,
                 alignment=ft.Alignment(0, 0),
-                bgcolor="#efe4d1",
-                border=border_all(1, "#dfd0bd"),
-                content=ft.Text(captured_image.get("label") or "尚無拍攝照片", size=13, color="#7a6657", weight=ft.FontWeight.W_800),
+                bgcolor=THEME["PERENUAL_BG"],
+                border=border_all(1, THEME["DETAIL_BORDER"]),
+                content=ft.Text(captured_image.get("label") or "尚無拍攝照片", size=13, color=THEME["DETAIL_TEXT"], weight=ft.FontWeight.W_800),
             )
         
         warning_text: ft.Control = ft.Container()
@@ -1709,12 +1273,12 @@ async def run_app(page: ft.Page) -> None:
             warning_text = ft.Container(
                 padding=8,
                 margin=ft.Margin.only(bottom=8),
-                bgcolor="#fff3cd",
+                bgcolor=THEME["WARNING_BG"],
                 border_radius=8,
                 content=ft.Row(
                     controls=[
-                        ft.Icon(ft.Icons.WARNING_AMBER_OUTLINED, size=16, color="#856404"),
-                        ft.Text(f"置信度僅 {confidence}%，建議實地確認物種", size=13, color="#856404", weight=ft.FontWeight.W_700),
+                        ft.Icon(ft.Icons.WARNING_AMBER_OUTLINED, size=16, color=THEME["WARNING_TEXT"]),
+                        ft.Text(f"置信度僅 {confidence}%，建議實地確認物種", size=13, color=THEME["WARNING_TEXT"], weight=ft.FontWeight.W_700),
                     ],
                     spacing=6,
                 ),
@@ -1723,16 +1287,16 @@ async def run_app(page: ft.Page) -> None:
         alternative_controls: list[ft.Control] = []
         if alternatives:
             alternative_controls = [
-                ft.Text("備選辨識", size=14, color="#3d2a21", weight=ft.FontWeight.W_900),
+                ft.Text("備選辨識", size=14, color=THEME["TITLE"], weight=ft.FontWeight.W_900),
                 *[
                     ft.Container(
                         padding=8,
                         border_radius=10,
-                        bgcolor="#f7f0df",
+                        bgcolor=THEME["DETAIL_BG"],
                         content=ft.Text(
                             f"{candidate['zh_name']} · {candidate['confidence']}%",
                             size=12,
-                            color="#5c4032",
+                            color=THEME["BODY_DARK"],
                         ),
                     )
                     for candidate in alternatives
@@ -1742,8 +1306,8 @@ async def run_app(page: ft.Page) -> None:
         alias_controls: list[ft.Control] = []
         if aliases:
             alias_controls = [
-                ft.Text("別名", size=12, color="#8a5a22", weight=ft.FontWeight.W_900),
-                ft.Text("、".join(aliases), size=13, color="#5c4032"),
+                ft.Text("別名", size=12, color=THEME["ACCENT"], weight=ft.FontWeight.W_900),
+                ft.Text("、".join(aliases), size=13, color=THEME["BODY_DARK"]),
             ]
 
         metadata_controls = [
@@ -1754,7 +1318,7 @@ async def run_app(page: ft.Page) -> None:
         care_controls: list[ft.Control] = []
         if care:
             care_controls = [
-                ft.Text("Perenual 植物資料", size=14, color="#3d2a21", weight=ft.FontWeight.W_900),
+                ft.Text("Perenual 植物資料", size=14, color=THEME["TITLE"], weight=ft.FontWeight.W_900),
                 ft.Row(
                     controls=[info_chip(label, str(value)) for label, value in care.items()],
                     spacing=8,
@@ -1772,32 +1336,32 @@ async def run_app(page: ft.Page) -> None:
                 warning_text,
                 ft.Row(
                     controls=[
-                        ft.Text(data["zh_name"], size=22, color="#3d2a21", weight=ft.FontWeight.W_900, expand=True),
+                        ft.Text(data["zh_name"], size=22, color=THEME["TITLE"], weight=ft.FontWeight.W_900, expand=True),
                         ft.Container(
                             padding=ft.Padding.symmetric(horizontal=10, vertical=6),
                             border_radius=999,
-                            bgcolor="#e8bc96",
-                            content=ft.Text(f"{confidence}%", size=13, color="#3d2a21", weight=ft.FontWeight.W_900),
+                            bgcolor=THEME["CONFIDENCE_BG"],
+                            content=ft.Text(f"{confidence}%", size=13, color=THEME["TITLE"], weight=ft.FontWeight.W_900),
                         ),
                     ],
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-                detail_text(data.get("eng_name") or "N/A", size=14, color="#6d5140", weight=ft.FontWeight.W_800),
-                detail_text(data.get("sci_name") or "", size=12, color="#8a6a54"),
+                detail_text(data.get("eng_name") or "N/A", size=14, color=THEME["BODY"], weight=ft.FontWeight.W_800),
+                detail_text(data.get("sci_name") or "", size=12, color=THEME["MUTED"]),
                 *alias_controls,
                 ft.Column(
                     controls=metadata_controls,
                     spacing=8,
                 ),
-                ft.Text(data["desc"], size=14, color="#3d2a21"),
+                ft.Text(data["desc"], size=14, color=THEME["TITLE"]),
                 *care_controls,
-                ft.Text(metadata_note, size=11, color="#8a6a54"),
-                ft.Text(timing_note, size=11, color="#8a6a54") if timing_note else ft.Container(),
-                ft.Text(confidence_text(data), size=13, color="#6d5140"),
+                ft.Text(metadata_note, size=11, color=THEME["MUTED"]),
+                ft.Text(timing_note, size=11, color=THEME["MUTED"]) if timing_note else ft.Container(),
+                ft.Text(confidence_text(data), size=13, color=THEME["BODY"]),
                 *alternative_controls,
                 ft.Container(
                     padding=ft.Padding.only(bottom=12),
-                    content=ft.Text("已加入探險圖鑑", size=13, color="#2f7d51", weight=ft.FontWeight.W_800),
+                    content=ft.Text("已加入探險圖鑑", size=13, color=THEME["GREEN"], weight=ft.FontWeight.W_800),
                 ),
             ],
             spacing=10,
@@ -1808,7 +1372,7 @@ async def run_app(page: ft.Page) -> None:
             ft.AlertDialog(
                 modal=True,
                 scrollable=True,
-                title=ft.Text(f"{data['emoji']} {name}", size=24, weight=ft.FontWeight.W_900, color="#3d2a21"),
+                title=ft.Text(f"{data['emoji']} {name}", size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
                 content=ft.Container(
                     width=360,
                     height=dialog_content_height,
@@ -1990,6 +1554,9 @@ async def run_app(page: ft.Page) -> None:
                     raise last_error or RuntimeError("沒有鏡頭可以初始化")
             else:
                 status.value = "找不到可用相機，請確認瀏覽器相機權限已允許"
+        except asyncio.TimeoutError:
+            camera_ready = False
+            status.value = "相機啟動逾時（45秒），請確認瀏覽器相機權限已允許並重新整理頁面"
         except Exception as error:
             camera_ready = False
             status.value = f"相機啟動失敗：{error}。請確認網址是 HTTPS 或 127.0.0.1，並允許相機權限。"
@@ -2033,11 +1600,11 @@ async def run_app(page: ft.Page) -> None:
         return ft.Container(
             padding=8,
             border_radius=12,
-            bgcolor="#fff8e8",
-            border=border_all(1, "#dfd0bd"),
+            bgcolor=THEME["ORGAN_BG"],
+            border=border_all(1, THEME["DETAIL_BORDER"]),
             content=ft.Row(
                 controls=[
-                    ft.Text("拍攝部位", size=12, weight=ft.FontWeight.W_900, color="#6d5140"),
+                    ft.Text("拍攝部位", size=12, weight=ft.FontWeight.W_900, color=THEME["BODY"]),
                     organ_mode,
                 ],
                 spacing=8,
@@ -2056,11 +1623,11 @@ async def run_app(page: ft.Page) -> None:
             badge = "⚠️"
         
         return ft.Container(
-            bgcolor="#fffdf4",
+            bgcolor=THEME["CARD_BG"],
             border_radius=18,
             padding=16,
-            border=border_all(1, "#d7c8b9"),
-            shadow=ft.BoxShadow(blur_radius=14, color="#2b130812", offset=ft.Offset(0, 8)),
+            border=border_all(1, THEME["CARD_BORDER_ALT"]),
+            shadow=ft.BoxShadow(blur_radius=14, color=THEME["SHADOW_CARD2"], offset=ft.Offset(0, 8)),
             on_click=lambda _event, plant_name=name: show_plant_card(plant_name, data),
             content=ft.Column(
                 controls=[
@@ -2069,13 +1636,13 @@ async def run_app(page: ft.Page) -> None:
                             ft.Text(f"{data['emoji']} {badge}", size=34),
                             ft.Column(
                                 controls=[
-                                    ft.Text(name, size=19, weight=ft.FontWeight.W_900, color="#3d2a21"),
-                                    ft.Text(f"置信度: {confidence}%" if confidence > 0 else "", size=13, weight=ft.FontWeight.W_700, color="#6d5140"),
+                                    ft.Text(name, size=19, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
+                                    ft.Text(f"置信度: {confidence}%" if confidence > 0 else "", size=13, weight=ft.FontWeight.W_700, color=THEME["BODY"]),
                                 ],
                                 spacing=2,
                                 expand=True,
                             ),
-                            ft.Icon(ft.Icons.CHEVRON_RIGHT, color="#8a6a54"),
+                            ft.Icon(ft.Icons.CHEVRON_RIGHT, color=THEME["MUTED"]),
                         ],
                         alignment=ft.MainAxisAlignment.CENTER,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -2087,25 +1654,45 @@ async def run_app(page: ft.Page) -> None:
         )
 
     def animal_card(name: str, data: dict[str, str]) -> ft.Container:
+        portrait_src = data.get("portrait", "")
+        portrait_preview: ft.Control
+        if portrait_src:
+            portrait_preview = ft.Container(
+                width=56,
+                height=56,
+                border_radius=14,
+                clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                content=ft.Image(src=portrait_src, fit=ft.BoxFit.COVER),
+            )
+        else:
+            portrait_preview = ft.Container(
+                width=56,
+                height=56,
+                border_radius=14,
+                bgcolor=THEME["PERENUAL_BG"],
+                alignment=ft.Alignment(0, 0),
+                content=ft.Text(data.get("emoji", "🐾"), size=24),
+            )
         return ft.Container(
-            bgcolor="#fffdf4",
+            bgcolor=THEME["CARD_BG"],
             border_radius=18,
             padding=16,
-            border=border_all(1, "#d7c8b9"),
-            shadow=ft.BoxShadow(blur_radius=14, color="#2b130812", offset=ft.Offset(0, 8)),
+            border=border_all(1, THEME["CARD_BORDER_ALT"]),
+            shadow=ft.BoxShadow(blur_radius=14, color=THEME["SHADOW_CARD2"], offset=ft.Offset(0, 8)),
             on_click=lambda _event, pet=name: show_animal_card(pet),
             content=ft.Row(
                 controls=[
-                    ft.Text(data["emoji"], size=34),
+                    portrait_preview,
                     ft.Column(
                         controls=[
-                            ft.Text(name, size=19, weight=ft.FontWeight.W_900, color="#3d2a21"),
-                            ft.Text(data["role"], size=13, weight=ft.FontWeight.W_700, color="#7a4b38"),
+                            ft.Text(name, size=19, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
+                            ft.Text(data.get("role", ""), size=13, weight=ft.FontWeight.W_700, color=THEME["ANIMAL_ROLE"]),
                         ],
                         spacing=2,
                         expand=True,
+                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     ),
-                    ft.Icon(ft.Icons.CHEVRON_RIGHT, color="#8a6a54"),
+                    ft.Icon(ft.Icons.CHEVRON_RIGHT, color=THEME["MUTED"]),
                 ],
                 alignment=ft.MainAxisAlignment.CENTER,
                 vertical_alignment=ft.CrossAxisAlignment.CENTER,
@@ -2120,7 +1707,7 @@ async def run_app(page: ft.Page) -> None:
             animals_view = ft.Column(
                 controls=[
                     section_label("🐾", "認識動物"),
-                    ft.Text("點擊名字，打開牠的介紹卡片。", size=14, color="#6d5140"),
+                    ft.Text("點擊名字，打開牠的介紹卡片。", size=14, color=THEME["BODY"]),
                     ft.Column(
                         controls=[animal_card(name, data) for name, data in ANIMALS_DB.items()],
                         spacing=12,
@@ -2156,55 +1743,16 @@ async def run_app(page: ft.Page) -> None:
 
     mode.on_change = update_mode
 
-    def plant_card(name: str, data: dict[str, Any]) -> ft.Container:
-        confidence = data.get("confidence", 0)
-        is_low_confidence = data.get("is_low_confidence", False)
-        
-        badge = ""
-        if is_low_confidence and confidence > 0:
-            badge = "⚠️"
-        
-        return ft.Container(
-            bgcolor="#fffdf4",
-            border_radius=18,
-            padding=16,
-            border=border_all(1, "#d7c8b9"),
-            shadow=ft.BoxShadow(blur_radius=14, color="#2b130812", offset=ft.Offset(0, 8)),
-            on_click=lambda _event, plant_name=name: show_plant_card(plant_name, data),
-            content=ft.Column(
-                controls=[
-                    ft.Row(
-                        controls=[
-                            ft.Text(f"{data['emoji']} {badge}", size=34),
-                            ft.Column(
-                                controls=[
-                                    ft.Text(name, size=19, weight=ft.FontWeight.W_900, color="#3d2a21"),
-                                    ft.Text(f"置信度: {confidence}%" if confidence > 0 else "", size=13, weight=ft.FontWeight.W_700, color="#6d5140"),
-                                ],
-                                spacing=2,
-                                expand=True,
-                            ),
-                            ft.Icon(ft.Icons.CHEVRON_RIGHT, color="#8a6a54"),
-                        ],
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
-                    ),
-                ],
-                spacing=8,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
-        )
-
     gallery_panel = soft_card(
         ft.Column(
             controls=[
                 ft.Row(
                     controls=[
                         ft.Text("🎒", size=30),
-                        ft.Text("探險圖鑑", size=28, weight=ft.FontWeight.W_900, color="#3d2a21"),
+                        ft.Text("探險圖鑑", size=28, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
                         ft.IconButton(
                             icon=ft.Icons.DELETE_SWEEP_OUTLINED,
-                            icon_color="#8a5a22",
+                            icon_color=THEME["ACCENT"],
                             tooltip="清除圖鑑內容",
                             on_click=confirm_clear_gallery,
                         ),
@@ -2227,7 +1775,7 @@ async def run_app(page: ft.Page) -> None:
             controls=[
                 ft.Row(
                     controls=[
-                        ft.Text("探險放大鏡", size=36, weight=ft.FontWeight.W_900, color="#3d2a21"),
+                        ft.Text("探險放大鏡", size=36, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
                         ft.Text("🔍", size=34),
                     ],
                     spacing=6,
@@ -2244,7 +1792,7 @@ async def run_app(page: ft.Page) -> None:
 
     async def start_exploration() -> None:
         start_button.disabled = True
-        start_button.text = "準備中..."
+        start_button.text = "探險放大鏡啟動中"
         page.update()
 
         mark_load_timing("art-village:user-start")

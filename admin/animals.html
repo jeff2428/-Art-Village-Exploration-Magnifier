@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>藝素村動物管理後台</title>
+  <style>
+    :root {
+      --page-bg: #f3efd9;
+      --card-bg: #fffdf4;
+      --card-border: #dccfc0;
+      --title: #3d2a21;
+      --body: #6d5140;
+      --muted: #8a6a54;
+      --accent: #8a5a22;
+      --green: #2f7d51;
+      --danger: #c0392b;
+      --danger-bg: #fde8e8;
+      --shadow: #2b130814;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, "Microsoft JhengHei", sans-serif;
+      background: var(--page-bg);
+      color: var(--title);
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--title);
+      margin-bottom: 8px;
+    }
+    header p {
+      color: var(--body);
+      font-size: 14px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .toolbar button {
+      padding: 10px 20px;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      background: var(--card-bg);
+      color: var(--title);
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .toolbar button:hover {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .toolbar button.danger {
+      background: var(--danger-bg);
+      color: var(--danger);
+      border-color: var(--danger);
+    }
+    .toolbar button.danger:hover {
+      background: var(--danger);
+      color: white;
+    }
+    .toolbar button.primary {
+      background: var(--green);
+      color: white;
+      border-color: var(--green);
+    }
+    .toolbar button.primary:hover {
+      opacity: 0.9;
+    }
+    .animals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .animal-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 4px 12px var(--shadow);
+      transition: transform 0.2s;
+    }
+    .animal-card:hover {
+      transform: translateY(-2px);
+    }
+    .animal-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .animal-card-header .emoji {
+      font-size: 32px;
+    }
+    .animal-card-header .info {
+      flex: 1;
+    }
+    .animal-card-header .name {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--title);
+    }
+    .animal-card-header .role {
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 700;
+    }
+    .animal-card-header .actions {
+      display: flex;
+      gap: 4px;
+    }
+    .animal-card-header .actions button {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.2s;
+    }
+    .animal-card-header .actions button:hover {
+      background: rgba(0,0,0,0.05);
+    }
+    .animal-card-header .actions button.delete:hover {
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+    .portrait-container {
+      width: 100%;
+      height: 200px;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      background: var(--page-bg);
+      border: 1px dashed var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+    }
+    .portrait-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .portrait-container .placeholder {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .portrait-container .placeholder .icon {
+      font-size: 36px;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .portrait-container .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .portrait-container:hover .overlay {
+      display: flex;
+    }
+    .photos-section {
+      margin-top: 12px;
+    }
+    .photos-section h4 {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .photos-grid {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+    .photo-thumb {
+      width: 64px;
+      height: 64px;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid var(--card-border);
+    }
+    .photo-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .photo-thumb .remove {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(192, 57, 43, 0.9);
+      color: white;
+      border: none;
+      font-size: 10px;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .photo-thumb:hover .remove {
+      display: flex;
+    }
+    .upload-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 8px;
+      border: 2px dashed var(--card-border);
+      background: transparent;
+      cursor: pointer;
+      font-size: 24px;
+      color: var(--muted);
+      transition: all 0.2s;
+    }
+    .upload-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(138, 90, 34, 0.05);
+    }
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 24px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 24px;
+      max-width: 520px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal h2 {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--title);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--body);
+      margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      background: var(--page-bg);
+      color: var(--title);
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .emoji-picker {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .emoji-picker button {
+      width: 44px;
+      height: 44px;
+      border: 2px solid var(--card-border);
+      border-radius: 10px;
+      background: var(--page-bg);
+      font-size: 22px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .emoji-picker button:hover {
+      border-color: var(--accent);
+      transform: scale(1.1);
+    }
+    .emoji-picker button.selected {
+      border-color: var(--accent);
+      background: rgba(138, 90, 34, 0.1);
+    }
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 24px;
+    }
+    .modal-actions button {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .modal-actions button.cancel {
+      background: var(--page-bg);
+      color: var(--body);
+      border: 1px solid var(--card-border);
+    }
+    .modal-actions button.save {
+      background: var(--green);
+      color: white;
+    }
+    .modal-actions button.save:hover {
+      opacity: 0.9;
+    }
+    /* Export modal */
+    .export-area {
+      width: 100%;
+      min-height: 300px;
+      padding: 12px;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 12px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--title);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 14px;
+      z-index: 2000;
+      transition: transform 0.3s ease;
+      pointer-events: none;
+    }
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state .icon {
+      font-size: 48px;
+      display: block;
+      margin-bottom: 12px;
+    }
+    .drop-zone {
+      border: 2px dashed var(--card-border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(138, 90, 34, 0.05);
+    }
+    .drop-zone .icon {
+      font-size: 28px;
+      display: block;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🐾 藝素村動物管理後台</h1>
+      <p>管理動物資料、上傳大頭貼與生活照，完成後匯出 JSON 更新到 <code>flet_app/main.py</code></p>
+    </header>
+
+    <div class="toolbar">
+      <button class="primary" onclick="openAddModal()">＋ 新增動物</button>
+      <button onclick="exportJSON()">📋 複製 JSON</button>
+      <button onclick="downloadJSON()">💾 下載 animals.json</button>
+      <button onclick="importJSON()">📥 匯入 JSON</button>
+    </div>
+
+    <div class="animals-grid" id="animalsGrid"></div>
+  </div>
+
+  <!-- Edit/Add Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h2 id="modalTitle">新增動物</h2>
+      <input type="hidden" id="editIndex" value="-1">
+      
+      <div class="form-group">
+        <label>Emoji 圖示</label>
+        <div class="emoji-picker" id="emojiPicker"></div>
+      </div>
+
+      <div class="form-group">
+        <label>名字</label>
+        <input type="text" id="editName" placeholder="例如：貝貝">
+      </div>
+
+      <div class="form-group">
+        <label>角色</label>
+        <input type="text" id="editRole" placeholder="例如：溫柔導覽員">
+      </div>
+
+      <div class="form-group">
+        <label>介紹</label>
+        <textarea id="editDesc" placeholder="寫一段關於這隻動物的介紹..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>大頭貼</label>
+        <div class="drop-zone" id="portraitDropZone" onclick="document.getElementById('portraitInput').click()">
+          <span class="icon">📷</span>
+          <span>點擊或拖放上傳大頭貼</span>
+        </div>
+        <input type="file" id="portraitInput" accept="image/*" style="display:none" onchange="handlePortraitUpload(event)">
+        <div id="portraitPreview" style="display:none; margin-top:8px; position:relative; display:none;">
+          <img id="portraitImg" style="width:100%; border-radius:10px;">
+          <button onclick="removePortrait()" style="position:absolute; top:8px; right:8px; background:rgba(192,57,43,0.9); color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:14px;">✕</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>生活照</label>
+        <div class="drop-zone" id="photosDropZone" onclick="document.getElementById('photosInput').click()">
+          <span class="icon">🖼️</span>
+          <span>點擊或拖放上傳生活照（可多張）</span>
+        </div>
+        <input type="file" id="photosInput" accept="image/*" multiple style="display:none" onchange="handlePhotosUpload(event)">
+        <div class="photos-grid" id="tempPhotosGrid"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="cancel" onclick="closeModal()">取消</button>
+        <button class="save" onclick="saveAnimal()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Modal -->
+  <div class="modal-overlay" id="exportModal">
+    <div class="modal">
+      <h2>匯出 JSON</h2>
+      <textarea class="export-area" id="exportArea" readonly></textarea>
+      <div class="modal-actions">
+        <button class="cancel" onclick="closeExportModal()">關閉</button>
+        <button class="save" onclick="copyJSON()">📋 複製到剪貼簿</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Modal -->
+  <div class="modal-overlay" id="importModal">
+    <div class="modal">
+      <h2>匯入 JSON</h2>
+      <div class="form-group">
+        <label>貼上 animals.json 內容</label>
+        <textarea class="export-area" id="importArea" style="min-height:200px; background:var(--page-bg); color:var(--title); border:1px solid var(--card-border);"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="cancel" onclick="closeImportModal()">取消</button>
+        <button class="save" onclick="importJSONData()">匯入</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const EMOJI_LIST = ['🐶', '🐕', '🐈', '🐈‍⬛', '🐱', '🐾', '🐭', '🐹', '🐰', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🦊', '🐺', '🐗', '🐴', '🦄', '🐝', '🦋', '🐛', '🐞', '🐢', '🐍', '🦎', '🐙', '🦑', '🐬', '🐳', '🦅', '🦉', '🦜', '🐦'];
+
+    let animalsData = { animals: [] };
+    let currentPortrait = '';
+    let currentTempPhotos = [];
+    let selectedEmoji = '🐾';
+
+    // Initialize
+    loadAnimals();
+    renderEmojiPicker();
+
+    function loadAnimals() {
+      const stored = localStorage.getItem('artVillageAnimals');
+      if (stored) {
+        try {
+          animalsData = JSON.parse(stored);
+        } catch (e) {
+          animalsData = { animals: [] };
+        }
+      }
+      renderGrid();
+    }
+
+    function saveToStorage() {
+      localStorage.setItem('artVillageAnimals', JSON.stringify(animalsData));
+    }
+
+    function renderEmojiPicker() {
+      const picker = document.getElementById('emojiPicker');
+      picker.innerHTML = EMOJI_LIST.map(e => 
+        `<button type="button" onclick="selectEmoji('${e}')" class="${e === selectedEmoji ? 'selected' : ''}">${e}</button>`
+      ).join('');
+    }
+
+    function selectEmoji(emoji) {
+      selectedEmoji = emoji;
+      renderEmojiPicker();
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('animalsGrid');
+      const animals = animalsData.animals || [];
+      
+      if (animals.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <span class="icon">🐾</span>
+            <p>還沒有動物資料，點擊「新增動物」開始吧！</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = animals.map((animal, index) => `
+        <div class="animal-card">
+          <div class="animal-card-header">
+            <span class="emoji">${animal.emoji || '🐾'}</span>
+            <div class="info">
+              <div class="name">${escapeHtml(animal.name)}</div>
+              <div class="role">${escapeHtml(animal.role || '')}</div>
+            </div>
+            <div class="actions">
+              <button onclick="openEditModal(${index})" title="編輯">✏️</button>
+              <button class="delete" onclick="deleteAnimal(${index})" title="刪除">🗑️</button>
+            </div>
+          </div>
+          
+          ${animal.portrait ? 
+            `<div class="portrait-container">
+              <img src="${animal.portrait}" alt="${escapeHtml(animal.name)}">
+            </div>` :
+            `<div class="portrait-container">
+              <div class="placeholder">
+                <span class="icon">📷</span>
+                <span>尚無大頭貼</span>
+              </div>
+            </div>`
+          }
+
+          ${animal.photos && animal.photos.length > 0 ? `
+            <div class="photos-section">
+              <h4>生活照 (${animal.photos.length})</h4>
+              <div class="photos-grid">
+                ${animal.photos.map((photo, i) => `
+                  <div class="photo-thumb">
+                    <img src="${photo}" alt="生活照 ${i + 1}">
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    function openAddModal() {
+      document.getElementById('editIndex').value = -1;
+      document.getElementById('modalTitle').textContent = '新增動物';
+      document.getElementById('editName').value = '';
+      document.getElementById('editRole').value = '';
+      document.getElementById('editDesc').value = '';
+      selectedEmoji = '🐾';
+      currentPortrait = '';
+      currentTempPhotos = [];
+      renderEmojiPicker();
+      updatePortraitPreview();
+      updateTempPhotos();
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    function openEditModal(index) {
+      const animal = animalsData.animals[index];
+      document.getElementById('editIndex').value = index;
+      document.getElementById('modalTitle').textContent = '編輯動物';
+      document.getElementById('editName').value = animal.name || '';
+      document.getElementById('editRole').value = animal.role || '';
+      document.getElementById('editDesc').value = animal.desc || '';
+      selectedEmoji = animal.emoji || '🐾';
+      currentPortrait = animal.portrait || '';
+      currentTempPhotos = [...(animal.photos || [])];
+      renderEmojiPicker();
+      updatePortraitPreview();
+      updateTempPhotos();
+      document.getElementById('editModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('editModal').classList.remove('active');
+    }
+
+    function saveAnimal() {
+      const index = parseInt(document.getElementById('editIndex').value);
+      const name = document.getElementById('editName').value.trim();
+      const role = document.getElementById('editRole').value.trim();
+      const desc = document.getElementById('editDesc').value.trim();
+
+      if (!name) {
+        showToast('❌ 請輸入名字');
+        return;
+      }
+
+      const animal = {
+        name: name,
+        type: 'animal',
+        emoji: selectedEmoji,
+        role: role,
+        desc: desc,
+        portrait: currentPortrait,
+        photos: currentTempPhotos
+      };
+
+      if (index === -1) {
+        animalsData.animals.push(animal);
+        showToast('✅ 新增成功');
+      } else {
+        animalsData.animals[index] = animal;
+        showToast('✅ 儲存成功');
+      }
+
+      saveToStorage();
+      renderGrid();
+      closeModal();
+    }
+
+    function deleteAnimal(index) {
+      const animal = animalsData.animals[index];
+      if (confirm(`確定要刪除「${animal.name}」嗎？`)) {
+        animalsData.animals.splice(index, 1);
+        saveToStorage();
+        renderGrid();
+        showToast('🗑️ 已刪除');
+      }
+    }
+
+    function updatePortraitPreview() {
+      const preview = document.getElementById('portraitPreview');
+      const img = document.getElementById('portraitImg');
+      if (currentPortrait) {
+        img.src = currentPortrait;
+        preview.style.display = 'block';
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+
+    function removePortrait() {
+      currentPortrait = '';
+      updatePortraitPreview();
+    }
+
+    function updateTempPhotos() {
+      const grid = document.getElementById('tempPhotosGrid');
+      grid.innerHTML = currentTempPhotos.map((photo, i) => `
+        <div class="photo-thumb">
+          <img src="${photo}" alt="預覽">
+          <button class="remove" onclick="removeTempPhoto(${i})">✕</button>
+        </div>
+      `).join('') + `<button class="upload-btn" onclick="document.getElementById('photosInput').click()">+</button>`;
+    }
+
+    function removeTempPhoto(index) {
+      currentTempPhotos.splice(index, 1);
+      updateTempPhotos();
+    }
+
+    function handlePortraitUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      compressImage(file, 800, 0.85, (base64) => {
+        currentPortrait = base64;
+        updatePortraitPreview();
+      });
+      event.target.value = '';
+    }
+
+    function handlePhotosUpload(event) {
+      const files = Array.from(event.target.files);
+      files.forEach(file => {
+        compressImage(file, 1200, 0.85, (base64) => {
+          currentTempPhotos.push(base64);
+          updateTempPhotos();
+        });
+      });
+      event.target.value = '';
+    }
+
+    function compressImage(file, maxWidth, quality, callback) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          callback(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Drag and drop
+    function setupDropZone(zoneId, inputHandler) {
+      const zone = document.getElementById(zoneId);
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+      });
+      zone.addEventListener('dragleave', () => {
+        zone.classList.remove('dragover');
+      });
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          const fakeEvent = { target: { files: files, value: '' } };
+          inputHandler(fakeEvent);
+        }
+      });
+    }
+    setupDropZone('portraitDropZone', handlePortraitUpload);
+    setupDropZone('photosDropZone', handlePhotosUpload);
+
+    // Export
+    function exportJSON() {
+      const json = JSON.stringify(animalsData, null, 2);
+      document.getElementById('exportArea').value = json;
+      document.getElementById('exportModal').classList.add('active');
+    }
+
+    function closeExportModal() {
+      document.getElementById('exportModal').classList.remove('active');
+    }
+
+    function copyJSON() {
+      const textarea = document.getElementById('exportArea');
+      textarea.select();
+      navigator.clipboard.writeText(textarea.value).then(() => {
+        showToast('📋 已複製到剪貼簿');
+        closeExportModal();
+      });
+    }
+
+    function downloadJSON() {
+      const json = JSON.stringify(animalsData, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'animals.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('💾 已下載 animals.json');
+    }
+
+    // Import
+    function importJSON() {
+      document.getElementById('importArea').value = '';
+      document.getElementById('importModal').classList.add('active');
+    }
+
+    function closeImportModal() {
+      document.getElementById('importModal').classList.remove('active');
+    }
+
+    function importJSONData() {
+      const text = document.getElementById('importArea').value.trim();
+      try {
+        const data = JSON.parse(text);
+        if (data.animals && Array.isArray(data.animals)) {
+          animalsData = data;
+          saveToStorage();
+          renderGrid();
+          closeImportModal();
+          showToast('✅ 匯入成功');
+        } else {
+          showToast('❌ 格式錯誤：缺少 animals 陣列');
+        }
+      } catch (e) {
+        showToast('❌ JSON 格式錯誤');
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // Close modals on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

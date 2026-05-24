@@ -1,0 +1,49 @@
+{
+  "animals": [
+    {
+      "name": "貝貝",
+      "type": "animal",
+      "emoji": "🐶",
+      "role": "溫柔導覽員",
+      "desc": "東北角的米克斯母狗，也是藝素村最溫柔的導嚮員。",
+      "portrait": "",
+      "photos": []
+    },
+    {
+      "name": "牧耳",
+      "type": "animal",
+      "emoji": "🐕",
+      "role": "草地巡邏員",
+      "desc": "充滿活力的夥伴，最喜歡在東北角的草地上奔跑。",
+      "portrait": "",
+      "photos": []
+    },
+    {
+      "name": "小飛俠",
+      "type": "animal",
+      "emoji": "🐈",
+      "role": "屋頂觀察員",
+      "desc": "身手矯健，總是在屋頂上觀察探險家們。",
+      "portrait": "",
+      "photos": []
+    },
+    {
+      "name": "嘿皮",
+      "type": "animal",
+      "emoji": "🐈‍⬛",
+      "role": "親人接待員",
+      "desc": "個性大方的黑貓，討摸是牠的日常。",
+      "portrait": "",
+      "photos": []
+    },
+    {
+      "name": "冬瓜",
+      "type": "animal",
+      "emoji": "🐱",
+      "role": "慵懶守護者",
+      "desc": "圓滾滾的橘貓，是村裡的慵懶大王。",
+      "portrait": "",
+      "photos": []
+    }
+  ]
+}
