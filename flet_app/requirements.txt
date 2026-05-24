@@ -1,3 +1,5 @@
 flet
 flet-camera
+opencc-python-reimplemented
+Pillow
 requests

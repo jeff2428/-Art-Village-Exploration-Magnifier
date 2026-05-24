@@ -8,36 +8,93 @@ from pathlib import Path
 
 LOADER_HTML = """
 <div id="explorer-loader" role="status" aria-live="polite">
-  <div class="explorer-lens">🔍</div>
+  <div class="explorer-scanner">
+    <div class="explorer-lens">🔍</div>
+    <div class="explorer-scanline"></div>
+  </div>
   <div class="explorer-text">探險家載入中...</div>
+  <div class="explorer-progress-track">
+    <div class="explorer-progress-fill"></div>
+  </div>
 </div>
 <style>
   #explorer-loader {
     position: fixed;
     inset: 0;
     z-index: 9999;
-    display: grid;
-    place-content: center;
-    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
     min-height: 100vh;
-    background: linear-gradient(135deg, #e8f6f5, #eef6df);
+    background: linear-gradient(150deg, #e8f6f5 0%, #eef6df 50%, #f6ecdf 100%);
     color: #3d2a21;
     font-family: system-ui, "Microsoft JhengHei", sans-serif;
     text-align: center;
   }
+  .explorer-scanner {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   .explorer-lens {
-    font-size: clamp(4rem, 18vw, 7rem);
-    animation: explorer-pulse 1.15s ease-in-out infinite;
+    font-size: clamp(4rem, 18vw, 6rem);
+    animation: explorer-scan 1.6s ease-in-out infinite;
     filter: drop-shadow(0 12px 20px rgba(61, 42, 33, 0.24));
+    position: relative;
+    z-index: 2;
+  }
+  .explorer-scanline {
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(138, 90, 34, 0.15), transparent);
+    border-radius: 50%;
+    animation: explorer-sweep 1.6s ease-in-out infinite;
+    z-index: 1;
   }
   .explorer-text {
     font-size: clamp(1.1rem, 4vw, 1.45rem);
     font-weight: 800;
-    letter-spacing: 0;
+    letter-spacing: 0.02em;
+    animation: explorer-fade 2s ease-in-out infinite;
   }
-  @keyframes explorer-pulse {
-    0%, 100% { opacity: 0.46; transform: scale(0.94) rotate(-7deg); }
-    50% { opacity: 1; transform: scale(1.06) rotate(5deg); }
+  .explorer-progress-track {
+    width: min(200px, 60vw);
+    height: 4px;
+    border-radius: 4px;
+    background: rgba(61, 42, 33, 0.1);
+    overflow: hidden;
+  }
+  .explorer-progress-fill {
+    height: 100%;
+    width: 30%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #8a5a22, #2f7d51, #8a5a22);
+    background-size: 200% 100%;
+    animation: explorer-progress 1.8s ease-in-out infinite;
+  }
+  @keyframes explorer-scan {
+    0%, 100% { transform: translateX(-12px) rotate(-8deg) scale(0.95); }
+    50% { transform: translateX(12px) rotate(8deg) scale(1.05); }
+  }
+  @keyframes explorer-sweep {
+    0%, 100% { left: -40%; }
+    50% { left: 100%; }
+  }
+  @keyframes explorer-fade {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  @keyframes explorer-progress {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
   }
 </style>
 <script>

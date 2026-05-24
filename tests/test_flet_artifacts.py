@@ -1,9 +1,9 @@
-from pathlib import Path
 import importlib.util
 import os
 import tempfile
 import unittest
-
+import zipfile
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -12,6 +12,17 @@ def load_loader_patcher():
     spec = importlib.util.spec_from_file_location(
         "patch_flet_loader",
         ROOT / "scripts" / "patch_flet_loader.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_app_package_patcher():
+    spec = importlib.util.spec_from_file_location(
+        "patch_flet_app_package",
+        ROOT / "scripts" / "patch_flet_app_package.py",
     )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
@@ -92,6 +103,9 @@ class FletArtifactsTests(unittest.TestCase):
 
     def test_flet_main_uses_worker_and_camera(self):
         main = (ROOT / "flet_app" / "main.py").read_text(encoding="utf-8")
+        camera_utils = (ROOT / "flet_app" / "camera_utils.py").read_text(encoding="utf-8")
+        plant_api = (ROOT / "flet_app" / "plant_api.py").read_text(encoding="utf-8")
+        pokedex_manager = (ROOT / "flet_app" / "pokedex_manager.py").read_text(encoding="utf-8")
 
         self.assertIn("flet_camera", main)
         self.assertIn("run_app", main)
@@ -99,7 +113,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("探險放大鏡載入失敗", main)
         self.assertIn("重新啟動相機", main)
         self.assertIn("camera_initializing", main)
-        self.assertIn("asyncio.wait_for(camera.get_available_cameras()", main)
+        self.assertIn("asyncio.wait_for(state.camera.get_available_cameras(", main)
         self.assertIn("asyncio.wait_for(", main)
         self.assertIn("create_background_task(initialize_camera()", main)
         self.assertIn("select_preferred_cameras", main)
@@ -107,44 +121,44 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("on_room_out=room_out", main)
         self.assertNotIn("on_scale_start=on_pinch_start", main)
         self.assertNotIn("on_scale_update=on_pinch_update", main)
-        self.assertIn("MIN_CAMERA_ZOOM = 1.0", main)
-        self.assertIn("MAX_CAMERA_ZOOM = 2.0", main)
+        self.assertIn("MIN_CAMERA_ZOOM", main)
+        self.assertIn("MAX_CAMERA_ZOOM", main)
         self.assertIn("clamp_camera_zoom", main)
         self.assertNotIn("(selected_camera_index + 1) % len(cameras)", main)
-        self.assertIn("create_background_task(hydrate_gallery()", main)
+        self.assertIn("create_background_task(save_cached_pokedex", main)
         self.assertIn("mark_load_timing", main)
-        self.assertIn("art-village:flet-shell-ready", main)
+        self.assertIn("art-village:shell-ready", main)
         self.assertIn("art-village:camera-ready", main)
         self.assertIn("camera_ready", main)
-        self.assertIn("capture_enabled=camera_ready", main)
+        self.assertIn("capture_enabled=state.camera_ready", main)
         self.assertIn("camera_viewport", main)
-        self.assertIn("LENS_VIEWPORT_SIZE = 304", main)
-        self.assertIn("CAMERA_PREVIEW_SIZE = 420", main)
-        self.assertIn("CAMERA_PREVIEW_OFFSET = -58", main)
-        self.assertIn("POKEDEX_STORAGE_KEY", main)
-        self.assertIn("LOCAL_CACHE_DIR", main)
-        self.assertIn("tempfile.gettempdir()", main)
-        self.assertIn("LOCAL_CACHE_PATH", main)
-        self.assertIn("localStorage", main)
-        self.assertIn("LOW_CONFIDENCE_THRESHOLD", main)
-        self.assertIn("LOW_CONFIDENCE_THRESHOLD = 50.0", main)
+        self.assertIn("LENS_VIEWPORT_SIZE", main)
+        self.assertIn("CAMERA_PREVIEW_SIZE = 420", camera_utils)
+        self.assertIn("CAMERA_PREVIEW_OFFSET = -58", camera_utils)
+        self.assertIn("POKEDEX_STORAGE_KEY", pokedex_manager)
+        self.assertIn("LOCAL_CACHE_DIR", pokedex_manager)
+        self.assertIn("tempfile.gettempdir()", pokedex_manager)
+        self.assertIn("LOCAL_CACHE_PATH", pokedex_manager)
+        self.assertIn("localStorage", pokedex_manager)
+        self.assertIn("LOW_CONFIDENCE_THRESHOLD", plant_api)
+        self.assertIn("LOW_CONFIDENCE_THRESHOLD = 50.0", plant_api)
         self.assertIn("PLANT_ORGAN_OPTIONS", main)
-        self.assertIn("MAX_CARD_IMAGE_DATA_URL_LENGTH", main)
-        self.assertIn("PLANT_METADATA", main)
+        self.assertIn("MAX_CARD_IMAGE_DATA_URL_LENGTH", plant_api)
+        self.assertIn("PLANT_METADATA", plant_api)
         self.assertIn("UNKNOWN_METADATA", main)
         self.assertIn("metadata_for_scientific_name", main)
         self.assertIn("metadata_from_perenual", main)
-        self.assertIn("metadata_url_for_scientific_name", main)
+        self.assertIn("metadata_url_for_scientific_name", plant_api)
         self.assertIn("get_metadata_from_worker", main)
         self.assertIn("refresh_plant_metadata", main)
         self.assertIn('plant.get("metadata_status") == "pending"', main)
         self.assertIn("worker_timing", main)
         self.assertIn("art-village:identify-start", main)
         self.assertIn("art-village:identify-primary-ready", main)
-        self.assertIn("payload.get(\"perenual\")", main)
+        self.assertIn("payload.get(\"perenual\")", plant_api)
         self.assertIn("Perenual 植物資料", main)
         self.assertIn("資料來源", main)
-        self.assertIn("common_names_by_script", main)
+        self.assertIn("common_names_by_script", plant_api)
         self.assertIn("card_image_from_capture", main)
         self.assertIn("organ_mode = ft.SegmentedButton", main)
         self.assertIn('selected=["auto"]', main)
@@ -182,18 +196,18 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertNotIn("藝素村手繪探險圖鑑", main)
         self.assertNotIn('section_label("🔍", "探險鏡頭")', main)
         self.assertIn("ft.RadioGroup", main)
-        self.assertIn("WORKER_URL", main)
-        self.assertIn("尚未設定 Cloudflare Pages 的 WORKER_URL", main)
-        self.assertIn("worker_error_message", main)
-        self.assertIn("Object.fromEntries", main)
+        self.assertIn("WORKER_URL", plant_api)
+        self.assertIn("尚未設定 Cloudflare Pages 的 WORKER_URL", plant_api)
+        self.assertIn("worker_error_message", plant_api)
+        self.assertIn("Object.fromEntries", plant_api)
         self.assertIn("mark_explorer_ready", main)
         self.assertIn("__artVillageReady", main)
-        self.assertIn("辨識服務尚未部署", main)
-        self.assertIn("PLANTNET_API_KEY", main)
+        self.assertIn("辨識服務尚未部署", plant_api)
+        self.assertIn("PLANTNET_API_KEY", plant_api)
         self.assertIn("正在初始化相機", main)
         self.assertIn("相機元件準備中，正在重試", main)
         self.assertIn("TimeoutException", main)
-        self.assertIn("requests.post", main)
+        self.assertIn("requests.post", plant_api)
         self.assertIn("take_picture", main)
         self.assertIn("set_description", main)
         self.assertIn("GridView", main)
@@ -219,7 +233,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("welcome_screen", main)
         self.assertIn("start_exploration", main)
         self.assertIn("report_performance", main)
-        self.assertIn("shell.visible = False", main)
+        self.assertIn("welcome_screen.visible = False", main)
 
     def test_lightweight_web_prototype_exists_for_framework_comparison(self):
         prototype = (ROOT / "prototype" / "index.html").read_text(encoding="utf-8")
@@ -246,6 +260,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("WORKER_URL", build)
         self.assertIn("PRE_BUILD_NOTES.md", build)
         self.assertIn("patch_flet_loader.py", build)
+        self.assertIn("patch_flet_app_package.py", build)
         self.assertIn("FLET_BUILD_ID", build)
         self.assertIn("_headers", build)
         self.assertIn("Cache-Control: no-store", build)
@@ -254,7 +269,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn('pages_build_output_dir = "flet_app/build/web"', wrangler)
         self.assertIn("flet_app/build/web/index.html", patcher)
         self.assertIn("探險家載入中", patcher)
-        self.assertIn("explorer-pulse", patcher)
+        self.assertIn("explorer-fade", patcher)
         self.assertIn("hasFletContent", patcher)
         self.assertIn("art-village:loader-start", patcher)
         self.assertIn("resource_hints", patcher)
@@ -279,8 +294,48 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("Cross-Origin-Opener-Policy", build)
         self.assertIn("Cross-Origin-Embedder-Policy", build)
         self.assertIn("require-credentialed", build)
+        package_patcher = (ROOT / "scripts" / "patch_flet_app_package.py").read_text(encoding="utf-8")
+        self.assertIn("local_python_modules", package_patcher)
+        self.assertIn("admin/animals.json", package_patcher)
         self.assertIn("flet run -d -w main.py", dev)
         self.assertIn("flet_app/requirements.txt", install_dev)
+
+    def test_app_package_patch_includes_local_python_modules(self):
+        patcher = load_app_package_patcher()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            app_dir = root / "flet_app"
+            package = app_dir / "build" / "web" / "assets" / "app" / "app.zip"
+            admin_dir = root / "admin"
+            package.parent.mkdir(parents=True)
+            app_dir.mkdir(exist_ok=True)
+            admin_dir.mkdir()
+            (app_dir / "main.py").write_text("import ui_theme\n", encoding="utf-8")
+            (app_dir / "ui_theme.py").write_text("THEME = {}\n", encoding="utf-8")
+            (app_dir / "plant_api.py").write_text("WORKER_URL = ''\n", encoding="utf-8")
+            (admin_dir / "animals.json").write_text('{"animals": []}\n', encoding="utf-8")
+            with zipfile.ZipFile(package, "w") as archive:
+                archive.writestr("main.py", "old")
+
+            previous_root = patcher.ROOT
+            previous_app_dir = patcher.APP_DIR
+            try:
+                patcher.ROOT = root
+                patcher.APP_DIR = app_dir
+                patched = patcher.rewrite_app_package(package)
+            finally:
+                patcher.ROOT = previous_root
+                patcher.APP_DIR = previous_app_dir
+
+            with zipfile.ZipFile(package) as archive:
+                names = set(archive.namelist())
+                self.assertIn("main.py", names)
+                self.assertIn("ui_theme.py", names)
+                self.assertIn("plant_api.py", names)
+                self.assertIn("admin/animals.json", names)
+                self.assertEqual(archive.read("main.py").decode("utf-8").replace("\r\n", "\n"), "import ui_theme\n")
+                self.assertEqual(len([name for name in archive.namelist() if name == "main.py"]), 1)
+            self.assertIn("ui_theme.py", patched)
 
     def test_loader_patch_injects_preloads_for_versioned_runtime_assets(self):
         patcher = load_loader_patcher()

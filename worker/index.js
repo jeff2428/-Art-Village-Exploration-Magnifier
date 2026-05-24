@@ -3,6 +3,32 @@ const PERENUAL_SPECIES_LIST_URL = "https://perenual.com/api/v2/species-list";
 const PERENUAL_DETAILS_URL = "https://perenual.com/api/v2/species/details";
 const ALLOWED_PAGES_DOMAINS = ["pages.dev", "github.io"];
 const PERENUAL_CACHE_SECONDS = 7 * 24 * 60 * 60;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 30;
+const rateLimitStore = new Map();
+
+const ANIMALS_DATA = [
+  {"name":"貝貝","type":"animal","emoji":"🐶","role":"溫柔導覽員","desc":"東北角的米克斯母狗，也是藝素村最溫柔的導嚮員。","portrait":"","photos":[]},
+  {"name":"牧耳","type":"animal","emoji":"🐕","role":"草地巡邏員","desc":"充滿活力的夥伴，最喜歡在東北角的草地上奔跑。","portrait":"","photos":[]},
+  {"name":"小飛俠","type":"animal","emoji":"🐈","role":"屋頂觀察員","desc":"身手矯健，總是在屋頂上觀察探險家們。","portrait":"","photos":[]},
+  {"name":"嘿皮","type":"animal","emoji":"🐈‍⬛","role":"親人接待員","desc":"個性大方的黑貓，討摸是牠的日常。","portrait":"","photos":[]},
+  {"name":"冬瓜","type":"animal","emoji":"🐱","role":"慵懶守護者","desc":"圓滾滾的橘貓，是村裡的慵懶大王。","portrait":"","photos":[]},
+];
+
+function checkRateLimit(request) {
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const now = Date.now();
+  const entry = rateLimitStore.get(ip);
+  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    rateLimitStore.set(ip, { windowStart: now, count: 1 });
+    return { allowed: true };
+  }
+  entry.count++;
+  if (entry.count > RATE_LIMIT_MAX_REQUESTS) {
+    return { allowed: false, retryAfter: Math.ceil((RATE_LIMIT_WINDOW_MS - (now - entry.windowStart)) / 1000) };
+  }
+  return { allowed: true };
+}
 
 function corsHeaders(request, env = {}) {
   const origin = request.headers.get("Origin") || "";
@@ -27,17 +53,22 @@ function corsHeaders(request, env = {}) {
   return "https://pages.dev";
 }
 
+function corsHeadersMap(request, env) {
+  return {
+    "Access-Control-Allow-Origin": corsHeaders(request, env),
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
+  };
+}
+
 function jsonResponse(body, init, request, env) {
-  const allowOrigin = corsHeaders(request, env);
   return new Response(JSON.stringify(body), {
     ...init,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Access-Control-Allow-Origin": allowOrigin,
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Max-Age": "86400",
-      Vary: "Origin",
+      ...corsHeadersMap(request, env),
       ...(init?.headers || {}),
     },
   });
@@ -151,9 +182,8 @@ async function fetchPerenualMetadataCached(scientificName, env) {
     };
   }
 
-  const cacheUrl = new URL("https://art-village-metadata-cache.local/perenual");
-  cacheUrl.searchParams.set("scientificName", normalizeScientificName(scientificName));
-  const cacheKey = new Request(cacheUrl.toString(), { method: "GET" });
+  const cacheKeyStr = `cache://perenual/${normalizeScientificName(scientificName)}`;
+  const cacheKey = new Request(cacheKeyStr, { method: "GET" });
 
   try {
     const cachedResponse = await caches.default.match(cacheKey);
@@ -194,21 +224,27 @@ async function fetchPerenualMetadataCached(scientificName, env) {
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
-      const allowOrigin = corsHeaders(request, env);
       return new Response(null, {
         status: 204,
-        headers: {
-          "Access-Control-Allow-Origin": allowOrigin,
-          "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type",
-          "Access-Control-Max-Age": "86400",
-          Vary: "Origin",
-        },
+        headers: corsHeadersMap(request, env),
       });
     }
 
     try {
+      const rateCheck = checkRateLimit(request);
+      if (!rateCheck.allowed) {
+        return jsonResponse(
+          { error: "Rate limit exceeded. Try again later." },
+          { status: 429, headers: { "Retry-After": String(rateCheck.retryAfter) } },
+          request, env,
+        );
+      }
+
       const requestUrl = new URL(request.url);
+
+      if (request.method === "GET" && requestUrl.pathname === "/animals") {
+        return jsonResponse({ animals: ANIMALS_DATA }, { status: 200 }, request, env);
+      }
 
       if (request.method === "GET" && requestUrl.pathname === "/metadata") {
         const totalStartedAt = Date.now();
@@ -288,16 +324,11 @@ export default {
       });
       const plantnetMs = Date.now() - plantNetStartedAt;
 
-      const allowOrigin = corsHeaders(request, env);
       const responseText = await response.text();
       const responseHeaders = {
         "Content-Type": response.headers.get("Content-Type") || "application/json; charset=utf-8",
-        "Access-Control-Allow-Origin": allowOrigin,
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Max-Age": "86400",
+        ...corsHeadersMap(request, env),
         "Server-Timing": `plantnet;dur=${plantnetMs}`,
-        Vary: "Origin",
       };
 
       if (!response.ok) {

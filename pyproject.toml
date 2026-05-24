@@ -1,12 +1,14 @@
 [project]
 name = "art-village-exploration-magnifier"
 version = "0.1.0"
-description = "Add your description here"
+description = "藝素村探險放大鏡 - Flet Web + Cloudflare Worker 植物辨識與探險圖鑑應用"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "flet",
     "flet-camera",
+    "opencc-python-reimplemented",
+    "Pillow",
     "requests",
 ]
 
@@ -16,3 +18,24 @@ dev = [
     "pytest>=9.0.3",
     "ruff>=0.15.13",
 ]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 140
+indent-width = 4
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["F401"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_ignores = true
+ignore_missing_imports = true
+check_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

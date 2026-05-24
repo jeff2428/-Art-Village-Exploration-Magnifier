@@ -1,16 +1,11 @@
 from __future__ import annotations
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import flet as ft
+from ui_theme import border_all
 
-
-Callback = Optional[Callable[[ft.ControlEvent], None]]
-
-
-def border_all(width: int, color: str) -> ft.Border:
-    side = ft.BorderSide(width, color)
-    return ft.Border(top=side, right=side, bottom=side, left=side)
+Callback = Callable[[ft.ControlEvent], None] | None
 
 
 class _PressableRoundButton(ft.GestureDetector):
@@ -27,12 +22,14 @@ class _PressableRoundButton(ft.GestureDetector):
         show_label: bool = True,
     ) -> None:
         radius = size / 2
+        self._disabled = disabled
         self._button_face = ft.Container(
             width=size,
             height=size,
             tooltip=label,
             border_radius=radius,
             alignment=ft.Alignment(0, 0),
+            opacity=0.45 if disabled else 1.0,
             gradient=ft.RadialGradient(
                 center=ft.Alignment(-0.38, -0.45),
                 radius=0.95,
@@ -41,12 +38,17 @@ class _PressableRoundButton(ft.GestureDetector):
                     "#d9986b",
                     "#8a5335",
                     "#3f2013",
+                ] if not disabled else [
+                    "#9a8a80",
+                    "#7a6a60",
+                    "#5a4a40",
+                    "#3a2a20",
                 ],
             ),
-            border=border_all(3, "#3d1f11"),
+            border=border_all(3, "#3d1f11" if not disabled else "#5a4a40"),
             shadow=[
                 ft.BoxShadow(
-                    blur_radius=18,
+                    blur_radius=18 if not disabled else 6,
                     spread_radius=1,
                     color="#6d000000",
                     offset=ft.Offset(0, 8),
@@ -58,11 +60,15 @@ class _PressableRoundButton(ft.GestureDetector):
                     offset=ft.Offset(-2, -2),
                 ),
             ],
-            animate_offset=ft.Animation(90, ft.AnimationCurve.EASE_OUT),
+            animate=ft.Animation(180, ft.AnimationCurve.EASE_OUT),
+            animate_scale=ft.Animation(120, ft.AnimationCurve.EASE_OUT),
             content=ft.Column(
                 [
-                    ft.Icon(icon, size=icon_size, color="#2b1308"),
-                    ft.Text(label, size=13, weight=ft.FontWeight.W_900, color="#2b1308") if show_label else ft.Container(),
+                    ft.Icon(icon, size=icon_size, color="#2b1308" if not disabled else "#7a6a60"),
+                    (
+                        ft.Text(label, size=13, weight=ft.FontWeight.W_900, color="#2b1308" if not disabled else "#7a6a60")
+                        if show_label else ft.Container()
+                    ),
                 ],
                 spacing=3 if show_label else 0,
                 alignment=ft.MainAxisAlignment.CENTER,
@@ -78,14 +84,45 @@ class _PressableRoundButton(ft.GestureDetector):
             on_tap_down=self._press if not disabled else None,
             on_tap_up=self._release if not disabled else None,
             on_tap_cancel=self._release if not disabled else None,
+            key=f"btn_{label}",
+            data={"role": "button", "disabled": disabled},
+            tooltip=label,
         )
 
     def _press(self, _event: ft.ControlEvent) -> None:
-        self._button_face.offset = ft.Offset(0, 0.08)
+        self._button_face.scale = 0.92
+        self._button_face.shadow = [
+            ft.BoxShadow(
+                blur_radius=6,
+                spread_radius=0,
+                color="#8d000000",
+                offset=ft.Offset(0, 3),
+            ),
+            ft.BoxShadow(
+                blur_radius=4,
+                spread_radius=-1,
+                color="#60ffffff",
+                offset=ft.Offset(-1, -1),
+            ),
+        ]
         self._button_face.update()
 
     def _release(self, _event: ft.ControlEvent) -> None:
-        self._button_face.offset = ft.Offset(0, 0)
+        self._button_face.scale = 1.0
+        self._button_face.shadow = [
+            ft.BoxShadow(
+                blur_radius=18,
+                spread_radius=1,
+                color="#6d000000",
+                offset=ft.Offset(0, 8),
+            ),
+            ft.BoxShadow(
+                blur_radius=8,
+                spread_radius=-2,
+                color="#80ffffff",
+                offset=ft.Offset(-2, -2),
+            ),
+        ]
         self._button_face.update()
 
 

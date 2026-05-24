@@ -9,9 +9,14 @@ if [ -f "docs/PRE_BUILD_NOTES.md" ]; then
   python -c "from pathlib import Path; print('\n'.join(Path('docs/PRE_BUILD_NOTES.md').read_text(encoding='utf-8').splitlines()[:180]))" >&2
 fi
 
-echo "Installing Flet dependencies..." >&2
+echo "Installing dependencies..." >&2
 python -m pip install --upgrade pip
 python -m pip install -r flet_app/requirements.txt
+
+if command -v ruff &> /dev/null; then
+  echo "Running Ruff lint..." >&2
+  python -m ruff check --target-version py312 flet_app/ tests/
+fi
 
 if [ -n "${WORKER_URL:-}" ]; then
   echo "Writing Cloudflare Worker URL into Flet build config..." >&2
@@ -22,6 +27,9 @@ echo "Building Flet web app for Cloudflare Pages..." >&2
 cd flet_app
 flet build web --yes --verbose --route-url-strategy hash --web-renderer auto
 cd ..
+
+echo "Patching Flet app package with local modules..." >&2
+python scripts/patch_flet_app_package.py
 
 echo "Patching loading screen..." >&2
 python scripts/patch_flet_loader.py
