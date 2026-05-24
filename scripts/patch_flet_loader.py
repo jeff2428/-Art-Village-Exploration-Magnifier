@@ -334,9 +334,21 @@ def resolve_sw_path(index_path: Path) -> Path:
     return index_path.parent / "sw.js"
 
 
+def patch_flutter_bootstrap(index_path: Path) -> None:
+    import re
+    fb_path = index_path.parent / "flutter_bootstrap.js"
+    if fb_path.exists():
+        content = fb_path.read_text(encoding="utf-8")
+        if "serviceWorkerSettings:" in content:
+            content = re.sub(r'serviceWorkerSettings:\s*\{[^}]+\},', '', content)
+            fb_path.write_text(content, encoding="utf-8")
+            print(f"Patched {fb_path.name} to remove Flutter service worker.")
+
+
 if __name__ == "__main__":
     index_path = resolve_index_path()
     stamp = build_stamp()
     patch_index(index_path)
+    patch_flutter_bootstrap(index_path)
     sw_path = resolve_sw_path(index_path)
     generate_service_worker(sw_path, stamp)

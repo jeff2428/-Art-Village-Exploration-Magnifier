@@ -3,6 +3,7 @@ set -euo pipefail
 
 export FLET_CLI_NO_RICH_OUTPUT=1
 export FLET_BUILD_ID="${CF_PAGES_COMMIT_SHA:-$(date +%s)}"
+export PYTHONIOENCODING=utf-8
 
 if [ -f "docs/PRE_BUILD_NOTES.md" ]; then
   echo "Reading pre-build notes..." >&2
@@ -22,6 +23,9 @@ if [ -n "${WORKER_URL:-}" ]; then
   echo "Writing Cloudflare Worker URL into Flet build config..." >&2
   python -c "from pathlib import Path; import os; Path('flet_app/build_config.py').write_text('WORKER_URL = ' + repr(os.environ['WORKER_URL']) + '\n', encoding='utf-8')"
 fi
+
+echo "Cleaning up any stale build directory..." >&2
+rm -rf flet_app/build
 
 echo "Building Flet web app for Cloudflare Pages..." >&2
 cd flet_app
