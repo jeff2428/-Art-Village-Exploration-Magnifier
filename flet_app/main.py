@@ -23,6 +23,7 @@ except ImportError:
     Image = None  # type: ignore[assignment]
 
 from magnifier_handle import MagnifierHandle
+from ui_theme import THEME, border_all, soft_card, section_label
 
 try:
     from build_config import WORKER_URL
@@ -32,6 +33,8 @@ except ImportError:
 POKEDEX_STORAGE_KEY = "artVillagePokedex"
 LOCAL_CACHE_DIR = Path(tempfile.gettempdir()) / "art-village-exploration-magnifier"
 LOCAL_CACHE_PATH = LOCAL_CACHE_DIR / "local_pokedex_cache.json"
+CONTENT_MAX_WIDTH = 430
+CONTENT_MIN_PADDING = 16
 LOW_CONFIDENCE_THRESHOLD = 50.0
 LENS_VIEWPORT_SIZE = 304
 LENS_FRAME_SIZE = 336
@@ -109,7 +112,7 @@ def load_animals_db() -> dict[str, dict[str, Any]]:
     return {}
 
 
-ANIMALS_DB = load_animals_db() or {
+_DEFAULT_ANIMALS: dict[str, dict[str, Any]] = {
     "貝貝": {
         "type": "animal",
         "emoji": "🐶",
@@ -142,32 +145,7 @@ ANIMALS_DB = load_animals_db() or {
     },
 }
 
-
-def border_all(width: int, color: str) -> ft.Border:
-    side = ft.BorderSide(width, color)
-    return ft.Border(top=side, right=side, bottom=side, left=side)
-
-
-def soft_card(content: ft.Control, padding: int = 16) -> ft.Container:
-    return ft.Container(
-        bgcolor=THEME["CARD_BG"],
-        border_radius=16,
-        padding=padding,
-        border=border_all(1, THEME["CARD_BORDER"]),
-        shadow=ft.BoxShadow(blur_radius=16, color=THEME["SHADOW_CARD"], offset=ft.Offset(0, 8)),
-        content=content,
-    )
-
-
-def section_label(icon: str, text: str) -> ft.Row:
-    return ft.Row(
-        controls=[
-            ft.Text(icon, size=24),
-            ft.Text(text, size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
-        ],
-        spacing=8,
-        alignment=ft.MainAxisAlignment.CENTER,
-    )
+ANIMALS_DB: dict[str, dict[str, Any]] = load_animals_db() or _DEFAULT_ANIMALS
 
 
 def common_names_by_script(species: dict[str, Any]) -> tuple[list[str], list[str]]:
@@ -587,36 +565,6 @@ async def save_json_cache(storage_key: str, local_path: Path, data: Any) -> None
         return
 
 
-THEME = {
-    "PAGE_BG": "#f3efd9",
-    "CARD_BG": "#fffdf4",
-    "CARD_BORDER": "#dccfc0",
-    "CARD_BORDER_ALT": "#d7c8b9",
-    "TITLE": "#3d2a21",
-    "BODY": "#6d5140",
-    "BODY_DARK": "#5c4032",
-    "MUTED": "#8a6a54",
-    "ACCENT": "#8a5a22",
-    "GREEN": "#2f7d51",
-    "WHITE": "#ffffff",
-    "SHADOW_CARD": "#2b130814",
-    "SHADOW_CARD2": "#2b130812",
-    "SHADOW_GALLERY": "#2b130810",
-    "SHADOW_CAMERA": "#442f2529",
-    "DETAIL_BG": "#f7f0df",
-    "DETAIL_BORDER": "#dfd0bd",
-    "WARNING_BG": "#fff3cd",
-    "WARNING_TEXT": "#856404",
-    "ANIMAL_ROLE": "#7a4b38",
-    "CAMERA_BG": "#4d3026",
-    "CAMERA_BORDER": "#2b160f",
-    "CAMERA_INNER": "#0f1512",
-    "ORGAN_BG": "#fff8e8",
-    "PERENUAL_BG": "#efe4d1",
-    "CONFIDENCE_BG": "#e8bc96",
-    "DETAIL_TEXT": "#7a6657",
-}
-
 MAX_POKEDEX_STORAGE_BYTES = 50_000_000
 MAX_IMAGE_WIDTH = 800
 IMAGE_COMPRESSION_QUALITY = 85
@@ -632,7 +580,8 @@ def compress_image(binary: bytes, mime: str) -> bytes:
             new_height = int(image.height * ratio)
             image = image.resize((MAX_IMAGE_WIDTH, new_height), Image.LANCZOS)
         buffer = BytesIO()
-        image.save(buffer, format="JPEG", quality=IMAGE_COMPRESSION_QUALITY, optimize=True)
+        fmt = "WEBP" if hasattr(Image, "registered_extensions") and ".webp" in Image.registered_extensions() else "JPEG"
+        image.save(buffer, format=fmt, quality=IMAGE_COMPRESSION_QUALITY, optimize=True)
         return buffer.getvalue()
     except Exception:
         return binary
@@ -767,7 +716,7 @@ async def run_app(page: ft.Page) -> None:
     zoom_level = MIN_CAMERA_ZOOM
 
     welcome_screen = ft.Container(
-        width=430,
+        width=min(CONTENT_MAX_WIDTH, (page.width or 480) - CONTENT_MIN_PADDING * 2),
         padding=ft.Padding.symmetric(vertical=60, horizontal=24),
         content=ft.Column(
             controls=[
@@ -963,17 +912,20 @@ async def run_app(page: ft.Page) -> None:
         is_low_confidence = item.get("is_low_confidence", False)
         badge = "⚠️" if is_low_confidence else ""
         subtitle = confidence_text(item) or item.get("role", "")
-        return ft.Container(
+        card = ft.Container(
             bgcolor=THEME["CARD_BG"],
             border_radius=12,
             padding=12,
             alignment=ft.Alignment(0, 0),
             border=border_all(1, THEME["CARD_BORDER_ALT"]),
             shadow=ft.BoxShadow(blur_radius=10, color=THEME["SHADOW_GALLERY"], offset=ft.Offset(0, 5)),
-            animate=ft.Animation(220, ft.AnimationCurve.EASE_OUT),
+            animate=ft.Animation(300, ft.AnimationCurve.EASE_OUT),
+            animate_scale=ft.Animation(180, ft.AnimationCurve.EASE_OUT),
+            animate_opacity=ft.Animation(400, ft.AnimationCurve.EASE_OUT),
             tooltip=f"{name} 詳細介紹",
             on_click=lambda _event, item_name=name, item_data=item: show_gallery_card(item_name, item_data),
             on_long_press=lambda _event, item_name=name: confirm_delete_gallery_item(item_name),
+            on_hover=lambda e: _on_card_hover(card, e),
             content=ft.Column(
                 controls=[
                     ft.Text(f"{icon} {badge} {name}", size=14, weight=ft.FontWeight.W_800, color=THEME["TITLE"]),
@@ -983,8 +935,17 @@ async def run_app(page: ft.Page) -> None:
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             ),
         )
+        return card
+
+    def _on_card_hover(card: ft.Container, event: ft.ControlEvent) -> None:
+        card.scale = 1.04 if event.data == "true" else 1.0
+        card.shadow = [
+            ft.BoxShadow(blur_radius=18 if event.data == "true" else 10, color=THEME["SHADOW_GALLERY"], offset=ft.Offset(0, 8 if event.data == "true" else 5)),
+        ]
+        card.update()
 
     def refresh_gallery(update_page: bool = True) -> None:
+        new_cards: list[tuple[str, ft.Container]] = []
         for name in list(_gallery_card_map):
             if name not in pokedex:
                 card = _gallery_card_map.pop(name)
@@ -994,11 +955,24 @@ async def run_app(page: ft.Page) -> None:
             if name in _gallery_card_map:
                 continue
             card = _build_gallery_card(name, item)
+            card.opacity = 0
+            card.offset = ft.Offset(0, 0.3)
             _gallery_card_map[name] = card
             grid.controls.append(card)
+            new_cards.append((name, card))
         create_background_task(save_cached_pokedex(pokedex))
         if update_page:
             page.update()
+        if new_cards:
+            create_background_task(_animate_new_cards(new_cards))
+
+    async def _animate_new_cards(new_cards: list[tuple[str, ft.Container]]) -> None:
+        await asyncio.sleep(0.05)
+        for _, card in new_cards:
+            card.opacity = 1.0
+            card.offset = ft.Offset(0, 0)
+            card.update()
+            await asyncio.sleep(0.06)
 
     def add_animal_to_gallery(name: str) -> None:
         data = ANIMALS_DB[name]
@@ -1132,7 +1106,11 @@ async def run_app(page: ft.Page) -> None:
         page.update()
 
     def show_animal_card(name: str) -> None:
-        data = ANIMALS_DB[name]
+        data = ANIMALS_DB.get(name) or _DEFAULT_ANIMALS.get(name)
+        if not data:
+            status.value = f"找不到動物「{name}」的資料"
+            page.update()
+            return
         add_animal_to_gallery(name)
         portrait_src = data.get("portrait", "")
         photos = data.get("photos", []) or []
@@ -1428,8 +1406,8 @@ async def run_app(page: ft.Page) -> None:
                 return
             status.value = "正在拍攝並辨識..."
             busy_ring.visible = True
-            page.update()
             show_recognition_loading_card()
+            page.update()
             mark_load_timing("art-village:identify-start")
             image_data = await camera.take_picture()
             try:
@@ -1457,14 +1435,20 @@ async def run_app(page: ft.Page) -> None:
             add_plant_to_gallery(plant)
             close_recognition_loading_card(update_page=False)
             show_plant_card(plant["zh_name"], plant)
-            if plant.get("metadata_status") == "pending":
-                create_background_task(refresh_plant_metadata(plant))
+            plant_metadata_task = (
+                refresh_plant_metadata(plant)
+                if plant.get("metadata_status") == "pending"
+                else None
+            )
         except Exception as error:
             status.value = f"辨識失敗：{error}"
             close_recognition_loading_card(update_page=False)
+            plant_metadata_task = None
         finally:
             busy_ring.visible = False
             page.update()
+        if plant_metadata_task:
+            create_background_task(plant_metadata_task)
 
     def render_handle(update_page: bool = True) -> None:
         handle_slot.content = MagnifierHandle(
@@ -1492,10 +1476,10 @@ async def run_app(page: ft.Page) -> None:
             camera_ready = False
             status.value = "正在啟動相機，若瀏覽器詢問權限請按允許..."
             render_handle(update_page=False)
-            page.update()
             if fc is None:
                 status.value = "此瀏覽器暫時無法載入相機元件"
                 render_handle()
+                page.update()
                 return
             if camera is None:
                 camera = fc.Camera(
@@ -1509,7 +1493,6 @@ async def run_app(page: ft.Page) -> None:
                 )
                 apply_camera_zoom(update_slot=False)
                 camera_preview_slot.content = camera
-                page.update()
                 await asyncio.sleep(0)
             status.value = "正在尋找可用相機..."
             page.update()
@@ -1563,6 +1546,7 @@ async def run_app(page: ft.Page) -> None:
         finally:
             camera_initializing = False
         render_handle()
+        page.update()
 
     restart_camera_button.on_click = initialize_camera
 
@@ -1704,12 +1688,13 @@ async def run_app(page: ft.Page) -> None:
     def get_animals_view() -> ft.Column:
         nonlocal animals_view
         if animals_view is None:
+            animals = ANIMALS_DB if ANIMALS_DB else _DEFAULT_ANIMALS
             animals_view = ft.Column(
                 controls=[
                     section_label("🐾", "認識動物"),
                     ft.Text("點擊名字，打開牠的介紹卡片。", size=14, color=THEME["BODY"]),
                     ft.Column(
-                        controls=[animal_card(name, data) for name, data in ANIMALS_DB.items()],
+                        controls=[animal_card(name, data) for name, data in animals.items()],
                         spacing=12,
                     ),
                 ],
@@ -1769,7 +1754,7 @@ async def run_app(page: ft.Page) -> None:
     )
 
     shell = ft.Container(
-        width=430,
+        width=min(CONTENT_MAX_WIDTH, (page.width or 480) - CONTENT_MIN_PADDING * 2),
         padding=18,
         content=ft.Column(
             controls=[
@@ -1793,12 +1778,10 @@ async def run_app(page: ft.Page) -> None:
     async def start_exploration() -> None:
         start_button.disabled = True
         start_button.text = "探險放大鏡啟動中"
+        welcome_screen.content.controls.append(loading_carousel)
         page.update()
 
         mark_load_timing("art-village:user-start")
-
-        welcome_screen.content.controls.append(loading_carousel)
-        page.update()
 
         async def build_shell():
             content_area.content = plant_view
@@ -1835,6 +1818,15 @@ async def run_app(page: ft.Page) -> None:
 
     start_button.on_click = lambda _: create_background_task(start_exploration())
 
+    def _on_page_resize(_event: ft.ControlEvent | None = None) -> None:
+        new_width = min(CONTENT_MAX_WIDTH, (page.width or 480) - CONTENT_MIN_PADDING * 2)
+        if welcome_screen.visible:
+            welcome_screen.width = new_width
+        if shell.page:
+            shell.width = new_width
+        page.update()
+
+    page.on_resize = _on_page_resize
     page.update()
     mark_load_timing("art-village:welcome-ready")
 
