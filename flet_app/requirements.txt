@@ -1,5 +1,4 @@
 flet
-flet-cli==0.85.1
 flet-camera
 opencc-python-reimplemented
 Pillow

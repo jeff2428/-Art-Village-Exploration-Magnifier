@@ -13,6 +13,7 @@ fi
 echo "Installing dependencies..." >&2
 python -m pip install --upgrade pip
 python -m pip install -r flet_app/requirements.txt
+python -m pip install "flet-cli==0.85.1"
 
 if command -v ruff &> /dev/null; then
   echo "Running Ruff lint..." >&2
@@ -29,7 +30,7 @@ rm -rf flet_app/build
 
 echo "Building Flet web app for Cloudflare Pages..." >&2
 cd flet_app
-flet build web --yes --verbose --route-url-strategy hash --web-renderer auto
+flet build web --yes --verbose --route-url-strategy hash --web-renderer auto --no-wasm
 cd ..
 
 echo "Patching Flet app package with local modules..." >&2
