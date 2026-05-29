@@ -867,6 +867,8 @@ async def run_app(page: ft.Page) -> None:
             create_background_task(plant_metadata_task)
 
     async def initialize_camera(_event: ft.ControlEvent | None = None) -> None:
+        if selected_mode["value"] != "plant":
+            return
         if state.camera_initializing:
             status.value = "相機正在啟動中，請稍候"
             page.update()
@@ -895,6 +897,8 @@ async def run_app(page: ft.Page) -> None:
                 apply_camera_zoom(update_slot=False)
                 camera_preview_slot.content = state.camera
                 await asyncio.sleep(0)
+            if selected_mode["value"] != "plant":
+                return
             status.value = "正在尋找可用相機..."
             page.update()
             last_error: Exception | None = None
@@ -921,6 +925,8 @@ async def run_app(page: ft.Page) -> None:
                     state.selected_camera_index = index
                     status.value = f"正在初始化相機 {index + 1}/{len(state.cameras)}..."
                     page.update()
+                    if selected_mode["value"] != "plant":
+                        return
                     try:
                         await asyncio.wait_for(
                             state.camera.initialize(camera_description, fc.ResolutionPreset.MEDIUM,
@@ -947,7 +953,8 @@ async def run_app(page: ft.Page) -> None:
             status.value = status_msg(f"相機啟動失敗：{error}。請確認網址是 HTTPS 或 127.0.0.1，並允許相機權限。", "err")
         finally:
             state.camera_initializing = False
-        render_handle()
+        if selected_mode["value"] == "plant":
+            render_handle()
         page.update()
 
     restart_camera_button.on_click = initialize_camera
@@ -1024,9 +1031,37 @@ async def run_app(page: ft.Page) -> None:
     selected_mode = {"value": "plant"}
 
     def set_mode(value: str) -> None:
+        create_background_task(switch_mode(value))
+
+    async def switch_mode(value: str) -> None:
+        if selected_mode["value"] == value:
+            return
         selected_mode["value"] = value
-        mode.content = build_mode_selector()
-        update_mode()
+        if value == "animal":
+            await hide_camera_preview()
+            status.value = "正在打開認識動物"
+        else:
+            restore_camera_preview()
+            status.value = "正在回到植物鏡頭"
+        _rebuild_visible_shell()
+        page.update()
+        if value == "plant" and not state.camera_ready:
+            await initialize_camera()
+
+    async def hide_camera_preview() -> None:
+        state.camera_ready = False
+        if state.camera is not None:
+            try:
+                await state.camera.pause_preview()
+            except Exception:
+                pass
+        camera_preview_slot.visible = False
+        camera_preview_slot.content = camera_placeholder
+        state.camera = None
+
+    def restore_camera_preview() -> None:
+        camera_preview_slot.visible = True
+        camera_preview_slot.content = camera_placeholder
 
     def build_mode_selector() -> ft.Row:
         def option(value: str, icon: str, label: str) -> ft.TextButton:
