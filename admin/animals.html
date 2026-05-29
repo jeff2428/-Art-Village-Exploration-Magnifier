@@ -433,13 +433,14 @@
   <div class="container">
     <header>
       <h1>🐾 藝素村動物管理後台</h1>
-      <p>管理動物資料、上傳大頭貼與生活照，完成後匯出 JSON 更新到 <code>flet_app/main.py</code></p>
+      <p>管理動物資料、上傳大頭貼與生活照；正式資料存放在 <code>admin/animals.json</code></p>
     </header>
 
     <div class="toolbar">
       <button class="primary" onclick="openAddModal()">＋ 新增動物</button>
       <button onclick="exportJSON()">📋 複製 JSON</button>
-      <button onclick="downloadJSON()">💾 下載 animals.json</button>
+      <button onclick="saveJSONFile()">💾 儲存 animals.json</button>
+      <button onclick="downloadJSON()">⬇️ 下載副本</button>
       <button onclick="importJSON()">📥 匯入 JSON</button>
     </div>
 
@@ -543,14 +544,28 @@
     loadAnimals();
     renderEmojiPicker();
 
-    function loadAnimals() {
+    async function loadAnimals() {
       const stored = localStorage.getItem('artVillageAnimals');
       if (stored) {
         try {
           animalsData = JSON.parse(stored);
+          renderGrid();
+          showToast('已載入本機草稿');
+          return;
         } catch (e) {
           animalsData = { animals: [] };
         }
+      }
+      try {
+        const response = await fetch('animals.json', { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.animals && Array.isArray(data.animals)) {
+            animalsData = data;
+          }
+        }
+      } catch (e) {
+        animalsData = { animals: [] };
       }
       renderGrid();
     }
@@ -834,6 +849,33 @@
       a.click();
       URL.revokeObjectURL(url);
       showToast('💾 已下載 animals.json');
+    }
+
+    async function saveJSONFile() {
+      const json = JSON.stringify(animalsData, null, 2);
+      if (!window.showSaveFilePicker) {
+        downloadJSON();
+        showToast('瀏覽器不支援直接寫檔，已改為下載');
+        return;
+      }
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: 'animals.json',
+          types: [{
+            description: 'JSON file',
+            accept: { 'application/json': ['.json'] }
+          }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(json);
+        await writable.close();
+        localStorage.removeItem('artVillageAnimals');
+        showToast('✅ animals.json 已儲存');
+      } catch (e) {
+        if (e && e.name !== 'AbortError') {
+          showToast('❌ 儲存失敗，請改用下載副本');
+        }
+      }
     }
 
     // Import

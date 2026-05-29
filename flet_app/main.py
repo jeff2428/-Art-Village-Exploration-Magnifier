@@ -969,6 +969,8 @@ async def run_app(page: ft.Page) -> None:
     def _rebuild_visible_shell() -> None:
         toggle_icon = ft.Icons.DARK_MODE if not state.is_dark_mode else ft.Icons.LIGHT_MODE
         toggle_tip = "深色模式" if not state.is_dark_mode else "淺色模式"
+        if state.mode is not None:
+            state.mode.content = build_mode_selector()
         new_gallery = soft_card(
             ft.Column(
                 controls=[
@@ -1019,16 +1021,49 @@ async def run_app(page: ft.Page) -> None:
             spacing=18, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
-    mode = ft.RadioGroup(
-        value="plant",
-        content=ft.Row(
+    def set_mode(value: str) -> None:
+        mode.value = value
+        mode.content = build_mode_selector()
+        update_mode()
+
+    def build_mode_selector() -> ft.Row:
+        def option(value: str, icon: str, label: str) -> ft.Container:
+            selected = mode.value == value
+            return ft.Container(
+                expand=True,
+                padding=ft.Padding.symmetric(horizontal=10, vertical=10),
+                border_radius=12,
+                bgcolor=THEME["ACCENT"] if selected else THEME["CARD_BG"],
+                border=border_all(1, THEME["ACCENT"] if selected else THEME["CARD_BORDER_ALT"]),
+                tooltip=label,
+                on_click=lambda _event, next_value=value: set_mode(next_value),
+                content=ft.Row(
+                    controls=[
+                        ft.Text(icon, size=18),
+                        ft.Text(
+                            label,
+                            size=14,
+                            weight=ft.FontWeight.W_900,
+                            color=THEME["WHITE"] if selected else THEME["TITLE"],
+                        ),
+                    ],
+                    spacing=6,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+            )
+
+        return ft.Row(
             controls=[
-                ft.Radio(value="plant", label="🌿 尋找植物"),
-                ft.Radio(value="animal", label="🐾 認識動物"),
+                option("plant", "🌿", "尋找植物"),
+                option("animal", "🐾", "認識動物"),
             ],
+            spacing=8,
             alignment=ft.MainAxisAlignment.CENTER,
-        ),
-    )
+        )
+
+    mode = ft.RadioGroup(value="plant")
+    mode.content = build_mode_selector()
     state.mode = mode
 
     organ_mode = ft.SegmentedButton(
@@ -1139,7 +1174,18 @@ async def run_app(page: ft.Page) -> None:
             state.animals_view = ft.Column(
                 controls=[
                     section_label("🐾", "認識動物"),
-                    ft.Text("點擊名字，打開牠的介紹卡片。", size=14, color=THEME["BODY"]),
+                    ft.Text("點擊卡片，打開牠的介紹卡片。", size=14, color=THEME["BODY"]),
+                    ft.TextButton(
+                        content=ft.Row(
+                            controls=[
+                                ft.Icon(ft.Icons.EDIT_NOTE, size=16),
+                                ft.Text("開啟動物管理頁"),
+                            ],
+                            spacing=4,
+                        ),
+                        tooltip="在獨立頁面管理 admin/animals.json",
+                        on_click=lambda _event: page.launch_url("./admin/animals.html"),
+                    ),
                     ft.Column(
                         controls=[animal_card(name, data) for name, data in animals.items()],
                         spacing=12,
@@ -1166,6 +1212,7 @@ async def run_app(page: ft.Page) -> None:
     plant_view = _build_plant_view()
 
     def update_mode(_event: ft.ControlEvent | None = None) -> None:
+        mode.content = build_mode_selector()
         if mode.value == "animal":
             content_area.content = get_animals_view()
         else:

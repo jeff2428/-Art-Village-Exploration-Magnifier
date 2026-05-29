@@ -39,6 +39,10 @@ python scripts/patch_flet_app_package.py
 echo "Patching loading screen..." >&2
 python scripts/patch_flet_loader.py
 
+echo "Copying animal management page..." >&2
+rm -rf flet_app/build/web/admin
+cp -R admin flet_app/build/web/admin
+
 echo "Writing Cloudflare Pages cache headers..." >&2
 python -c "from pathlib import Path; Path('flet_app/build/web/_headers').write_text('''/index.html
   Cache-Control: no-store

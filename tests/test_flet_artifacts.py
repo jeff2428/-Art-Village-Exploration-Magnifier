@@ -219,6 +219,8 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("show_animal_card", main)
         self.assertIn("page.show_dialog", main)
         self.assertIn("content_area.content = get_animals_view()", main)
+        self.assertIn("build_mode_selector", main)
+        self.assertIn('page.launch_url("./admin/animals.html")', main)
         self.assertIn("ft.Margin.only", main)
         self.assertNotIn("ft.margin.only", main)
         self.assertIn("WARNING_AMBER_OUTLINED", main)
@@ -300,6 +302,7 @@ class FletArtifactsTests(unittest.TestCase):
         package_patcher = (ROOT / "scripts" / "patch_flet_app_package.py").read_text(encoding="utf-8")
         self.assertIn("local_python_modules", package_patcher)
         self.assertIn("admin/animals.json", package_patcher)
+        self.assertIn("cp -R admin flet_app/build/web/admin", build)
         self.assertIn("flet run -d -w main.py", dev)
         self.assertIn("flet_app/requirements.txt", install_dev)
 
