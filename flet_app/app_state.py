@@ -36,6 +36,6 @@ class AppState:
     handle_slot: ft.Container | None = None
     content_area: ft.Container | None = None
     _gallery_card_map: dict[str, ft.Container] = field(default_factory=dict)
-    mode: ft.RadioGroup | None = None
+    mode: ft.Container | None = None
     organ_mode: ft.SegmentedButton | None = None
     shell: ft.Container | None = None

@@ -994,7 +994,7 @@ async def run_app(page: ft.Page) -> None:
             padding=14,
         )
         new_content: ft.Control
-        if state.mode is not None and state.mode.value == "animal":
+        if selected_mode["value"] == "animal":
             new_content = get_animals_view()
         else:
             new_content = _build_plant_view()
@@ -1021,14 +1021,16 @@ async def run_app(page: ft.Page) -> None:
             spacing=18, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         )
 
+    selected_mode = {"value": "plant"}
+
     def set_mode(value: str) -> None:
-        mode.value = value
+        selected_mode["value"] = value
         mode.content = build_mode_selector()
         update_mode()
 
     def build_mode_selector() -> ft.Row:
         def option(value: str, icon: str, label: str) -> ft.Container:
-            selected = mode.value == value
+            selected = selected_mode["value"] == value
             return ft.Container(
                 expand=True,
                 padding=ft.Padding.symmetric(horizontal=10, vertical=10),
@@ -1062,8 +1064,7 @@ async def run_app(page: ft.Page) -> None:
             alignment=ft.MainAxisAlignment.CENTER,
         )
 
-    mode = ft.RadioGroup(value="plant")
-    mode.content = build_mode_selector()
+    mode = ft.Container(content=build_mode_selector())
     state.mode = mode
 
     organ_mode = ft.SegmentedButton(
@@ -1213,13 +1214,11 @@ async def run_app(page: ft.Page) -> None:
 
     def update_mode(_event: ft.ControlEvent | None = None) -> None:
         mode.content = build_mode_selector()
-        if mode.value == "animal":
+        if selected_mode["value"] == "animal":
             content_area.content = get_animals_view()
         else:
             content_area.content = _build_plant_view()
         page.update()
-
-    mode.on_change = update_mode
 
     gallery_panel = soft_card(
         ft.Column(
