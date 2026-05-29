@@ -1029,16 +1029,18 @@ async def run_app(page: ft.Page) -> None:
         update_mode()
 
     def build_mode_selector() -> ft.Row:
-        def option(value: str, icon: str, label: str) -> ft.Container:
+        def option(value: str, icon: str, label: str) -> ft.TextButton:
             selected = selected_mode["value"] == value
-            return ft.Container(
+            return ft.TextButton(
                 expand=True,
-                padding=ft.Padding.symmetric(horizontal=10, vertical=10),
-                border_radius=12,
-                bgcolor=THEME["ACCENT"] if selected else THEME["CARD_BG"],
-                border=border_all(1, THEME["ACCENT"] if selected else THEME["CARD_BORDER_ALT"]),
                 tooltip=label,
                 on_click=lambda _event, next_value=value: set_mode(next_value),
+                style=ft.ButtonStyle(
+                    padding=ft.Padding.symmetric(horizontal=10, vertical=12),
+                    bgcolor=THEME["ACCENT"] if selected else THEME["CARD_BG"],
+                    color=THEME["WHITE"] if selected else THEME["TITLE"],
+                    text_style=ft.TextStyle(size=14, weight=ft.FontWeight.W_900),
+                ),
                 content=ft.Row(
                     controls=[
                         ft.Text(icon, size=18),

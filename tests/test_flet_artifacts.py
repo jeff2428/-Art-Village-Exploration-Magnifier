@@ -221,6 +221,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("page.show_dialog", main)
         self.assertIn("content_area.content = get_animals_view()", main)
         self.assertIn("build_mode_selector", main)
+        self.assertIn("ft.TextButton", main)
         self.assertIn("selected_mode[\"value\"] == \"animal\"", main)
         self.assertIn('page.launch_url("./admin/animals.html")', main)
         self.assertIn("ft.Margin.only", main)
