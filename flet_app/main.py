@@ -962,7 +962,15 @@ async def run_app(page: ft.Page) -> None:
     def create_background_task(coro: Any) -> None:
         task = asyncio.create_task(coro)
         state.background_tasks.add(task)
-        task.add_done_callback(state.background_tasks.discard)
+
+        def _on_done(t: asyncio.Task) -> None:
+            state.background_tasks.discard(t)
+            if t.exception() is not None:
+                err = t.exception()
+                status.value = status_msg(f"背景任務失敗：{err}", "err")
+                page.update()
+
+        task.add_done_callback(_on_done)
 
     def toggle_dark_mode(_event: ft.ControlEvent | None = None) -> None:
         state.is_dark_mode = not state.is_dark_mode
@@ -1038,7 +1046,13 @@ async def run_app(page: ft.Page) -> None:
             return
         selected_mode["value"] = value
         if value == "animal":
-            await hide_camera_preview()
+            try:
+                await hide_camera_preview()
+            except Exception:
+                camera_preview_slot.visible = False
+                camera_preview_slot.content = camera_placeholder
+                state.camera = None
+                state.camera_ready = False
             status.value = "正在打開認識動物"
         else:
             restore_camera_preview()
