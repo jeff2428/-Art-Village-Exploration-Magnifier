@@ -39,8 +39,8 @@ from plant_api import (
 )
 from pokedex_manager import (
     _DEFAULT_ANIMALS,
-    ANIMALS_DB,
     clear_legacy_snapshot_cache,
+    load_animals_db_dynamic,
     load_cached_pokedex,
     load_dark_mode_preference,
     save_cached_pokedex,
@@ -413,7 +413,8 @@ async def run_app(page: ft.Page) -> None:
             await asyncio.sleep(0.06)
 
     def add_animal_to_gallery(name: str) -> None:
-        data = ANIMALS_DB[name]
+        animals_db = load_animals_db_dynamic()
+        data = animals_db.get(name) or _DEFAULT_ANIMALS.get(name, {})
         state.pokedex[name] = {"zh_name": name, **data}
         status.value = f"已遇見：{name}"
         refresh_gallery()
@@ -456,7 +457,10 @@ async def run_app(page: ft.Page) -> None:
             await save_cached_pokedex(state.pokedex)
 
     def close_dialog(_event: ft.ControlEvent) -> None:
-        page.pop_dialog()
+        try:
+            page.pop_dialog()
+        except Exception:
+            pass
         page.update()
 
     def show_recognition_loading_card() -> None:
@@ -558,73 +562,78 @@ async def run_app(page: ft.Page) -> None:
             page.update()
 
     def show_animal_card(name: str) -> None:
-        data = ANIMALS_DB.get(name) or _DEFAULT_ANIMALS.get(name)
-        if not data:
-            status.value = f"找不到動物「{name}」的資料"
-            page.update()
-            return
-        add_animal_to_gallery(name)
-        portrait_src = data.get("portrait", "")
-        photos = data.get("photos", []) or []
-        portrait_control: ft.Control
-        if portrait_src:
-            portrait_control = ft.Container(
-                height=200, border_radius=14, clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                content=ft.Image(src=portrait_src, fit=ft.BoxFit.COVER, width=340, height=200),
-            )
-        else:
-            portrait_control = ft.Container(
-                height=120, border_radius=14, alignment=ft.Alignment(0, 0),
-                bgcolor=THEME["PERENUAL_BG"],
-                border=border_all(1, THEME["DETAIL_BORDER"]),
-                content=ft.Text("尚無大頭貼", size=13, color=THEME["DETAIL_TEXT"], weight=ft.FontWeight.W_800),
-            )
-        photo_controls: list[ft.Control] = []
-        if photos:
-            photo_thumbs = [
-                ft.Container(
-                    width=64, height=64, border_radius=8, clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                    content=ft.Image(src=photo, fit=ft.BoxFit.COVER),
+        try:
+            animals_db = load_animals_db_dynamic()
+            data = animals_db.get(name) or _DEFAULT_ANIMALS.get(name)
+            if not data:
+                status.value = f"找不到動物「{name}」的資料"
+                page.update()
+                return
+            add_animal_to_gallery(name)
+            portrait_src = data.get("portrait", "")
+            photos = data.get("photos", []) or []
+            portrait_control: ft.Control
+            if portrait_src:
+                portrait_control = ft.Container(
+                    height=200, border_radius=14, clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                    content=ft.Image(src=portrait_src, fit=ft.BoxFit.COVER, width=340, height=200),
                 )
-                for photo in photos[:6]
-            ]
-            photo_controls = [
-                ft.Text("生活照", size=12, color=THEME["MUTED"], weight=ft.FontWeight.W_900),
-                ft.Row(controls=photo_thumbs, spacing=6, wrap=True),
-            ]
-            if len(photos) > 6:
-                photo_controls.append(ft.Text(f"+{len(photos) - 6} 張更多照片", size=11, color=THEME["MUTED"]))
-        dialog_content_height = max(420, min(520, round((page.height or 760) * 0.58)))
-        page.show_dialog(
-            ft.AlertDialog(
-                modal=True, scrollable=True,
-                title=ft.Text(f"{data['emoji']} {name}", size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
-                content=ft.Container(
-                    width=360, height=dialog_content_height,
-                    content=soft_card(
-                        ft.Column(
-                            controls=[
-                                portrait_control, *photo_controls,
-                                ft.Container(height=8),
-                                ft.Text(data["role"], size=14, color=THEME["ANIMAL_ROLE"],
-                                       weight=ft.FontWeight.W_800),
-                                ft.Text(data["desc"], size=15, color=THEME["TITLE"]),
-                                ft.Container(
-                                    padding=ft.Padding.only(top=8),
-                                    content=ft.Text("已加入探險圖鑑", size=13, color=THEME["GREEN"],
-                                                   weight=ft.FontWeight.W_800),
-                                ),
-                            ],
-                            spacing=8, scroll=ft.ScrollMode.AUTO,
+            else:
+                portrait_control = ft.Container(
+                    height=140, border_radius=14, alignment=ft.Alignment(0, 0),
+                    bgcolor=THEME["PERENUAL_BG"],
+                    border=border_all(1, THEME["DETAIL_BORDER"]),
+                    content=ft.Text(data.get("emoji", "🐾"), size=56),
+                )
+            photo_controls: list[ft.Control] = []
+            if photos:
+                photo_thumbs = [
+                    ft.Container(
+                        width=64, height=64, border_radius=8, clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                        content=ft.Image(src=photo, fit=ft.BoxFit.COVER),
+                    )
+                    for photo in photos[:6]
+                ]
+                photo_controls = [
+                    ft.Text("生活照", size=12, color=THEME["MUTED"], weight=ft.FontWeight.W_900),
+                    ft.Row(controls=photo_thumbs, spacing=6, wrap=True),
+                ]
+                if len(photos) > 6:
+                    photo_controls.append(ft.Text(f"+{len(photos) - 6} 張更多照片", size=11, color=THEME["MUTED"]))
+            dialog_content_height = max(420, min(520, round((page.height or 760) * 0.58)))
+            page.show_dialog(
+                ft.AlertDialog(
+                    modal=True, scrollable=True,
+                    title=ft.Text(f"{data['emoji']} {name}", size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
+                    content=ft.Container(
+                        width=360, height=dialog_content_height,
+                        content=soft_card(
+                            ft.Column(
+                                controls=[
+                                    portrait_control, *photo_controls,
+                                    ft.Container(height=8),
+                                    ft.Text(data["role"], size=14, color=THEME["ANIMAL_ROLE"],
+                                           weight=ft.FontWeight.W_800),
+                                    ft.Text(data["desc"], size=15, color=THEME["TITLE"]),
+                                    ft.Container(
+                                        padding=ft.Padding.only(top=8),
+                                        content=ft.Text("已加入探險圖鑑", size=13, color=THEME["GREEN"],
+                                                       weight=ft.FontWeight.W_800),
+                                    ),
+                                ],
+                                spacing=8, scroll=ft.ScrollMode.AUTO,
+                            ),
+                            padding=14,
                         ),
-                        padding=14,
                     ),
-                ),
-                actions=[ft.TextButton("關閉", on_click=close_dialog)],
-                actions_alignment=ft.MainAxisAlignment.END,
+                    actions=[ft.TextButton("關閉", on_click=close_dialog)],
+                    actions_alignment=ft.MainAxisAlignment.END,
+                )
             )
-        )
-        page.update()
+            page.update()
+        except Exception as e:
+            status.value = f"無法打開動物卡片：{e}"
+            page.update()
 
     def show_plant_card(name: str, data: dict[str, Any]) -> None:
         confidence = data.get("confidence", 0)
@@ -982,6 +991,17 @@ async def run_app(page: ft.Page) -> None:
         page.update()
 
     def _rebuild_visible_shell() -> None:
+        # 避免 Flet 重複父元件的錯誤，在重建前先將可重用元件從舊父元件中移除
+        for ctrl in [state.grid, state.gallery_empty_state, state.mode, state.content_area]:
+            if ctrl is not None and ctrl.parent is not None:
+                try:
+                    if hasattr(ctrl.parent, "controls") and ctrl in ctrl.parent.controls:
+                        ctrl.parent.controls.remove(ctrl)
+                    elif hasattr(ctrl.parent, "content") and ctrl.parent.content == ctrl:
+                        ctrl.parent.content = None
+                except Exception:
+                    pass
+
         toggle_icon = ft.Icons.DARK_MODE if not state.is_dark_mode else ft.Icons.LIGHT_MODE
         toggle_tip = "深色模式" if not state.is_dark_mode else "淺色模式"
         if state.mode is not None:
@@ -1057,7 +1077,11 @@ async def run_app(page: ft.Page) -> None:
         else:
             restore_camera_preview()
             status.value = "正在回到植物鏡頭"
-        _rebuild_visible_shell()
+        state.mode.content = build_mode_selector()
+        if value == "animal":
+            state.content_area.content = get_animals_view()
+        else:
+            state.content_area.content = _build_plant_view()
         page.update()
         if value == "plant" and not state.camera_ready:
             await initialize_camera()
@@ -1211,7 +1235,7 @@ async def run_app(page: ft.Page) -> None:
                                    color=THEME["ANIMAL_ROLE"]),
                         ],
                         spacing=2, expand=True,
-                        vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        alignment=ft.MainAxisAlignment.CENTER,
                     ),
                     ft.Icon(ft.Icons.CHEVRON_RIGHT, color=THEME["MUTED"]),
                 ],
@@ -1221,30 +1245,30 @@ async def run_app(page: ft.Page) -> None:
         )
 
     def get_animals_view() -> ft.Column:
-        if state.animals_view is None:
-            animals = ANIMALS_DB if ANIMALS_DB else _DEFAULT_ANIMALS
-            state.animals_view = ft.Column(
-                controls=[
-                    section_label("🐾", "認識動物"),
-                    ft.Text("點擊卡片，打開牠的介紹卡片。", size=14, color=THEME["BODY"]),
-                    ft.TextButton(
-                        content=ft.Row(
-                            controls=[
-                                ft.Icon(ft.Icons.EDIT_NOTE, size=16),
-                                ft.Text("開啟動物管理頁"),
-                            ],
-                            spacing=4,
-                        ),
-                        tooltip="在獨立頁面管理 admin/animals.json",
-                        on_click=lambda _event: page.launch_url("./admin/animals.html"),
+        # 每次都從主機端的 localStorage 或靜態 DB 動態載入，確保設定頁修改能即時呈現
+        animals = load_animals_db_dynamic()
+        state.animals_view = ft.Column(
+            controls=[
+                section_label("🐾", "認識動物"),
+                ft.Text("點擊卡片，打開牠的介紹卡片。", size=14, color=THEME["BODY"]),
+                ft.TextButton(
+                    content=ft.Row(
+                        controls=[
+                            ft.Icon(ft.Icons.EDIT_NOTE, size=16),
+                            ft.Text("開啟動物管理頁"),
+                        ],
+                        spacing=4,
                     ),
-                    ft.Column(
-                        controls=[animal_card(name, data) for name, data in animals.items()],
-                        spacing=12,
-                    ),
-                ],
-                spacing=14, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            )
+                    tooltip="在獨立頁面管理 admin/animals.json",
+                    on_click=lambda _event: page.launch_url("./admin/animals.html"),
+                ),
+                ft.Column(
+                    controls=[animal_card(name, data) for name, data in animals.items()],
+                    spacing=12,
+                ),
+            ],
+            spacing=14, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        )
         return state.animals_view
 
     def _build_plant_view() -> ft.Column:

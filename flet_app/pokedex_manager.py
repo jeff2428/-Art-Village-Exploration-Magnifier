@@ -67,6 +67,38 @@ _DEFAULT_ANIMALS: dict[str, dict[str, Any]] = {
 ANIMALS_DB: dict[str, dict[str, Any]] = load_animals_db() or _DEFAULT_ANIMALS
 
 
+def load_animals_db_dynamic() -> dict[str, dict[str, Any]]:
+    try:
+        from js import localStorage
+        stored = localStorage.getItem("artVillageAnimals")
+        if stored:
+            data = json.loads(stored)
+            animals_list = data.get("animals", [])
+            db: dict[str, dict[str, Any]] = {}
+            for entry in animals_list:
+                name = entry.get("name", "")
+                if name:
+                    db[name] = {
+                        "type": "animal",
+                        "emoji": entry.get("emoji", "🐾"),
+                        "role": entry.get("role", ""),
+                        "desc": entry.get("desc", ""),
+                        "portrait": entry.get("portrait", ""),
+                        "photos": entry.get("photos", []),
+                    }
+            if db:
+                return db
+    except Exception:
+        pass
+
+    static_db = load_animals_db()
+    if static_db:
+        return static_db
+
+    return _DEFAULT_ANIMALS
+
+
+
 async def _cache_get(key: str) -> str | None:
     try:
         from js import caches as js_caches  # type: ignore
