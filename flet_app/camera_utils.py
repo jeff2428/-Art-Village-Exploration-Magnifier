@@ -10,7 +10,6 @@ CAMERA_PREVIEW_OFFSET = -58
 MIN_CAMERA_ZOOM = 1.0
 MAX_CAMERA_ZOOM = 3.0
 CAMERA_ZOOM_STEP = 0.25
-CAMERA_ZOOM_CALIBRATED = False
 
 
 def clamp_camera_zoom(value: float) -> float:
