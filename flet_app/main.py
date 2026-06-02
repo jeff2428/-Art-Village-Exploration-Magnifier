@@ -199,10 +199,6 @@ async def run_app(page: ft.Page) -> None:
 
     welcome_screen.content.controls.append(start_button)
 
-    page.clean()
-    page.add(welcome_screen)
-    page.update()
-
     status = ft.Text("", size=13, color=THEME["BODY"], weight=ft.FontWeight.W_800,
                      text_align=ft.TextAlign.CENTER, expand=True)
     state.status = status
@@ -1346,6 +1342,12 @@ async def run_app(page: ft.Page) -> None:
     )
     state.shell = shell
 
+    shell.visible = False
+    page.clean()
+    page.add(welcome_screen)
+    page.add(shell)
+    page.update()
+
     async def start_exploration() -> None:
         start_button.disabled = True
         start_button.text = "探險放大鏡啟動中"
@@ -1372,7 +1374,7 @@ async def run_app(page: ft.Page) -> None:
         await asyncio.sleep(0.3)
         welcome_screen.content.controls.pop()
         welcome_screen.visible = False
-        page.add(shell)
+        shell.visible = True
         page.update()
         mark_load_timing("art-village:exploration-start")
         mark_explorer_ready()
