@@ -2,5 +2,14 @@ name = "art-village-magnifier"
 main = "index.js"
 compatibility_date = "2026-05-14"
 
+# 強制綁定的 CORS Origin。瀏覽器 Origin 完全等於此值時才會得到 CORS 放行。
+ALLOWED_ORIGIN = "https://art-village-exploration-magnifier.pages.dev"
+
+# 預設關閉。設為 "true" 才會額外放行 *.pages.dev 與 *.github.io 子域。
+ALLOW_PAGES_DOMAINS = "false"
+
+# POST 圖片最大位元組（bytes），預設 10 MiB。
+MAX_UPLOAD_BYTES = "10485760"
+
 # Do not put PLANTNET_API_KEY here.
 # Set it as an encrypted secret in Cloudflare Worker settings.

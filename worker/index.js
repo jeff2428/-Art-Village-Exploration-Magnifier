@@ -6,6 +6,14 @@ const PERENUAL_CACHE_SECONDS = 7 * 24 * 60 * 60;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
 const rateLimitStore = new Map();
+const DEFAULT_MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function readMaxUploadBytes(env) {
+  const raw = env && env.MAX_UPLOAD_BYTES;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_UPLOAD_BYTES;
+}
 
 const ANIMALS_DATA = [
   {"name":"貝貝","type":"animal","emoji":"🐶","role":"溫柔導覽員","desc":"東北角的米克斯母狗，也是藝素村最溫柔的導嚮員。","portrait":"","photos":[]},
@@ -30,27 +38,33 @@ function checkRateLimit(request) {
   return { allowed: true };
 }
 
+function isPagesDomainAllowed(env) {
+  return String(env && env.ALLOW_PAGES_DOMAINS || "").toLowerCase() === "true";
+}
+
 function corsHeaders(request, env = {}) {
   const origin = request.headers.get("Origin") || "";
   const configuredOrigin = env.ALLOWED_ORIGIN || "";
-  
+
   if (configuredOrigin && origin === configuredOrigin) {
     return origin;
   }
-  
-  try {
-    const url = new URL(origin);
-    const hostname = url.hostname;
-    for (const domain of ALLOWED_PAGES_DOMAINS) {
-      if (hostname === domain || hostname.endsWith(`.${domain}`)) {
-        return origin;
+
+  if (isPagesDomainAllowed(env) && origin) {
+    try {
+      const url = new URL(origin);
+      const hostname = url.hostname;
+      for (const domain of ALLOWED_PAGES_DOMAINS) {
+        if (hostname === domain || hostname.endsWith(`.${domain}`)) {
+          return origin;
+        }
       }
+    } catch {
+      // Invalid URL, fall through to default
     }
-  } catch {
-    // Invalid URL, fall through to default
   }
-  
-  return "https://pages.dev";
+
+  return "null";
 }
 
 function corsHeadersMap(request, env) {
@@ -293,6 +307,16 @@ export default {
         return jsonResponse({ error: "Expected multipart/form-data" }, { status: 415 }, request, env);
       }
 
+      const maxUploadBytes = readMaxUploadBytes(env);
+      const contentLength = Number.parseInt(request.headers.get("Content-Length") || "0", 10);
+      if (contentLength > maxUploadBytes) {
+        return jsonResponse(
+          { error: "Upload too large", max_bytes: maxUploadBytes },
+          { status: 413, headers: { "Retry-After": "0" } },
+          request, env,
+        );
+      }
+
       const incomingForm = await request.formData();
       const image = incomingForm.get("images") || incomingForm.get("image") || incomingForm.get("file");
       const organ = String(incomingForm.get("organs") || "").toLowerCase();
@@ -300,6 +324,22 @@ export default {
 
       if (!isFileLike(image)) {
         return jsonResponse({ error: "Missing image file" }, { status: 400 }, request, env);
+      }
+
+      if (!ALLOWED_IMAGE_MIME.has(image.type)) {
+        return jsonResponse(
+          { error: `Unsupported image type: ${image.type || "unknown"}`, allowed: [...ALLOWED_IMAGE_MIME] },
+          { status: 415 },
+          request, env,
+        );
+      }
+
+      if (typeof image.size === "number" && image.size > maxUploadBytes) {
+        return jsonResponse(
+          { error: "Upload too large", max_bytes: maxUploadBytes },
+          { status: 413, headers: { "Retry-After": "0" } },
+          request, env,
+        );
       }
 
       const plantNetForm = new FormData();

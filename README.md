@@ -8,6 +8,19 @@ Flet Web + Cloudflare Worker + Cloudflare Pages 版本。
 - `worker/`：Cloudflare Worker API 中繼站，負責隱藏 `PLANTNET_API_KEY` 並處理 CORS。
 - `build.sh` / `wrangler.toml`：Cloudflare Pages 建置設定，push 到 `main` 後由 Cloudflare 自動建置與發布。
 
+## 安全模型
+
+- **密鑰管理**：`PLANTNET_API_KEY` 與 `PERENUAL_API_KEY` 僅放在 Cloudflare Worker Secret，前端從不接觸。
+- **CORS 收斂**：Worker 預設僅放行 `ALLOWED_ORIGIN` 完全相符的瀏覽器 Origin；放行 `*.pages.dev` / `*.github.io` 必須在 `wrangler.toml` 明確設 `ALLOW_PAGES_DOMAINS = "true"`，預設關閉。
+- **上傳限制**：Worker 限制 POST 圖片最大 `MAX_UPLOAD_BYTES`（預設 10 MiB），並只接受 `image/jpeg`、`image/png`、`image/webp`。
+- **前端 headers**（`build.sh` 產出 `_headers`）：
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+  - `X-Content-Type-Options: nosniff`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+  - `Content-Security-Policy-Report-Only: …`（先以觀察期 24h 收集逸出，零逸出後再改為 enforce）
+- **限流**：以 `CF-Connecting-IP` 為單位，預設 30 req / 60s。
+- **測試**：`tests/test_worker_security.py` 透過 Node 跑 `corsHeaders()` 與 `readMaxUploadBytes()` 的邊界情境。
+
 ## Cloudflare Worker
 
 這個 Worker 是 PlantNet API 中繼站，不是網頁前端。

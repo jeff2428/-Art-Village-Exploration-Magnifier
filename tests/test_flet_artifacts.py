@@ -76,6 +76,30 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("status: 426", worker)
         self.assertIn('name = "art-village-magnifier"', wrangler)
         self.assertIn('main = "index.js"', wrangler)
+        self.assertIn("ALLOW_PAGES_DOMAINS", wrangler)
+        self.assertIn("MAX_UPLOAD_BYTES", wrangler)
+
+    def test_worker_enforces_upload_size_and_image_mime(self):
+        worker = (ROOT / "worker" / "index.js").read_text(encoding="utf-8")
+
+        self.assertIn("MAX_UPLOAD_BYTES", worker)
+        self.assertIn("DEFAULT_MAX_UPLOAD_BYTES", worker)
+        self.assertIn("ALLOWED_IMAGE_MIME", worker)
+        self.assertIn("image/jpeg", worker)
+        self.assertIn("image/png", worker)
+        self.assertIn("image/webp", worker)
+        self.assertIn("readMaxUploadBytes(env)", worker)
+        self.assertIn("Content-Length", worker)
+        self.assertIn("Upload too large", worker)
+        self.assertIn("Unsupported image type", worker)
+
+    def test_worker_cors_defaults_to_off_for_pages_domains(self):
+        worker = (ROOT / "worker" / "index.js").read_text(encoding="utf-8")
+
+        self.assertIn("isPagesDomainAllowed", worker)
+        self.assertIn('ALLOW_PAGES_DOMAINS', worker)
+        # 預設不再 fallback 寫死 "https://pages.dev"
+        self.assertNotIn('return "https://pages.dev";', worker)
 
     def test_flet_app_has_magnifier_handle_callbacks(self):
         handle = (ROOT / "flet_app" / "magnifier_handle.py").read_text(encoding="utf-8")
@@ -308,6 +332,17 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("cp -R admin flet_app/build/web/admin", build)
         self.assertIn("flet run -d -w main.py", dev)
         self.assertIn("flet_app/requirements.txt", install_dev)
+
+    def test_build_sh_emits_security_headers(self):
+        build = (ROOT / "build.sh").read_text(encoding="utf-8")
+
+        # report-only 觀察期尚未到 enforce，所以不應出現嚴格版（無 -Report-Only）
+        self.assertIn("Content-Security-Policy-Report-Only", build)
+        self.assertIn("Strict-Transport-Security", build)
+        self.assertIn("X-Content-Type-Options: nosniff", build)
+        self.assertIn("Referrer-Policy", build)
+        self.assertIn("report-uri /__csp_report", build)
+        self.assertIn("Report-To", build)
 
     def test_app_package_patch_includes_local_python_modules(self):
         patcher = load_app_package_patcher()
