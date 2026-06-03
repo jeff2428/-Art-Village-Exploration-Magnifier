@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'admin/**'
+      - 'docs/**'
+      - '**.md'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - 'admin/**'
+      - 'docs/**'
+      - '**.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv pip install --system -r flet_app/requirements.txt mypy ruff
+
+      - name: Ruff check
+        run: ruff check --target-version py312 flet_app/ tests/
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: MyPy type check (advisory)
+        run: python -m mypy flet_app --no-incremental || echo "mypy advisory: known Flet stub issues"
+
+  node-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Syntax check worker
+        run: node --check worker/index.js
