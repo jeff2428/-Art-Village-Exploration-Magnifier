@@ -4,6 +4,7 @@ import asyncio
 from typing import Any
 
 import flet as ft
+from components.illustrations import MAGNIFYING_GLASS, PAW_PRINTS, SHELL_GINGER_LEAF
 from plant_api import confidence_text
 from pokedex_manager import _DEFAULT_ANIMALS, load_animals_db_dynamic, save_cached_pokedex
 from ui_theme import THEME, border_all
@@ -35,7 +36,7 @@ class GalleryService:
             alignment=ft.Alignment(0, 0),
             content=ft.Column(
                 controls=[
-                    ft.Text("🔍", size=48, text_align=ft.TextAlign.CENTER),
+                    ft.Text(MAGNIFYING_GLASS, size=48, text_align=ft.TextAlign.CENTER),
                     ft.Text("尚無收藏", size=18, weight=ft.FontWeight.W_900, color=THEME["TITLE"],
                            text_align=ft.TextAlign.CENTER),
                     ft.Text("拍攝植物或認識動物後，\n收藏會自動出現在這裡", size=13, color=THEME["MUTED"],
@@ -60,7 +61,7 @@ class GalleryService:
         card.update()
 
     def _build_gallery_card(self, name: str, item: dict[str, Any]) -> ft.Container:
-        icon = item.get("emoji", "🌿" if item.get("type") == "plant" else "🐾")
+        icon = item.get("emoji", SHELL_GINGER_LEAF if item.get("type") == "plant" else PAW_PRINTS)
         is_low_confidence = item.get("is_low_confidence", False)
         badge = "⚠️" if is_low_confidence else ""
         subtitle = confidence_text(item) or item.get("role", "")

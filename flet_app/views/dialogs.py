@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 import flet as ft
+from components.illustrations import PAW_PRINTS
 from plant_api import (
     PLANT_ORGAN_OPTIONS,
     UNKNOWN_METADATA,
@@ -85,7 +86,7 @@ def show_animal_card(
                 height=140, border_radius=14, alignment=ft.Alignment(0, 0),
                 bgcolor=THEME["PERENUAL_BG"],
                 border=border_all(1, THEME["DETAIL_BORDER"]),
-                content=ft.Text(data.get("emoji", "🐾"), size=56),
+                content=ft.Text(data.get("emoji", PAW_PRINTS), size=56),
             )
         photo_controls: list[ft.Control] = []
         if photos:

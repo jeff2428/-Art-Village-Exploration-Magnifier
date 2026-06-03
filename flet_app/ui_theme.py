@@ -46,6 +46,9 @@ def _theme(is_dark: bool) -> dict[str, str]:
             "PERENUAL_BG": "#3a3028",
             "CONFIDENCE_BG": "#5a4532",
             "DETAIL_TEXT": "#a8947e",
+            "ILLUSTRATION_DECORATIVE": "#5a4a3a",
+            "LEAF_GREEN": "#5a8a5a",
+            "BIRD_ACCENT": "#8a7a5a",
         }
     return {
         "PAGE_BG": "#f3efd9",
@@ -75,6 +78,9 @@ def _theme(is_dark: bool) -> dict[str, str]:
         "PERENUAL_BG": "#efe4d1",
         "CONFIDENCE_BG": "#e8bc96",
         "DETAIL_TEXT": "#7a6657",
+        "ILLUSTRATION_DECORATIVE": "#8a7a6a",
+        "LEAF_GREEN": "#6a9a5a",
+        "BIRD_ACCENT": "#5a7a9a",
     }
 
 

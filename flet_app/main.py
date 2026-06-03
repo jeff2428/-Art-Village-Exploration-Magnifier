@@ -17,6 +17,7 @@ from build_config import CONTENT_MAX_WIDTH, CONTENT_MIN_PADDING
 from camera_utils import (
     MIN_CAMERA_ZOOM,
 )
+from components.illustrations import LOADING_EMOJI_CYCLE, MODE_ICONS
 from plant_api import PLANT_ORGAN_ICONS, PLANT_ORGAN_OPTIONS
 from pokedex_manager import (
     clear_legacy_snapshot_cache,
@@ -246,7 +247,10 @@ async def run_app(page: ft.Page) -> None:
                 on_click=lambda _e: set_mode(value),
             )
         return ft.Row(
-            controls=[option("plant", "\U0001f33f", "\u690d\u7269"), option("animal", "\U0001f98c", "\u52d5\u7269")],
+            controls=[
+                option("plant", MODE_ICONS[AppMode.PLANT], "\u690d\u7269"),
+                option("animal", MODE_ICONS[AppMode.ANIMAL], "\u52d5\u7269"),
+            ],
             spacing=24, alignment=ft.MainAxisAlignment.CENTER,
         )
 
@@ -340,7 +344,7 @@ async def run_app(page: ft.Page) -> None:
         start_button.update()
         welcome_screen.content.controls[-1] = loading_carousel
         welcome_screen.update()
-        emoji_cycle = ["\U0001f50d", "\U0001f33f", "\U0001f43e", "\U0001f392", "\U0001f338", "\U0001f343", "\U0001f415"]
+        emoji_cycle = LOADING_EMOJI_CYCLE
         messages = [
             "\u6b63\u5728\u547c\u559a\u5c0f\u5925\u4f34\u5011...",
             "\u7ffb\u958b\u690d\u7269\u5716\u9451\u4e2d...",

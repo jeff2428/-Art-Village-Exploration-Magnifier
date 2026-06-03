@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 import flet as ft
+from components.illustrations import SECTION_ICONS
 from pokedex_manager import load_animals_db_dynamic
 from ui_theme import THEME, border_all, section_label
 
@@ -58,7 +59,7 @@ def get_animals_view(page: ft.Page) -> ft.Column:
     animals = load_animals_db_dynamic()
     return ft.Column(
         controls=[
-            section_label("🐾", "認識動物"),
+            section_label(SECTION_ICONS["animal_section"], "認識動物"),
             ft.Text("點擊卡片，打開牠的介紹卡片。", size=14, color=THEME["BODY"]),
             ft.TextButton(
                 content=ft.Row(

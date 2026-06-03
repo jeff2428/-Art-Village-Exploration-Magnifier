@@ -4,6 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 import flet as ft
+from components.illustrations import PAW_PRINTS, SECTION_ICONS, SHELL_GINGER_LEAF
 from plant_api import confidence_text
 from ui_theme import THEME, border_all, soft_card
 
@@ -14,8 +15,7 @@ def build_gallery_card(
     on_click: Callable[[str, dict[str, Any]], None] | None = None,
     on_delete: Callable[[str], None] | None = None,
 ) -> ft.Container:
-    """Build single gallery card with hover effects."""
-    icon = item.get("emoji", "🌿" if item.get("type") == "plant" else "🐾")
+    icon = item.get("emoji", SHELL_GINGER_LEAF if item.get("type") == "plant" else PAW_PRINTS)
     is_low_confidence = item.get("is_low_confidence", False)
     badge = "⚠️" if is_low_confidence else ""
     subtitle = confidence_text(item) or item.get("role", "")
@@ -69,7 +69,7 @@ def build_gallery_panel(
             controls=[
                 ft.Row(
                     controls=[
-                        ft.Text("📖", size=30),
+                        ft.Text(SECTION_ICONS["gallery_header"], size=30),
                         ft.Text("探險圖鑑", size=28, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
                         ft.IconButton(
                             icon=ft.Icons.DELETE_SWEEP_OUTLINED,
