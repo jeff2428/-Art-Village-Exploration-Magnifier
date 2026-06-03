@@ -233,7 +233,7 @@ def capture_to_bytes(capture: Any) -> tuple[bytes, str]:
     raise TypeError("相機回傳了無法辨識的圖片格式")
 
 
-def compress_image(binary: bytes, mime: str) -> bytes:
+def compress_image(binary: bytes, mime: str, *, optimize: bool = True) -> bytes:
     if Image is None:
         return binary
     try:
@@ -244,7 +244,7 @@ def compress_image(binary: bytes, mime: str) -> bytes:
             image = image.resize((MAX_IMAGE_WIDTH, new_height), Image.LANCZOS)
         buffer = BytesIO()
         fmt = "WEBP" if hasattr(Image, "registered_extensions") and ".webp" in Image.registered_extensions() else "JPEG"
-        image.save(buffer, format=fmt, quality=IMAGE_COMPRESSION_QUALITY, optimize=True)
+        image.save(buffer, format=fmt, quality=IMAGE_COMPRESSION_QUALITY, optimize=optimize)
         return buffer.getvalue()
     except Exception:
         return binary

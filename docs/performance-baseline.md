@@ -1,47 +1,62 @@
-# 效能基準紀錄
+# 效能基線（PR3）
 
-這份文件用來記錄 Flet 版本與 `prototype/index.html` 的同條件量測結果。
+這份文件描述如何量測「藝素村探險放大鏡」Flet Web 的關鍵互動指標，協助我們在 PR3 之後維持流暢體驗。
 
-## 首頁載入
+## 目標指標
 
-使用瀏覽器 Performance 面板或 Console 讀取 mark：
+| 互動 | 目標 | 量測方式 |
+| --- | --- | --- |
+| 縮放按鈕點擊 → 鏡頭更新 | < 16 ms（單一影格） | DevTools Performance，記錄 `adjust_camera_zoom` 到下次 paint |
+| 新卡片進場動畫 | 不掉幀（≥ 50 fps） | DevTools FPS meter，量測 `_animate_new_cards` 期間 |
+| 圖鑑新增植物（從辨識成功到卡片可見） | < 200 ms | DevTools Network + Performance |
+| 圖鑑首次開啟（pokedex 有 10 筆以上） | < 300 ms | `performance.now()` 包住 `refresh_gallery` 呼叫 |
 
-- `art-village:loader-start`
-- `art-village:flet-shell-ready`
-- `art-village:camera-init-start`
-- `art-village:camera-ready`
-- `prototype:loader-start`
-- `prototype:camera-init-start`
-- `prototype:camera-ready`
+## 量測腳本（devtools snippet）
 
-建議每次記錄：
+貼到 DevTools Console 即可（搭配 `?perf=1` query string 開啟內部旗位）：
 
-- 裝置與瀏覽器：
-- 網路條件：
-- 首次載入到 shell ready：
-- 首次載入到 camera ready：
-- 是否為冷快取：
+```js
+// 1) 量測縮放
+const t0 = performance.now();
+document.querySelector('[data-testid="zoom-in"]').click();
+// 等到下次 paint 後取樣
+requestAnimationFrame(() => {
+  const t1 = performance.now();
+  console.log(`zoom-in 渲染耗時 ${(t1 - t0).toFixed(2)} ms`);
+});
 
-## 辨識端點
+// 2) 量測新卡片動畫
+const fpsSamples = [];
+let last = performance.now();
+const handle = setInterval(() => {
+  const now = performance.now();
+  fpsSamples.push(1000 / (now - last));
+  last = now;
+}, 200);
+setTimeout(() => {
+  clearInterval(handle);
+  const avg = fpsSamples.reduce((a, b) => a + b, 0) / fpsSamples.length;
+  console.log(`卡片動畫平均 fps = ${avg.toFixed(1)}`);
+}, 2000);
+```
 
-Flet 卡片與 Web 原型都會顯示 Worker 回傳的 timing：
+## 量測記錄表
 
-- `plantnet_ms`
-- `perenual_ms`
-- `total_ms`
+| 日期 | 環境 | zoom-in 渲染 | 新卡片 fps | 圖鑑新增 | 備註 |
+| --- | --- | --- | --- | --- | --- |
+| YYYY-MM-DD | Cloudflare Pages / Chrome 130 | _._ ms | _._ fps | _._ ms | PR3 前 baseline |
+| YYYY-MM-DD | Cloudflare Pages / Chrome 130 | _._ ms | _._ fps | _._ ms | PR3 後（本次重構） |
 
-POST 主辨識預期不等待 Perenual，成功時 `perenual.status` 先回 `pending`，再由 `GET /metadata?scientificName=...` 補資料。
+## 變更摘要（PR3）
 
-建議每次記錄：
+- `apply_camera_zoom()`：保留「只更新 `camera_preview_slot`」契約。
+- `adjust_camera_zoom()`：移除 `page.update()`，改為 `status.update()` + `handle_slot.update()`，避免每按一次就重繪整個頁面。
+- `refresh_gallery()`：增量新增時改用 `grid.update()` + `gallery_empty_state.update()`，並在卡片上加 `animate_opacity` / `animate_offset` 走 Flet 動畫系統。
+- `_animate_new_cards()`：保留 stagger 效果，但只在卡片已掛載時才呼叫 `card.update()`。
+- `plant_api.compress_image()`：新增 `optimize: bool` 參數（預設 `True` 保持相容），Web 端可在上傳前以 `optimize=False` 省 CPU。
 
-- 照片大小：
-- 拍攝部位：
-- POST total_ms：
-- PlantNet plantnet_ms：
-- Metadata perenual_ms：
-- Metadata cache：hit / miss
+## 注意事項
 
-## 判斷準則
-
-- 如果 POST total_ms 明顯接近 PlantNet plantnet_ms，代表端點已不再被 Perenual 二次查詢阻塞。
-- 如果 Flet 首頁到 shell ready 遠慢於 prototype，才進一步評估前端框架遷移。
+- Cloudflare Pages 部署後第一次載入較慢（Pyodide + Flet runtime 冷啟動），量測時請先暖機（reload 一次後再開始）。
+- 行動裝置（Android Chrome）fps 目標下修至 30 fps；桌面以 60 fps 為標竿。
+- 若 Flet 動畫造成掉幀，請確認 `card.animate_*` 已正確設定，否則會 fallback 到逐張 `card.update()` 的舊路徑。

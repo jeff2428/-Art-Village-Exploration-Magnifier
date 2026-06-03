@@ -286,7 +286,9 @@ async def run_app(page: ft.Page) -> None:
         apply_camera_zoom()
         status.value = f"放大 {state.zoom_level:.2g}x" if state.zoom_level > MIN_CAMERA_ZOOM else "回到原始大小"
         render_handle(update_page=False)
-        page.update()
+        status.update()
+        if handle_slot.page is not None:
+            handle_slot.update()
 
     def room_in(_event: ft.ControlEvent) -> None:
         adjust_camera_zoom(CAMERA_ZOOM_STEP)
@@ -388,6 +390,8 @@ async def run_app(page: ft.Page) -> None:
             card = _build_gallery_card(name, item)
             card.opacity = 0
             card.offset = ft.Offset(0, 0.3)
+            card.animate_opacity = ft.Animation(duration=260, curve=ft.AnimationCurve.EASE_OUT)
+            card.animate_offset = ft.Animation(duration=320, curve=ft.AnimationCurve.EASE_OUT)
             state._gallery_card_map[name] = card
             grid.controls.append(card)
             new_cards.append((name, card))
@@ -396,7 +400,9 @@ async def run_app(page: ft.Page) -> None:
         gallery_empty_state.visible = not has_items
         create_background_task(save_cached_pokedex(state.pokedex))
         if update_page:
-            page.update()
+            grid.update()
+            if gallery_empty_state.page is not None:
+                gallery_empty_state.update()
         if new_cards:
             create_background_task(_animate_new_cards(new_cards))
 
@@ -405,7 +411,8 @@ async def run_app(page: ft.Page) -> None:
         for _, card in new_cards:
             card.opacity = 1.0
             card.offset = ft.Offset(0, 0)
-            card.update()
+            if card.page is not None:
+                card.update()
             await asyncio.sleep(0.06)
 
     def add_animal_to_gallery(name: str) -> None:

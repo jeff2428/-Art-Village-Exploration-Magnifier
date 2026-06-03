@@ -344,6 +344,26 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("report-uri /__csp_report", build)
         self.assertIn("Report-To", build)
 
+    def test_camera_zoom_uses_granular_updates_only(self):
+        main = (ROOT / "flet_app" / "main.py").read_text(encoding="utf-8")
+        lines = main.splitlines()
+        func_start = next(i for i, line in enumerate(lines) if "def adjust_camera_zoom" in line)
+        next_def = next((i for i in range(func_start + 1, len(lines)) if lines[i].startswith("    def ")), len(lines))
+        body = "\n".join(lines[func_start:next_def])
+        self.assertNotIn("page.update()", body, "adjust_camera_zoom 仍呼叫 page.update()")
+        self.assertIn("status.update()", body)
+        self.assertIn("handle_slot.update()", body)
+
+    def test_refresh_gallery_uses_grid_update_and_staggered_animation(self):
+        main = (ROOT / "flet_app" / "main.py").read_text(encoding="utf-8")
+        lines = main.splitlines()
+        func_start = next(i for i, line in enumerate(lines) if "def refresh_gallery" in line)
+        next_def = next((i for i in range(func_start + 1, len(lines)) if lines[i].startswith("    def ")), len(lines))
+        body = "\n".join(lines[func_start:next_def])
+        self.assertIn("animate_opacity", body)
+        self.assertIn("animate_offset", body)
+        self.assertIn("grid.update()", body)
+
     def test_app_package_patch_includes_local_python_modules(self):
         patcher = load_app_package_patcher()
         with tempfile.TemporaryDirectory() as temp_dir:

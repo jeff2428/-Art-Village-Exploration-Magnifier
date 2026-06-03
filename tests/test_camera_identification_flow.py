@@ -16,6 +16,7 @@ from camera_utils import (  # noqa: E402
 from plant_api import (  # noqa: E402
     RecognitionServiceError,
     card_image_from_capture,
+    compress_image,
     parse_plantnet_result,
     plant_candidate_from_result,
     worker_error_message,
@@ -291,6 +292,33 @@ class CameraIdentificationFlowTests(unittest.TestCase):
 
         self.assertEqual(image["src"], "")
         self.assertEqual(image["label"], "照片過大，未存入圖鑑")
+
+    def test_compress_image_optimize_flag_is_threaded_through(self):
+        from io import BytesIO
+        from unittest.mock import patch
+
+        from plant_api import Image  # type: ignore
+
+        if Image is None:
+            self.skipTest("Pillow not available in this environment")
+
+        buf = BytesIO()
+        with Image.new("RGB", (200, 200), color=(120, 80, 40)) as raw:
+            raw.save(buf, format="JPEG", quality=90)
+        binary = buf.getvalue()
+
+        optimize_seen: list[object] = []
+
+        def fake_save(self, buffer, format=None, **kwargs):  # type: ignore[no-untyped-def]
+            optimize_seen.append(kwargs.get("optimize", "missing"))
+            buffer.write(b"\x00\x00")
+
+        with patch.object(Image.Image, "save", fake_save):
+            compress_image(binary, "image/jpeg", optimize=True)
+            compress_image(binary, "image/jpeg", optimize=False)
+            compress_image(binary, "image/jpeg")
+
+        self.assertEqual(optimize_seen, [True, False, True])
 
 
 if __name__ == "__main__":
