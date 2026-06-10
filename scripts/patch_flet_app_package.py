@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import hashlib
 import shutil
 import tempfile
 import zipfile
@@ -9,14 +10,21 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 APP_DIR = ROOT / "flet_app"
 APP_PACKAGE = APP_DIR / "build" / "web" / "assets" / "app" / "app.zip"
+APP_PACKAGE_CANDIDATES = (
+    APP_PACKAGE,
+    APP_DIR / "build" / "flutter" / "app" / "app.zip",
+    APP_DIR / "build" / "flutter" / "build" / "web" / "assets" / "app" / "app.zip",
+)
 
 
 def local_python_modules(app_dir: Path | None = None) -> dict[str, Path]:
     app_dir = app_dir or APP_DIR
     return {
-        path.name: path
-        for path in sorted(app_dir.glob("*.py"))
-        if path.name != "__init__.py"
+        path.relative_to(app_dir).as_posix(): path
+        for path in sorted(app_dir.rglob("*.py"))
+        if "build" not in path.relative_to(app_dir).parts
+        and "__pycache__" not in path.relative_to(app_dir).parts
+        and path.name != "__init__.py"
     }
 
 
@@ -56,6 +64,10 @@ def rewrite_app_package(app_package: Path = APP_PACKAGE) -> list[str]:
                 written.add(archive_name)
 
         shutil.move(str(temp_path), app_package)
+        app_package.with_name(f"{app_package.name}.hash").write_text(
+            hashlib.sha256(app_package.read_bytes()).hexdigest(),
+            encoding="utf-8",
+        )
     finally:
         if temp_path.exists():
             temp_path.unlink()
@@ -63,8 +75,19 @@ def rewrite_app_package(app_package: Path = APP_PACKAGE) -> list[str]:
     return sorted(replacements)
 
 
+def rewrite_existing_app_packages() -> dict[str, list[str]]:
+    patched: dict[str, list[str]] = {}
+    for app_package in APP_PACKAGE_CANDIDATES:
+        if app_package.exists():
+            patched[str(app_package)] = rewrite_app_package(app_package)
+    if not patched:
+        raise FileNotFoundError("No Flet app package found. Run `flet build web` or `flet run -w` first.")
+    return patched
+
+
 if __name__ == "__main__":
-    patched = rewrite_app_package()
-    print("Patched Flet app package with local modules:")
-    for name in patched:
-        print(f"  - {name}")
+    patched_packages = rewrite_existing_app_packages()
+    for package, patched in patched_packages.items():
+        print(f"Patched Flet app package with local modules: {package}")
+        for name in patched:
+            print(f"  - {name}")

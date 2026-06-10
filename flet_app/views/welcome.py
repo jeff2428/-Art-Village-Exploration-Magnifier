@@ -45,10 +45,11 @@ def build_welcome_screen(page: ft.Page) -> ft.Container:
     return welcome
 
 
-def build_start_button() -> ft.ElevatedButton:
+def build_start_button(on_click: object | None = None) -> ft.ElevatedButton:
     """Builds the start exploration button."""
     return ft.ElevatedButton(
         "開始探險",
+        on_click=on_click,
         style=ft.ButtonStyle(
             padding=ft.Padding.symmetric(horizontal=40, vertical=18),
             text_style=ft.TextStyle(size=18, weight=ft.FontWeight.W_900),

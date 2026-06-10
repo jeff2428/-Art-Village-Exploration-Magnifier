@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import traceback
 from typing import Any, cast
 
 import flet as ft
@@ -92,7 +93,12 @@ async def main(page: ft.Page) -> None:
                     [
                         ft.Text("\u63a2\u96aa\u653e\u5927\u93e1\u8f09\u5165\u5931\u6557", size=26,
                                weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
-                        ft.Text(str(error), size=14, color=THEME["BODY_DARK"], selectable=True),
+                        ft.Text(
+                            "".join(traceback.format_exception(error)),
+                            size=14,
+                            color=THEME["BODY_DARK"],
+                            selectable=True,
+                        ),
                     ],
                     spacing=12,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -100,6 +106,7 @@ async def main(page: ft.Page) -> None:
             )
         )
         page.update()
+        mark_explorer_ready()
 
 
 async def run_app(page: ft.Page) -> None:
@@ -167,6 +174,13 @@ async def run_app(page: ft.Page) -> None:
         return "auto"
 
     def create_background_task(coro: Any) -> None:
+        run_task = getattr(page, "run_task", None)
+        if callable(run_task):
+            async def runner() -> None:
+                await coro
+
+            run_task(runner)
+            return
         task = asyncio.create_task(coro)
         state.background_tasks.add(task)
         task.add_done_callback(lambda t: state.background_tasks.discard(t))
@@ -222,7 +236,10 @@ async def run_app(page: ft.Page) -> None:
 
     # Welcome screen
     welcome_screen = wv.build_welcome_screen(page)
-    start_button = wv.build_start_button()
+    def on_start_click(_event: ft.ControlEvent) -> None:
+        create_background_task(start_exploration())
+
+    start_button = wv.build_start_button(on_click=on_start_click)
     loading_carousel, loading_emoji, loading_message = wv.build_loading_carousel()
     welcome_paper = cast(ft.Container, welcome_screen.content)
     welcome_content = cast(ft.Column, welcome_paper.content)
@@ -245,12 +262,14 @@ async def run_app(page: ft.Page) -> None:
             create_background_task(pause_camera_preview(current_camera))
 
     def restore_camera_preview() -> None:
+        state.camera_ready = False
         camera.camera_preview_slot.visible = True
         camera.camera_preview_slot.content = camera.camera_placeholder
 
     def build_mode_selector() -> ft.Row:
         def option(value: str, icon: str, label: str) -> ft.TextButton:
             is_active = selected_mode["value"] == value
+
             return ft.TextButton(
                 content=ft.Column(
                     controls=[
@@ -261,7 +280,7 @@ async def run_app(page: ft.Page) -> None:
                     ],
                     spacing=2, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
-                on_click=lambda _e: set_mode(value),
+                on_click=lambda _event, next_value=value: create_background_task(switch_mode(next_value)),
             )
         return ft.Row(
             controls=[
@@ -270,9 +289,6 @@ async def run_app(page: ft.Page) -> None:
             ],
             spacing=24, alignment=ft.MainAxisAlignment.CENTER,
         )
-
-    def set_mode(value: str) -> None:
-        create_background_task(switch_mode(value))
 
     async def switch_mode(value: str) -> None:
         if value == selected_mode["value"]:
@@ -288,12 +304,16 @@ async def run_app(page: ft.Page) -> None:
             mode.content = build_mode_selector()
         _rebuild_visible_shell()
         page.update()
+        if value == "plant":
+            create_background_task(camera.initialize())
 
     def toggle_dark_mode(_event: ft.ControlEvent | None = None) -> None:
         state.is_dark_mode = not state.is_dark_mode
         apply_theme(state.is_dark_mode)
         page.theme_mode = ft.ThemeMode.DARK if state.is_dark_mode else ft.ThemeMode.LIGHT
         page.bgcolor = THEME["PAGE_BG"]
+        camera.apply_theme_colors()
+        camera.render_handle(update_page=False)
         create_background_task(save_dark_mode_preference(state.is_dark_mode))
         _rebuild_visible_shell()
         page.update()
@@ -357,10 +377,6 @@ async def run_app(page: ft.Page) -> None:
         width=min(CONTENT_MAX_WIDTH, (page.width or 480) - CONTENT_MIN_PADDING * 2),
         visible=False,
     )
-    page.add(welcome_screen, shell)
-    await asyncio.sleep(0)
-    mark_explorer_ready()
-
     # Start exploration
     async def start_exploration() -> None:
         try:
@@ -405,7 +421,9 @@ async def run_app(page: ft.Page) -> None:
             )
             page.update()
 
-    start_button.on_click = lambda _e: create_background_task(start_exploration())
+    page.add(welcome_screen, shell)
+    await asyncio.sleep(0)
+    mark_explorer_ready()
 
     def _on_page_resize(_event: ft.ControlEvent | None = None) -> None:
         w = min(CONTENT_MAX_WIDTH, (page.width or 480) - CONTENT_MIN_PADDING * 2)

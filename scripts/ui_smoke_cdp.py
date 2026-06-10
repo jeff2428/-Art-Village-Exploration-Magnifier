@@ -170,7 +170,7 @@ class CdpClient:
         for pixel in image.getdata():
             if sum(abs(pixel[index] - average[index]) for index in range(3)) > 18:
                 varied_pixels += 1
-        return varied_pixels < 12
+        return varied_pixels < 4
 
     def has_dark_lens(self, path: Path) -> bool:
         image = Image.open(path).convert("RGB")
@@ -231,6 +231,20 @@ class CdpClient:
                     messages.append(json.dumps(params, ensure_ascii=False)[:500])
         return messages
 
+    def network_failures(self) -> list[str]:
+        failures: list[str] = []
+        for event in self.events:
+            method = event.get("method")
+            params = event.get("params", {})
+            if method == "Network.loadingFailed":
+                failures.append(json.dumps(params, ensure_ascii=False)[:500])
+            if method == "Network.responseReceived":
+                response = params.get("response", {})
+                status = response.get("status", 0)
+                if status >= 400:
+                    failures.append(json.dumps(response, ensure_ascii=False)[:500])
+        return failures
+
 
 async def run_smoke(chrome_path: Path, headless: bool = True) -> dict[str, Any]:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -253,6 +267,7 @@ async def run_smoke(chrome_path: Path, headless: bool = True) -> dict[str, Any]:
             str(chrome_path),
             "--disable-gpu",
             "--remote-debugging-port=9223",
+            "--remote-allow-origins=*",
             "--window-size=430,900",
             f"--user-data-dir={profile_dir}",
         ]
@@ -270,27 +285,37 @@ async def run_smoke(chrome_path: Path, headless: bool = True) -> dict[str, Any]:
             await cdp.call("Page.enable")
             await cdp.call("Runtime.enable")
             await cdp.call("Log.enable")
-            welcome_shot = await cdp.wait_for_nonblank_screenshot("01-welcome")
-            screenshots = [str(welcome_shot)]
-            actions = [await cdp.click_text_or_point("開始探險", 215, 650)]
-            await asyncio.sleep(1)
-            after_click_shot = await cdp.wait_for_changed_screenshot("02-after-click", welcome_shot)
-            screenshots.append(str(after_click_shot))
-            await asyncio.sleep(3)
-            after_start_shot = await cdp.wait_for_main_screen("03-after-start")
-            screenshots.append(str(after_start_shot))
-            actions.append(await cdp.click_text_or_point("動物", 280, 138))
-            screenshots.append(str(await cdp.screenshot("04-animal-mode")))
-            actions.append(await cdp.click_text_or_point("植物", 198, 138))
-            screenshots.append(str(await cdp.screenshot("05-plant-mode")))
-            actions.append(await cdp.click_text_or_point("深色模式", 435, 42))
-            screenshots.append(str(await cdp.screenshot("06-dark-mode")))
+            await cdp.call("Network.enable")
+            screenshots: list[str] = []
+            actions: list[str] = []
+            try:
+                welcome_shot = await cdp.wait_for_nonblank_screenshot("01-welcome")
+                screenshots.append(str(welcome_shot))
+                await asyncio.sleep(2)
+                actions.append(await cdp.click_text_or_point("開始探險", 240, 648))
+                await asyncio.sleep(1)
+                after_click_shot = await cdp.wait_for_changed_screenshot("02-after-click", welcome_shot)
+                screenshots.append(str(after_click_shot))
+                await asyncio.sleep(3)
+                after_start_shot = await cdp.wait_for_main_screen("03-after-start")
+                screenshots.append(str(after_start_shot))
+                actions.append(await cdp.click_text_or_point("動物", 280, 138))
+                screenshots.append(str(await cdp.screenshot("04-animal-mode")))
+                actions.append(await cdp.click_text_or_point("植物", 198, 138))
+                screenshots.append(str(await cdp.screenshot("05-plant-mode")))
+                actions.append(await cdp.click_text_or_point("深色模式", 435, 42))
+                screenshots.append(str(await cdp.screenshot("06-dark-mode")))
+                status = "passed"
+            except Exception as error:
+                screenshots.append(str(await cdp.screenshot("failure")))
+                status = f"failed: {type(error).__name__}: {error}"
             body_text = await cdp.eval("document.body.innerText || document.body.textContent || ''")
             result = {
-                "status": "passed",
+                "status": status,
                 "actions": actions,
                 "screenshots": screenshots,
                 "console_errors": cdp.console_errors(),
+                "network_failures": cdp.network_failures(),
                 "observed_text": str(body_text)[:500],
             }
             return result

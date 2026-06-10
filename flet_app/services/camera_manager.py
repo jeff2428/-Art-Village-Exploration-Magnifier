@@ -26,7 +26,7 @@ from magnifier_handle import MagnifierHandle
 from plant_api import (
     PLANT_ORGAN_OPTIONS,
     RecognitionServiceError,
-    card_image_from_capture,
+    card_image_from_capture_async,
     parse_plantnet_result,
     post_image_to_worker,
 )
@@ -124,6 +124,18 @@ class CameraManager:
                 ft.Container(left=0, top=0, content=self.camera_frame),
             ],
         )
+
+    def apply_theme_colors(self) -> None:
+        self.camera_frame.bgcolor = THEME["CAMERA_BG"]
+        self.camera_frame.border = border_all(5, THEME["CAMERA_BORDER"])
+        self.camera_frame.shadow = ft.BoxShadow(
+            blur_radius=34,
+            color=THEME["SHADOW_CAMERA"],
+            offset=ft.Offset(0, 14),
+        )
+        inner_frame = self.camera_frame.content
+        if isinstance(inner_frame, ft.Container):
+            inner_frame.bgcolor = THEME["CAMERA_INNER"]
 
     def apply_zoom(self, update_slot: bool = True) -> None:
         size, left, top = camera_preview_metrics(self._state.zoom_level)
@@ -241,8 +253,8 @@ class CameraManager:
                 self._page.update()
                 return
             plant["organ"] = selected_organ
-            plant["organ_label"] = PLANT_ORGAN_OPTIONS.get(selected_organ, "\u81ea\u52d5")
-            plant["captured_image"] = card_image_from_capture(image_data)
+            plant["organ_label"] = PLANT_ORGAN_OPTIONS.get(selected_organ, "自動")
+            plant["captured_image"] = await card_image_from_capture_async(image_data)
             plant["worker_timing"] = payload.get("timing") or {}
             if self._on_capture_result:
                 await self._on_capture_result(plant)
@@ -364,6 +376,7 @@ class CameraManager:
         self.camera_preview_slot.content = self.camera_placeholder
         self._state.camera = None
 
-    def restore_preview(self) -> None:
+    async def restore_preview(self) -> None:
         self.camera_preview_slot.visible = True
         self.camera_preview_slot.content = self.camera_placeholder
+        await self.initialize()

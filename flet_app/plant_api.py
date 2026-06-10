@@ -17,16 +17,8 @@ try:
 except ImportError:
     Image = None  # type: ignore[assignment]
 
-try:
-    import opencc
-
-    _opencc_converter = opencc.OpenCC("s2t")
-
-    def to_traditional_chinese(text: str) -> str:
-        return _opencc_converter.convert(text)
-except ImportError:
-    def to_traditional_chinese(text: str) -> str:
-        return text
+def to_traditional_chinese(text: str) -> str:
+    return text
 
 
 LOW_CONFIDENCE_THRESHOLD = 50.0
@@ -214,6 +206,58 @@ def card_image_from_capture(capture: Any, max_data_url_length: int = MAX_CARD_IM
     return {"src": "", "label": "照片過大，未存入圖鑑"}
 
 
+async def card_image_from_capture_async(capture: Any, max_data_url_length: int = MAX_CARD_IMAGE_DATA_URL_LENGTH) -> dict[str, str]:
+    try:
+        is_data_url = isinstance(capture, str) and capture.startswith("data:")
+        
+        if is_data_url and len(capture) <= max_data_url_length:
+            return {"src": capture, "label": "拍攝照片"}
+
+        # Try JS Canvas compression in Pyodide
+        try:
+            import js
+            if is_data_url:
+                if not hasattr(js.window, "compressImageAsync"):
+                    js.eval("""
+                    window.compressImageAsync = function(src, maxWidth, quality) {
+                        return new Promise((resolve, reject) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                let width = img.width;
+                                let height = img.height;
+                                if (width > maxWidth) {
+                                    const ratio = maxWidth / width;
+                                    height = Math.round(height * ratio);
+                                    width = maxWidth;
+                                }
+                                const canvas = document.createElement('canvas');
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0, width, height);
+                                resolve(canvas.toDataURL('image/jpeg', quality));
+                            };
+                            img.onerror = reject;
+                            img.src = src;
+                        });
+                    };
+                    """)
+                compressed_data_url = await js.window.compressImageAsync(capture, MAX_IMAGE_WIDTH, IMAGE_COMPRESSION_QUALITY / 100.0)
+                if len(compressed_data_url) <= max_data_url_length:
+                    return {"src": compressed_data_url, "label": "拍攝照片"}
+                else:
+                    return {"src": "", "label": "照片過大，未存入圖鑑"}
+        except (ImportError, AttributeError):
+            pass # Not in Pyodide or JS error, fallback to synchronous Python Pillow
+        except Exception as e:
+            print("JS canvas compression error:", e)
+            
+        return card_image_from_capture(capture, max_data_url_length)
+    except Exception:
+        pass
+    return {"src": "", "label": "照片過大，未存入圖鑑"}
+
+
 def capture_to_bytes(capture: Any) -> tuple[bytes, str]:
     if isinstance(capture, bytes):
         return capture, "image/jpeg"
@@ -318,7 +362,7 @@ async def get_metadata_from_worker(scientific_name: str) -> dict[str, Any]:
         if not response.ok:
             raise RecognitionServiceError(worker_error_message(response.status, text))
         return json.loads(text)
-    except ModuleNotFoundError:
+    except (ImportError, ModuleNotFoundError):
         return await asyncio.to_thread(get_metadata_from_worker_sync, scientific_name)
 
 
@@ -345,5 +389,5 @@ async def post_image_to_worker(capture: Any, organ: str = "leaf") -> dict[str, A
         if not response.ok:
             raise RecognitionServiceError(worker_error_message(response.status, text))
         return json.loads(text)
-    except ModuleNotFoundError:
+    except (ImportError, ModuleNotFoundError):
         return await asyncio.to_thread(post_image_to_worker_sync, binary, mime, organ)

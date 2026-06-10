@@ -557,7 +557,7 @@
       <p>此頁面僅供管理者維護動物介紹、照片與 JSON 資料。</p>
       <input type="password" id="adminPassword" autocomplete="current-password" placeholder="請輸入管理密碼">
       <button type="submit">進入管理頁</button>
-      <div class="auth-note">這是簡易密碼門檻，用來避免一般訪客看見管理介面；正式權限控管需另接登入服務。</div>
+      <div class="auth-note">預設管理密碼：<strong>artvillage</strong>。這是簡易密碼門檻，用來避免一般訪客看見管理介面；正式權限控管需另接登入服務。</div>
     </form>
   </div>
 
@@ -680,6 +680,10 @@
     const EMOJI_LIST = ['🐶', '🐕', '🐈', '🐈‍⬛', '🐱', '🐾', '🐭', '🐹', '🐰', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🦊', '🐺', '🐗', '🐴', '🦄', '🐝', '🦋', '🐛', '🐞', '🐢', '🐍', '🦎', '🐙', '🦑', '🐬', '🐳', '🦅', '🦉', '🦜', '🐦'];
     const ADMIN_PASSWORD = 'artvillage';
     const AUTH_SESSION_KEY = 'artVillageAnimalAdminAuthed';
+    const PORTRAIT_MAX_WIDTH = 520;
+    const PHOTO_MAX_WIDTH = 760;
+    const IMAGE_QUALITY = 0.72;
+    const MAX_PHOTOS_PER_ANIMAL = 4;
 
     let animalsData = { animals: [] };
     let currentPortrait = '';
@@ -695,7 +699,7 @@
       document.getElementById('authForm').addEventListener('submit', (event) => {
         event.preventDefault();
         const input = document.getElementById('adminPassword');
-        if (input.value === ADMIN_PASSWORD) {
+        if (input.value.trim() === ADMIN_PASSWORD) {
           sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
           unlockAdmin();
         } else {
@@ -756,9 +760,19 @@
     }
 
     function saveToStorage() {
-      localStorage.setItem('artVillageAnimals', JSON.stringify(animalsData));
+      try {
+        localStorage.setItem('artVillageAnimals', JSON.stringify(animalsData));
+      } catch (error) {
+        if (error && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
+          showToast('❌ 本機暫存空間不足，請減少照片數量或改用「下載副本」保存');
+        } else {
+          showToast('❌ 本機草稿儲存失敗，請改用「下載副本」保存');
+        }
+        return false;
+      }
       dataSourceLabel = '已儲存為本機草稿。若要成為正式資料，請下載或儲存 animals.json。';
       updateStatus();
+      return true;
     }
 
     function updateStatus(filteredCount) {
@@ -923,15 +937,23 @@
         photos: currentTempPhotos
       };
 
+      const previousAnimal = index === -1 ? null : animalsData.animals[index];
       if (index === -1) {
         animalsData.animals.push(animal);
-        showToast('✅ 新增成功');
       } else {
         animalsData.animals[index] = animal;
-        showToast('✅ 儲存成功');
       }
 
-      saveToStorage();
+      if (!saveToStorage()) {
+        if (index === -1) {
+          animalsData.animals.pop();
+        } else {
+          animalsData.animals[index] = previousAnimal;
+        }
+        return;
+      }
+
+      showToast(index === -1 ? '✅ 新增成功' : '✅ 儲存成功');
       renderGrid();
       closeModal();
     }
@@ -985,7 +1007,7 @@
         event.target.value = '';
         return;
       }
-      compressImage(file, 800, 0.85, (base64) => {
+      compressImage(file, PORTRAIT_MAX_WIDTH, IMAGE_QUALITY, (base64) => {
         currentPortrait = base64;
         updatePortraitPreview();
       });
@@ -995,11 +1017,19 @@
     function handlePhotosUpload(event) {
       const files = Array.from(event.target.files);
       files.forEach(file => {
+        if (currentTempPhotos.length >= MAX_PHOTOS_PER_ANIMAL) {
+          showToast(`❌ 每隻動物最多 ${MAX_PHOTOS_PER_ANIMAL} 張生活照`);
+          return;
+        }
         if (!file.type || !file.type.startsWith('image/')) {
           showToast('❌ 已略過非圖片檔');
           return;
         }
-        compressImage(file, 1200, 0.85, (base64) => {
+        compressImage(file, PHOTO_MAX_WIDTH, IMAGE_QUALITY, (base64) => {
+          if (currentTempPhotos.length >= MAX_PHOTOS_PER_ANIMAL) {
+            showToast(`❌ 每隻動物最多 ${MAX_PHOTOS_PER_ANIMAL} 張生活照`);
+            return;
+          }
           currentTempPhotos.push(base64);
           updateTempPhotos();
         });

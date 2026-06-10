@@ -26,7 +26,7 @@ const source = readFileSync("__WORKER_INDEX__", "utf8");
 // Use a greedy match to consume the entire `export default { ... };` block.
 const wrapped = source.replace(/export default \{[\s\S]*\}\s*;/, "");
 
-const mod = new Function(wrapped + "\nreturn { corsHeaders, readMaxUploadBytes, isPagesDomainAllowed };")();
+const mod = new Function(wrapped + "\nreturn { corsHeaders, readMaxUploadBytes, isPagesDomainAllowed, s2t };")();
 
 test("corsHeaders returns configured origin when matched", () => {
   const env = { ALLOWED_ORIGIN: "https://example.com" };
@@ -59,6 +59,17 @@ test("corsHeaders allows pages.dev when ALLOW_PAGES_DOMAINS=true", () => {
   assert.equal(mod.corsHeaders(req, env), "https://art-village.pages.dev");
 });
 
+test("corsHeaders allows github.io when ALLOW_PAGES_DOMAINS=true", () => {
+  const env = {
+    ALLOWED_ORIGIN: "https://example.com",
+    ALLOW_PAGES_DOMAINS: "true",
+  };
+  const req = new Request("https://worker/x", {
+    headers: { Origin: "https://jeff2428.github.io" },
+  });
+  assert.equal(mod.corsHeaders(req, env), "https://jeff2428.github.io");
+});
+
 test("corsHeaders rejects invalid URL origins", () => {
   const env = { ALLOW_PAGES_DOMAINS: "true" };
   const req = new Request("https://worker/x", { headers: { Origin: "not-a-url" } });
@@ -75,6 +86,11 @@ test("readMaxUploadBytes honors env override", () => {
   assert.equal(mod.readMaxUploadBytes({ MAX_UPLOAD_BYTES: "2048" }), 2048);
   assert.equal(mod.readMaxUploadBytes({}), 10 * 1024 * 1024);
   assert.equal(mod.readMaxUploadBytes({ MAX_UPLOAD_BYTES: "garbage" }), 10 * 1024 * 1024);
+});
+
+test("s2t converts common PlantNet simplified names without frontend OpenCC", () => {
+  assert.equal(mod.s2t("榕树"), "榕樹");
+  assert.equal(mod.s2t("垂叶榕"), "垂葉榕");
 });
 """
 

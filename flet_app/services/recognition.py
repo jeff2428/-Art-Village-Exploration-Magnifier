@@ -7,7 +7,7 @@ import flet as ft
 from plant_api import (
     PLANT_ORGAN_OPTIONS,
     RecognitionServiceError,
-    card_image_from_capture,
+    card_image_from_capture_async,
     get_metadata_from_worker,
     metadata_for_scientific_name,
     metadata_from_perenual,
@@ -91,7 +91,7 @@ class RecognitionService:
                 return
             plant["organ"] = selected_organ
             plant["organ_label"] = PLANT_ORGAN_OPTIONS.get(selected_organ, "自動")
-            plant["captured_image"] = card_image_from_capture(image_data)
+            plant["captured_image"] = await card_image_from_capture_async(image_data)
             plant["worker_timing"] = payload.get("timing") or {}
             add_plant_to_gallery(plant)
             close_recognition_loading_card(update_page=False)

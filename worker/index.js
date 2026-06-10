@@ -23,6 +23,41 @@ const ANIMALS_DATA = [
   {"name":"冬瓜","type":"animal","emoji":"🐱","role":"慵懶守護者","desc":"圓滾滾的橘貓，是村裡的慵懶大王。","portrait":"","photos":[]},
 ];
 
+const s2tMapping = {
+  "叶": "葉", "兰": "蘭", "菊": "菊", "莲": "蓮", "苹": "蘋", "萝": "蘿", "松": "松", "柏": "柏", "枫": "楓", "樱": "櫻", 
+  "梅": "梅", "桂": "桂", "竹": "竹", "柳": "柳", "桐": "桐", "杉": "杉", "榆": "榆", "藤": "藤", "蓉": "蓉", "葛": "葛", 
+  "苏": "蘇", "芦": "蘆", "麦": "麥", "豆": "豆", "米": "米", "茶": "茶", "药": "藥", "阳": "陽", "阴": "陰", "风": "風", 
+  "云": "雲", "电": "電", "雨": "雨", "雪": "雪", "霜": "霜", "露": "露", "雾": "霧", "冰": "冰", "水": "水", "火": "火", 
+  "土": "土", "金": "金", "木": "木", "华": "華", "发": "發", "长": "長", "大": "大", "小": "小", "多": "多", "少": "少", 
+  "高": "高", "低": "低", "红": "紅", "黄": "黃", "蓝": "藍", "绿": "綠", "黑": "黑", "白": "白", "紫": "紫", "青": "青", 
+  "灰": "灰", "粉": "粉", "褐": "褐", "无": "無", "铁": "鐵", "龙": "龍", "马": "馬", "鸟": "鳥", "鱼": "魚", "虫": "蟲", 
+  "贝": "貝", "龟": "龜", "蛇": "蛇", "蛙": "蛙", "鼠": "鼠", "牛": "牛", "虎": "虎", "兔": "兔", "羊": "羊", "猴": "猴", 
+  "鸡": "雞", "狗": "狗", "猪": "豬", "猫": "貓", "鸭": "鴨", "鹅": "鵝", "象": "象", "熊": "熊", "狮": "獅", "豹": "豹", 
+  "狼": "狼", "狐": "狐", "鹿": "鹿", "门": "門", "观": "觀", "园": "園", "区": "區", "广": "廣", "厂": "廠", "类": "類", 
+  "属": "屬", "种": "種", "网": "網", "线": "線", "条": "條", "块": "塊", "点": "點", "面": "面", "体": "體", "形": "形", 
+  "状": "狀", "态": "態", "貌": "貌", "色": "色", "香": "香", "味": "味", "臭": "臭", "苦": "苦", "甜": "甜", "酸": "酸", 
+  "辣": "辣", "咸": "鹹", "淡": "淡", "浓": "濃", "薄": "薄", "厚": "厚", "轻": "輕", "重": "重", "软": "軟", "硬": "硬", 
+  "干": "乾", "湿": "濕", "冷": "冷", "热": "熱", "温": "溫", "凉": "涼", "寒": "寒", "暖": "暖", "明": "明", "暗": "暗", 
+  "赤": "赤", "橙": "橙", "银": "銀", "铜": "銅", "锡": "錫", "铅": "鉛", "玉": "玉", "石": "石", "宝": "寶", "珠": "珠", 
+  "亚": "亞", "产": "產", "双": "雙", "单": "單", "丽": "麗", "锦": "錦", "绣": "繡", "绒": "絨", "丝": "絲", "棉": "棉", 
+  "麻": "麻", "毛": "毛", "皮": "皮", "骨": "骨", "肉": "肉", "血": "血", "汗": "汗", "泪": "淚", "液": "液", "汁": "汁", 
+  "浆": "漿", "膏": "膏", "脂": "脂", "油": "油", "气": "氣", "雷": "雷", "光": "光", "声": "聲", "音": "音", "乐": "樂", 
+  "曲": "曲", "歌": "歌", "舞": "舞", "图": "圖", "画": "畫", "书": "書", "文": "文", "字": "字", "词": "詞", "语": "語", 
+  "言": "言", "论": "論", "记": "記", "传": "傳", "史": "史", "志": "志", "录": "錄", "典": "典", "籍": "籍", "册": "冊", 
+  "卷": "卷", "篇": "篇", "章": "章", "节": "節", "款": "款", "项": "項", "目": "目", "科": "科", "纲": "綱", "界": "界", 
+  "系": "系", "统": "統", "群": "群", "族": "族", "盘": "盤", "罗": "羅", "齿": "齒", "齐": "齊", "车": "車", "转": "轉", 
+  "轮": "輪", "轴": "軸", "轨": "軌", "载": "載", "辉": "輝", "边": "邊", "过": "過", "进": "進", "远": "遠", "违": "違", 
+  "连": "連", "迟": "遲", "适": "適", "选": "選", "逊": "遜", "透": "透", "递": "遞", "途": "途", "逗": "逗", "通": "通", 
+  "造": "造", "速": "速", "逢": "逢", "树": "樹", "样": "樣", "根": "根", "茎": "莖", "果": "果", "桃": "桃",
+  "莓": "莓", "凤": "鳳", "梨": "梨", "芒": "芒", "百": "百", "合": "合", "牵": "牽", "带": "帶",
+  "蕨": "蕨", "藓": "蘚", "藻": "藻", "菌": "菌", "菇": "菇", "蕈": "蕈", "树": "樹", "样": "樣", "乔": "喬"
+};
+
+function s2t(str) {
+  if (typeof str !== 'string') return str;
+  return str.split('').map(c => s2tMapping[c] || c).join('');
+}
+
 // Note: The rateLimitStore Map only limits requests within a single Cloudflare Worker node (Isolate).
 // For strict global rate limiting, configure WAF Rate Limiting rules in the Cloudflare Dashboard.
 function checkRateLimit(request) {
@@ -40,6 +75,22 @@ function checkRateLimit(request) {
   return { allowed: true };
 }
 
+function isPagesDomainAllowed(env = {}) {
+  return String(env.ALLOW_PAGES_DOMAINS || "").toLowerCase() === "true";
+}
+
+function isAllowedPagesOrigin(origin) {
+  try {
+    const hostname = new URL(origin).hostname;
+    return hostname === "pages.dev"
+      || hostname.endsWith(".pages.dev")
+      || hostname === "github.io"
+      || hostname.endsWith(".github.io");
+  } catch {
+    return false;
+  }
+}
+
 function corsHeaders(request, env = {}) {
   const origin = request.headers.get("Origin") || "";
   const configuredOrigin = env.ALLOWED_ORIGIN || "";
@@ -54,6 +105,10 @@ function corsHeaders(request, env = {}) {
     if (allowedOrigins.includes(origin)) {
       return origin;
     }
+  }
+
+  if (origin && isPagesDomainAllowed(env) && isAllowedPagesOrigin(origin)) {
+    return origin;
   }
 
   return "null";
@@ -394,6 +449,16 @@ export default {
       }
 
       const plantNetPayload = JSON.parse(responseText);
+      
+      // Apply S2T mapping to commonNames
+      if (Array.isArray(plantNetPayload.results)) {
+        plantNetPayload.results.forEach(result => {
+          if (result && result.species && Array.isArray(result.species.commonNames)) {
+            result.species.commonNames = result.species.commonNames.map(s2t);
+          }
+        });
+      }
+
       const scientificName = topScientificName(plantNetPayload);
       plantNetPayload.perenual = env.PERENUAL_API_KEY && scientificName
         ? { status: "pending", source: "Perenual", query: scientificName }

@@ -48,6 +48,14 @@ setTimeout(() => {
 | YYYY-MM-DD | Cloudflare Pages / Chrome 130 | _._ ms | _._ fps | _._ ms | PR3 後（本次重構） |
 | 2026-06-03 | Local Flet Web / HTTP probe | 待瀏覽器補測 | 待瀏覽器補測 | 待瀏覽器補測 | 本機 `127.0.0.1:8550` 回應 200；瀏覽器自動化受 Windows sandbox 限制，需依 `docs/qa-checklist.md` 補人工或可用瀏覽器量測 |
 
+## 初始載入資源基線
+
+使用 `python scripts/measure_flet_payload.py` 量測 Flet Web build 輸出與 app package。這個基線用來追蹤 Pyodide / Flet runtime / 前端 Python 套件變更對首次載入的影響。
+
+| 日期 | requirements | build/web 總大小 | app.zip | 最大資源 | 備註 |
+| --- | --- | ---: | ---: | --- | --- |
+| 2026-06-10 | `flet`, `flet-camera`, `requests` | 74,260,708 bytes | 908,421 bytes | `pyodide/pyodide.asm.wasm` 10,103,326 bytes; `main.dart.js` 8,102,720 bytes; `canvaskit/canvaskit.wasm` 6,944,939 bytes | OpenCC / Pillow 不在前端 requirements；主要剩餘載入成本是 Flet/Pyodide/CanvasKit runtime |
+
 ## QA 檢視
 
 固定功能與視覺驗收清單請見 `docs/qa-checklist.md`。效能量測完成後，將實際數字回填到上方表格，並標註桌面或行動裝置環境。

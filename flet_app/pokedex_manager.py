@@ -89,7 +89,7 @@ def load_animals_db_dynamic() -> dict[str, dict[str, Any]]:
                     }
             if db:
                 return db
-    except (json.JSONDecodeError, AttributeError):
+    except (ImportError, json.JSONDecodeError, AttributeError):
         pass
 
     static_db = load_animals_db()
@@ -109,7 +109,7 @@ async def _cache_get(key: str) -> str | None:
         if response is None:
             return None
         return await response.text()
-    except (AttributeError, TypeError):
+    except (ImportError, AttributeError, TypeError):
         return None
 
 
@@ -120,7 +120,7 @@ async def _cache_set(key: str, value: str) -> None:
 
         cache = await js_caches.open("art-village-pokedex")
         await cache.put(key, JsResponse.new(value, {"headers": {"Content-Type": "application/json"}}))
-    except (AttributeError, TypeError):
+    except (ImportError, AttributeError, TypeError):
         pass
 
 
@@ -137,7 +137,7 @@ async def load_json_cache(storage_key: str, fallback: Any) -> Any:
         raw = localStorage.getItem(storage_key)
         if raw:
             return json.loads(raw)
-    except (json.JSONDecodeError, AttributeError):
+    except (ImportError, json.JSONDecodeError, AttributeError):
         pass
     return fallback
 
@@ -149,7 +149,7 @@ async def save_json_cache(storage_key: str, data: Any) -> None:
         from js import localStorage  # type: ignore
 
         localStorage.setItem(storage_key, serialized)
-    except (AttributeError, TypeError):
+    except (ImportError, AttributeError, TypeError):
         pass
 
 
@@ -204,7 +204,7 @@ def clear_legacy_snapshot_cache() -> None:
         from js import localStorage  # type: ignore
 
         localStorage.removeItem("artVillageSnapshotQueue")
-    except (AttributeError, TypeError):
+    except (ImportError, AttributeError, TypeError):
         pass
     try:
         legacy_path = LOCAL_CACHE_DIR / "local_snapshot_queue.json"

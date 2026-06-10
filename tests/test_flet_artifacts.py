@@ -79,6 +79,17 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("ALLOW_PAGES_DOMAINS", wrangler)
         self.assertIn("MAX_UPLOAD_BYTES", wrangler)
 
+    def test_frontend_load_optimization_keeps_heavy_opencc_out_of_pyodide(self):
+        requirements = (ROOT / "flet_app" / "requirements.txt").read_text(encoding="utf-8").lower()
+        plant_api = (ROOT / "flet_app" / "plant_api.py").read_text(encoding="utf-8")
+        worker = (ROOT / "worker" / "index.js").read_text(encoding="utf-8")
+
+        self.assertNotIn("opencc", requirements)
+        self.assertNotIn("import opencc", plant_api)
+        self.assertIn("function s2t", worker)
+        self.assertIn("commonNames = result.species.commonNames.map(s2t)", worker)
+        self.assertTrue((ROOT / "scripts" / "measure_flet_payload.py").exists())
+
     def test_worker_enforces_upload_size_and_image_mime(self):
         worker = (ROOT / "worker" / "index.js").read_text(encoding="utf-8")
 
@@ -250,8 +261,22 @@ class FletArtifactsTests(unittest.TestCase):
         add_pos = main.index("page.add(welcome_screen, shell)")
         ready_pos = main.index("mark_explorer_ready()", add_pos)
         start_pos = main.index("async def start_exploration")
+        click_pos = main.index("build_start_button(on_click=on_start_click)")
         self.assertGreater(ready_pos, add_pos)
-        self.assertLess(ready_pos, start_pos)
+        self.assertGreater(add_pos, start_pos)
+        self.assertGreater(add_pos, click_pos)
+        self.assertIn("camera.apply_theme_colors()", main)
+        self.assertIn("if value == \"plant\":\n            create_background_task(camera.initialize())", main)
+        self.assertNotIn("await restore_camera_preview()", main)
+
+    def test_browser_only_js_imports_have_local_fallbacks(self):
+        pokedex_manager = (ROOT / "flet_app" / "pokedex_manager.py").read_text(encoding="utf-8")
+        plant_api = (ROOT / "flet_app" / "plant_api.py").read_text(encoding="utf-8")
+
+        self.assertIn("except (ImportError, json.JSONDecodeError, AttributeError):", pokedex_manager)
+        self.assertIn("except (ImportError, AttributeError, TypeError):", pokedex_manager)
+        self.assertIn("except (ImportError, ModuleNotFoundError):", plant_api)
+        self.assertTrue((ROOT / "flet_app" / "js.py").exists())
 
     def test_animal_view_is_customer_facing_without_admin_entry(self):
         animal_view = (ROOT / "flet_app" / "views" / "animal_view.py").read_text(encoding="utf-8")
@@ -268,6 +293,8 @@ class FletArtifactsTests(unittest.TestCase):
         admin_page = (ROOT / "admin" / "animals.html").read_text(encoding="utf-8")
 
         self.assertIn("ADMIN_PASSWORD", admin_page)
+        self.assertIn("預設管理密碼：<strong>artvillage</strong>", admin_page)
+        self.assertIn("input.value.trim() === ADMIN_PASSWORD", admin_page)
         self.assertIn("artVillageAnimalAdminAuthed", admin_page)
         self.assertIn("sessionStorage", admin_page)
         self.assertIn("authShell", admin_page)
@@ -275,6 +302,11 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("artVillageAnimals", admin_page)
         self.assertIn("downloadJSON", admin_page)
         self.assertIn("importJSONData", admin_page)
+        self.assertIn("PORTRAIT_MAX_WIDTH = 520", admin_page)
+        self.assertIn("PHOTO_MAX_WIDTH = 760", admin_page)
+        self.assertIn("MAX_PHOTOS_PER_ANIMAL = 4", admin_page)
+        self.assertIn("QuotaExceededError", admin_page)
+        self.assertIn("if (!saveToStorage())", admin_page)
 
     def test_lightweight_web_prototype_exists_for_framework_comparison(self):
         prototype = (ROOT / "prototype" / "index.html").read_text(encoding="utf-8")
@@ -389,9 +421,13 @@ class FletArtifactsTests(unittest.TestCase):
             (app_dir / "main.py").write_text("import ui_theme\n", encoding="utf-8")
             (app_dir / "ui_theme.py").write_text("THEME = {}\n", encoding="utf-8")
             (app_dir / "plant_api.py").write_text("WORKER_URL = ''\n", encoding="utf-8")
+            (app_dir / "js.py").write_text("window = object()\n", encoding="utf-8")
+            (app_dir / "views").mkdir()
+            (app_dir / "views" / "welcome.py").write_text("WELCOME = True\n", encoding="utf-8")
             (admin_dir / "animals.json").write_text('{"animals": []}\n', encoding="utf-8")
             with zipfile.ZipFile(package, "w") as archive:
                 archive.writestr("main.py", "old")
+                archive.writestr("views/welcome.py", "old")
 
             previous_root = patcher.ROOT
             previous_app_dir = patcher.APP_DIR
@@ -408,10 +444,14 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertIn("main.py", names)
                 self.assertIn("ui_theme.py", names)
                 self.assertIn("plant_api.py", names)
+                self.assertIn("js.py", names)
+                self.assertIn("views/welcome.py", names)
                 self.assertNotIn("types.py", names)
                 self.assertIn("admin/animals.json", names)
                 self.assertEqual(archive.read("main.py").decode("utf-8").replace("\r\n", "\n"), "import ui_theme\n")
+                self.assertEqual(archive.read("views/welcome.py").decode("utf-8").replace("\r\n", "\n"), "WELCOME = True\n")
                 self.assertEqual(len([name for name in archive.namelist() if name == "main.py"]), 1)
+            self.assertTrue(package.with_name("app.zip.hash").exists())
             self.assertIn("ui_theme.py", patched)
 
     def test_loader_patch_injects_preloads_for_versioned_runtime_assets(self):

@@ -82,21 +82,21 @@ class CameraIdentificationFlowTests(unittest.TestCase):
         self.assertTrue(plant["is_low_confidence"])
         self.assertTrue(plant["needs_confirmation"])
 
-    def test_plantnet_candidates_are_normalized_to_traditional_chinese(self):
+    def test_plantnet_candidates_use_worker_normalized_traditional_chinese(self):
         payload = {
             "results": [
                 {
                     "score": 0.82,
                     "species": {
                         "scientificNameWithoutAuthor": "Ficus microcarpa",
-                        "commonNames": ["榕树", "Chinese banyan"],
+                        "commonNames": ["榕樹", "Chinese banyan"],
                     },
                 },
                 {
                     "score": 0.42,
                     "species": {
                         "scientificNameWithoutAuthor": "Ficus benjamina",
-                        "commonNames": ["垂叶榕", "Weeping fig"],
+                        "commonNames": ["垂葉榕", "Weeping fig"],
                     },
                 },
             ]
