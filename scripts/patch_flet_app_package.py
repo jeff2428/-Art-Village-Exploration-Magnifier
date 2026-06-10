@@ -15,6 +15,7 @@ APP_PACKAGE_CANDIDATES = (
     APP_DIR / "build" / "flutter" / "app" / "app.zip",
     APP_DIR / "build" / "flutter" / "build" / "web" / "assets" / "app" / "app.zip",
 )
+EXCLUDED_ARCHIVE_NAMES = {"js.py"}
 
 
 def local_python_modules(app_dir: Path | None = None) -> dict[str, Path]:
@@ -25,6 +26,7 @@ def local_python_modules(app_dir: Path | None = None) -> dict[str, Path]:
         if "build" not in path.relative_to(app_dir).parts
         and "__pycache__" not in path.relative_to(app_dir).parts
         and path.name != "__init__.py"
+        and path.name != "js.py"
     }
 
 
@@ -54,7 +56,11 @@ def rewrite_app_package(app_package: Path = APP_PACKAGE) -> list[str]:
             compression=zipfile.ZIP_DEFLATED,
         ) as target:
             for info in source.infolist():
-                if info.filename in replacements or info.filename in written:
+                if (
+                    info.filename in replacements
+                    or info.filename in written
+                    or info.filename in EXCLUDED_ARCHIVE_NAMES
+                ):
                     continue
                 target.writestr(info, source.read(info.filename))
                 written.add(info.filename)

@@ -277,6 +277,8 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("except (ImportError, AttributeError, TypeError):", pokedex_manager)
         self.assertIn("except (ImportError, ModuleNotFoundError):", plant_api)
         self.assertTrue((ROOT / "flet_app" / "js.py").exists())
+        package_patcher = (ROOT / "scripts" / "patch_flet_app_package.py").read_text(encoding="utf-8")
+        self.assertIn('path.name != "js.py"', package_patcher)
 
     def test_animal_view_is_customer_facing_without_admin_entry(self):
         animal_view = (ROOT / "flet_app" / "views" / "animal_view.py").read_text(encoding="utf-8")
@@ -427,6 +429,7 @@ class FletArtifactsTests(unittest.TestCase):
             (admin_dir / "animals.json").write_text('{"animals": []}\n', encoding="utf-8")
             with zipfile.ZipFile(package, "w") as archive:
                 archive.writestr("main.py", "old")
+                archive.writestr("js.py", "old")
                 archive.writestr("views/welcome.py", "old")
 
             previous_root = patcher.ROOT
@@ -444,7 +447,7 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertIn("main.py", names)
                 self.assertIn("ui_theme.py", names)
                 self.assertIn("plant_api.py", names)
-                self.assertIn("js.py", names)
+                self.assertNotIn("js.py", names)
                 self.assertIn("views/welcome.py", names)
                 self.assertNotIn("types.py", names)
                 self.assertIn("admin/animals.json", names)
