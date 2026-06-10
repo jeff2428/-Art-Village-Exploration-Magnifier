@@ -285,6 +285,9 @@ class FletArtifactsTests(unittest.TestCase):
 
         self.assertIn("get_animals_view", animal_view)
         self.assertIn("on_animal_click", animal_view)
+        self.assertIn("ft.GestureDetector", animal_view)
+        self.assertIn("on_tap=open_card", animal_view)
+        self.assertIn("查看介紹", animal_view)
         self.assertIn("目前尚無動物介紹", animal_view)
         self.assertNotIn("admin/animals.html", animal_view)
         self.assertNotIn("動物管理", animal_view)

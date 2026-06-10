@@ -13,8 +13,12 @@ def animal_card(
     name: str,
     data: dict[str, Any],
     on_click: Callable[[str], None] | None = None,
-) -> ft.Container:
+) -> ft.Control:
     """Build a customer-facing animal introduction card."""
+    def open_card(_event: object | None = None, pet: str = name) -> None:
+        if on_click:
+            on_click(pet)
+
     portrait_src = data.get("portrait", "")
     description = str(data.get("desc", "")).strip()
     summary = description if len(description) <= 54 else f"{description[:52]}..."
@@ -38,11 +42,11 @@ def animal_card(
         content=ft.Text(role or "藝素村夥伴", size=12, weight=ft.FontWeight.W_800,
                         color=THEME["ANIMAL_ROLE"]),
     )
-    return interactive_card(
+    card = interactive_card(
         padding=16,
         border_radius=12,
         tooltip=f"{name} 詳細介紹",
-        on_click=lambda _event, pet=name: on_click(pet) if on_click else None,
+        on_click=open_card,
         content=ft.Row(
             controls=[
                 portrait_preview,
@@ -52,6 +56,15 @@ def animal_card(
                         role_badge,
                         ft.Text(summary or "一起認識這位藝素村小夥伴。",
                                 size=13, color=THEME["BODY"]),
+                        ft.TextButton(
+                            "查看介紹",
+                            icon=ft.Icons.OPEN_IN_NEW,
+                            on_click=open_card,
+                            style=ft.ButtonStyle(
+                                color=THEME["ACCENT"],
+                                padding=ft.Padding.symmetric(horizontal=0, vertical=0),
+                            ),
+                        ),
                     ],
                     spacing=6, expand=True,
                     alignment=ft.MainAxisAlignment.CENTER,
@@ -61,6 +74,11 @@ def animal_card(
             alignment=ft.MainAxisAlignment.CENTER,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         ),
+    )
+    return ft.GestureDetector(
+        content=card,
+        mouse_cursor=ft.MouseCursor.CLICK,
+        on_tap=open_card,
     )
 
 
