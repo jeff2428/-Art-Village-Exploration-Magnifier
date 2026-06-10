@@ -65,7 +65,7 @@ def build_loading_carousel() -> tuple[ft.Container, ft.Text, ft.Text]:
         "正在呼喚小夥伴們...", size=16, color=THEME["BODY"], weight=ft.FontWeight.W_700
     )
     carousel = ft.Container(
-        expand=True,
+        height=170,
         alignment=ft.Alignment(0, 0),
         content=ft.Column(
             controls=[

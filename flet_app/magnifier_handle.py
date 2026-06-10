@@ -1,18 +1,19 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 
 import flet as ft
 from ui_theme import border_all
 
-Callback = Callable[[ft.ControlEvent], None] | None
+Callback = Callable[..., Any] | None
 
 
 class _PressableRoundButton(ft.GestureDetector):
     def __init__(
         self,
         label: str,
-        icon: str,
+        icon: Any,
         top: int,
         on_click: Callback,
         disabled: bool = False,
@@ -89,7 +90,7 @@ class _PressableRoundButton(ft.GestureDetector):
             tooltip=label,
         )
 
-    def _press(self, _event: ft.ControlEvent) -> None:
+    def _press(self, _event: Any) -> None:
         self._button_face.scale = 0.92
         self._button_face.shadow = [
             ft.BoxShadow(
@@ -107,7 +108,7 @@ class _PressableRoundButton(ft.GestureDetector):
         ]
         self._button_face.update()
 
-    def _release(self, _event: ft.ControlEvent) -> None:
+    def _release(self, _event: Any) -> None:
         self._button_face.scale = 1.0
         self._button_face.shadow = [
             ft.BoxShadow(

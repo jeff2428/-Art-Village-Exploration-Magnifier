@@ -6,17 +6,21 @@
   <title>藝素村動物管理後台</title>
   <style>
     :root {
-      --page-bg: #f3efd9;
-      --card-bg: #fffdf4;
-      --card-border: #dccfc0;
-      --title: #3d2a21;
-      --body: #6d5140;
-      --muted: #8a6a54;
-      --accent: #8a5a22;
-      --green: #2f7d51;
+      --page-bg: #f6f8f4;
+      --card-bg: #ffffff;
+      --card-border: #d8e5dc;
+      --title: #22312a;
+      --body: #51645b;
+      --muted: #718078;
+      --accent: #247c68;
+      --accent-blue: #2d6f9f;
+      --green: #2f8a5e;
+      --green-soft: #e7f4ed;
+      --blue-soft: #e8f1f8;
       --danger: #c0392b;
       --danger-bg: #fde8e8;
-      --shadow: #2b130814;
+      --warning-bg: #fff7df;
+      --shadow: #16352717;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -43,6 +47,102 @@
     header p {
       color: var(--body);
       font-size: 14px;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .auth-shell {
+      min-height: calc(100vh - 48px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .auth-card {
+      width: min(420px, 100%);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 16px 48px var(--shadow);
+    }
+    .auth-card h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .auth-card p {
+      color: var(--body);
+      font-size: 14px;
+      margin-bottom: 18px;
+      line-height: 1.6;
+    }
+    .auth-card input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      color: var(--title);
+      font-size: 15px;
+      margin-bottom: 12px;
+    }
+    .auth-card button {
+      width: 100%;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      background: var(--accent);
+      color: white;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .auth-note {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--warning-bg);
+      color: #6b541b;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .admin-status {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      background: var(--blue-soft);
+      color: var(--body);
+      margin-bottom: 16px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .admin-status strong {
+      color: var(--accent-blue);
+    }
+    .search-row {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) auto;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .search-row input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      background: var(--card-bg);
+      color: var(--title);
+      font-size: 14px;
+    }
+    .search-row button {
+      padding: 10px 16px;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      background: var(--card-bg);
+      color: var(--body);
+      font-weight: 800;
+      cursor: pointer;
     }
     .toolbar {
       display: flex;
@@ -120,7 +220,7 @@
     }
     .animal-card-header .role {
       font-size: 12px;
-      color: var(--accent);
+      color: var(--accent-blue);
       font-weight: 700;
     }
     .animal-card-header .actions {
@@ -337,7 +437,7 @@
     }
     .emoji-picker button.selected {
       border-color: var(--accent);
-      background: rgba(138, 90, 34, 0.1);
+      background: var(--green-soft);
     }
     .modal-actions {
       display: flex;
@@ -420,21 +520,57 @@
     }
     .drop-zone.dragover {
       border-color: var(--accent);
-      background: rgba(138, 90, 34, 0.05);
+      background: var(--green-soft);
     }
     .drop-zone .icon {
       font-size: 28px;
       display: block;
       margin-bottom: 4px;
     }
+    .field-hint {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+      .admin-status,
+      .search-row {
+        grid-template-columns: 1fr;
+      }
+      .toolbar {
+        justify-content: stretch;
+      }
+      .toolbar button {
+        flex: 1 1 100%;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="auth-shell" id="authShell">
+    <form class="auth-card" id="authForm">
+      <h1>動物資料管理</h1>
+      <p>此頁面僅供管理者維護動物介紹、照片與 JSON 資料。</p>
+      <input type="password" id="adminPassword" autocomplete="current-password" placeholder="請輸入管理密碼">
+      <button type="submit">進入管理頁</button>
+      <div class="auth-note">這是簡易密碼門檻，用來避免一般訪客看見管理介面；正式權限控管需另接登入服務。</div>
+    </form>
+  </div>
+
+  <div class="container hidden" id="appShell">
     <header>
-      <h1>🐾 藝素村動物管理後台</h1>
+      <h1>🐾 藝素村動物資料管理</h1>
       <p>管理動物資料、上傳大頭貼與生活照；正式資料存放在 <code>admin/animals.json</code></p>
     </header>
+
+    <div class="admin-status">
+      <div id="dataStatus">尚未載入資料</div>
+      <strong id="animalCount">0 筆</strong>
+    </div>
 
     <div class="toolbar">
       <button class="primary" onclick="openAddModal()">＋ 新增動物</button>
@@ -442,6 +578,12 @@
       <button onclick="saveJSONFile()">💾 儲存 animals.json</button>
       <button onclick="downloadJSON()">⬇️ 下載副本</button>
       <button onclick="importJSON()">📥 匯入 JSON</button>
+      <button onclick="logoutAdmin()">登出</button>
+    </div>
+
+    <div class="search-row">
+      <input id="searchInput" type="search" placeholder="搜尋名字、角色或介紹" oninput="renderGrid()">
+      <button onclick="clearSearch()">清除搜尋</button>
     </div>
 
     <div class="animals-grid" id="animalsGrid"></div>
@@ -461,6 +603,7 @@
       <div class="form-group">
         <label>名字</label>
         <input type="text" id="editName" placeholder="例如：貝貝">
+        <div class="field-hint">名字會作為前台辨識與圖鑑顯示的主要鍵值，請避免重複。</div>
       </div>
 
       <div class="form-group">
@@ -484,6 +627,7 @@
           <img id="portraitImg" style="width:100%; border-radius:10px;">
           <button onclick="removePortrait()" style="position:absolute; top:8px; right:8px; background:rgba(192,57,43,0.9); color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:14px;">✕</button>
         </div>
+        <div class="field-hint">建議使用清楚正面照；系統會自動壓縮成 JPEG。</div>
       </div>
 
       <div class="form-group">
@@ -534,21 +678,60 @@
 
   <script>
     const EMOJI_LIST = ['🐶', '🐕', '🐈', '🐈‍⬛', '🐱', '🐾', '🐭', '🐹', '🐰', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🦊', '🐺', '🐗', '🐴', '🦄', '🐝', '🦋', '🐛', '🐞', '🐢', '🐍', '🦎', '🐙', '🦑', '🐬', '🐳', '🦅', '🦉', '🦜', '🐦'];
+    const ADMIN_PASSWORD = 'artvillage';
+    const AUTH_SESSION_KEY = 'artVillageAnimalAdminAuthed';
 
     let animalsData = { animals: [] };
     let currentPortrait = '';
     let currentTempPhotos = [];
     let selectedEmoji = '🐾';
+    let dataSourceLabel = '尚未載入資料';
 
     // Initialize
-    loadAnimals();
+    initAuth();
     renderEmojiPicker();
+
+    function initAuth() {
+      document.getElementById('authForm').addEventListener('submit', (event) => {
+        event.preventDefault();
+        const input = document.getElementById('adminPassword');
+        if (input.value === ADMIN_PASSWORD) {
+          sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+          unlockAdmin();
+        } else {
+          input.value = '';
+          input.focus();
+          showToast('❌ 管理密碼錯誤');
+        }
+      });
+      if (sessionStorage.getItem(AUTH_SESSION_KEY) === 'true') {
+        unlockAdmin();
+      } else {
+        document.getElementById('adminPassword').focus();
+      }
+    }
+
+    function unlockAdmin() {
+      document.getElementById('authShell').classList.add('hidden');
+      document.getElementById('appShell').classList.remove('hidden');
+      loadAnimals();
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem(AUTH_SESSION_KEY);
+      document.getElementById('appShell').classList.add('hidden');
+      document.getElementById('authShell').classList.remove('hidden');
+      document.getElementById('adminPassword').value = '';
+      document.getElementById('adminPassword').focus();
+      showToast('已登出管理頁');
+    }
 
     async function loadAnimals() {
       const stored = localStorage.getItem('artVillageAnimals');
       if (stored) {
         try {
           animalsData = JSON.parse(stored);
+          dataSourceLabel = '已載入本機草稿。前台重新整理後會讀取這份資料。';
           renderGrid();
           showToast('已載入本機草稿');
           return;
@@ -562,16 +745,32 @@
           const data = await response.json();
           if (data.animals && Array.isArray(data.animals)) {
             animalsData = data;
+            dataSourceLabel = '已載入 admin/animals.json。編輯後會先存成本機草稿。';
           }
         }
       } catch (e) {
         animalsData = { animals: [] };
+        dataSourceLabel = '找不到可用資料，請新增或匯入 animals.json。';
       }
       renderGrid();
     }
 
     function saveToStorage() {
       localStorage.setItem('artVillageAnimals', JSON.stringify(animalsData));
+      dataSourceLabel = '已儲存為本機草稿。若要成為正式資料，請下載或儲存 animals.json。';
+      updateStatus();
+    }
+
+    function updateStatus(filteredCount) {
+      const animals = animalsData.animals || [];
+      const countLabel = filteredCount === undefined ? `${animals.length} 筆` : `${filteredCount} / ${animals.length} 筆`;
+      document.getElementById('dataStatus').textContent = dataSourceLabel;
+      document.getElementById('animalCount').textContent = countLabel;
+    }
+
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      renderGrid();
     }
 
     function renderEmojiPicker() {
@@ -589,6 +788,16 @@
     function renderGrid() {
       const grid = document.getElementById('animalsGrid');
       const animals = animalsData.animals || [];
+      const query = document.getElementById('searchInput')?.value.trim().toLowerCase() || '';
+      const visibleAnimals = query
+        ? animals
+            .map((animal, index) => ({ animal, index }))
+            .filter(({ animal }) => [animal.name, animal.role, animal.desc]
+              .join(' ')
+              .toLowerCase()
+              .includes(query))
+        : animals.map((animal, index) => ({ animal, index }));
+      updateStatus(visibleAnimals.length);
       
       if (animals.length === 0) {
         grid.innerHTML = `
@@ -599,8 +808,17 @@
         `;
         return;
       }
+      if (visibleAnimals.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <span class="icon">🔎</span>
+            <p>找不到符合搜尋的動物資料</p>
+          </div>
+        `;
+        return;
+      }
 
-      grid.innerHTML = animals.map((animal, index) => `
+      grid.innerHTML = visibleAnimals.map(({ animal, index }) => `
         <div class="animal-card">
           <div class="animal-card-header">
             <span class="emoji">${animal.emoji || '🐾'}</span>
@@ -687,6 +905,13 @@
         showToast('❌ 請輸入名字');
         return;
       }
+      const duplicate = (animalsData.animals || []).some((animal, animalIndex) => {
+        return animalIndex !== index && (animal.name || '').trim() === name;
+      });
+      if (duplicate) {
+        showToast('❌ 名字已存在，請改用不同名稱');
+        return;
+      }
 
       const animal = {
         name: name,
@@ -755,6 +980,11 @@
     function handlePortraitUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
+      if (!file.type || !file.type.startsWith('image/')) {
+        showToast('❌ 請上傳圖片檔');
+        event.target.value = '';
+        return;
+      }
       compressImage(file, 800, 0.85, (base64) => {
         currentPortrait = base64;
         updatePortraitPreview();
@@ -765,6 +995,10 @@
     function handlePhotosUpload(event) {
       const files = Array.from(event.target.files);
       files.forEach(file => {
+        if (!file.type || !file.type.startsWith('image/')) {
+          showToast('❌ 已略過非圖片檔');
+          return;
+        }
         compressImage(file, 1200, 0.85, (base64) => {
           currentTempPhotos.push(base64);
           updateTempPhotos();
@@ -791,8 +1025,10 @@
           ctx.drawImage(img, 0, 0, width, height);
           callback(canvas.toDataURL('image/jpeg', quality));
         };
+        img.onerror = () => showToast('❌ 圖片讀取失敗');
         img.src = e.target.result;
       };
+      reader.onerror = () => showToast('❌ 檔案讀取失敗');
       reader.readAsDataURL(file);
     }
 
@@ -836,6 +1072,10 @@
       navigator.clipboard.writeText(textarea.value).then(() => {
         showToast('📋 已複製到剪貼簿');
         closeExportModal();
+      }).catch(() => {
+        document.execCommand('copy');
+        showToast('📋 已複製到剪貼簿');
+        closeExportModal();
       });
     }
 
@@ -870,6 +1110,8 @@
         await writable.write(json);
         await writable.close();
         localStorage.removeItem('artVillageAnimals');
+        dataSourceLabel = '已儲存 animals.json，並清除本機草稿。';
+        updateStatus();
         showToast('✅ animals.json 已儲存');
       } catch (e) {
         if (e && e.name !== 'AbortError') {
@@ -893,6 +1135,11 @@
       try {
         const data = JSON.parse(text);
         if (data.animals && Array.isArray(data.animals)) {
+          const names = data.animals.map(animal => (animal.name || '').trim()).filter(Boolean);
+          if (new Set(names).size !== names.length) {
+            showToast('❌ 匯入失敗：動物名字不可重複');
+            return;
+          }
           animalsData = data;
           saveToStorage();
           renderGrid();

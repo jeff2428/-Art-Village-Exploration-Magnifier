@@ -18,7 +18,7 @@ def close_dialog(page: ft.Page, _event: ft.ControlEvent | None = None) -> None:
     """Close the current dialog. From main.py lines 462-467."""
     try:
         page.pop_dialog()
-    except Exception:
+    except (AttributeError, RuntimeError):
         pass
     page.update()
 
@@ -90,7 +90,7 @@ def show_animal_card(
             )
         photo_controls: list[ft.Control] = []
         if photos:
-            photo_thumbs = [
+            photo_thumbs: list[ft.Control] = [
                 ft.Container(
                     width=64, height=64, border_radius=8, clip_behavior=ft.ClipBehavior.HARD_EDGE,
                     content=ft.Image(src=photo, fit=ft.BoxFit.COVER),
@@ -164,7 +164,7 @@ def show_plant_card(
                     weight: ft.FontWeight | None = None) -> ft.Text:
         return ft.Text(value, size=size, color=color, weight=weight, selectable=True)
 
-    def info_chip(label: str, value: str, detail: str = "") -> ft.Container:
+    def info_chip(label: str, value: str, detail: str = "") -> ft.Control:
         return ft.Container(
             padding=10, border_radius=10,
             bgcolor=THEME["DETAIL_BG"],
@@ -234,7 +234,7 @@ def show_plant_card(
             ft.Text("、".join(aliases), size=13, color=THEME["BODY_DARK"]),
         ]
 
-    metadata_controls = [
+    metadata_controls: list[ft.Control] = [
         info_chip("拍攝部位", organ_label),
         info_chip("毒性", toxicity.get("label", "資料待確認"), toxicity.get("detail", "")),
         info_chip("外來種", invasive.get("label", "資料待確認"), invasive.get("detail", "")),

@@ -43,7 +43,7 @@ def mark_load_timing(name: str) -> None:
         from js import performance  # type: ignore
 
         performance.mark(name)
-    except Exception:
+    except (ImportError, AttributeError):
         pass
 
 
@@ -193,7 +193,7 @@ class CameraManager:
             self._state.selected_camera_index = previous_index
             try:
                 await self._state.camera.set_description(self._state.cameras[self._state.selected_camera_index])
-            except Exception:
+            except (AttributeError, RuntimeError):
                 pass
             self._state.camera_ready = True
             self._status_text.value = status_msg(
@@ -358,7 +358,7 @@ class CameraManager:
         if self._state.camera is not None:
             try:
                 await self._state.camera.pause_preview()
-            except Exception:
+            except (AttributeError, RuntimeError):
                 pass
         self.camera_preview_slot.visible = False
         self.camera_preview_slot.content = self.camera_placeholder

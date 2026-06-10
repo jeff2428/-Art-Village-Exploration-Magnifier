@@ -152,7 +152,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("MIN_CAMERA_ZOOM", camera_mgr)
         self.assertIn("MAX_CAMERA_ZOOM", camera_mgr)
         self.assertIn("clamp_camera_zoom", camera_mgr)
-        self.assertIn("create_background_task(save_cached_pokedex(self.state.pokedex))", storage)
+        self.assertIn("create_background_task(save_cached_pokedex_debounced(self.state.pokedex))", storage)
         self.assertIn("mark_load_timing", main)
         self.assertIn("art-village:camera-ready", camera_mgr)
         self.assertIn("AppMode", main)
@@ -188,7 +188,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("payload.get(\"perenual\")", plant_api)
         self.assertIn("card_image_from_capture", camera_mgr)
         self.assertIn("organ_mode = ft.SegmentedButton", main)
-        self.assertIn('selected={"auto"}', main)
+        self.assertIn('selected=["auto"]', main)
         self.assertIn("PLANT_ORGAN_ICONS", main)
         self.assertIn("ft.Segment", main)
         self.assertIn("selected_organ_value", main)
@@ -247,6 +247,34 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("start_exploration", main)
         self.assertIn("report_performance", main)
         self.assertIn("welcome_screen.visible = False", main)
+        add_pos = main.index("page.add(welcome_screen, shell)")
+        ready_pos = main.index("mark_explorer_ready()", add_pos)
+        start_pos = main.index("async def start_exploration")
+        self.assertGreater(ready_pos, add_pos)
+        self.assertLess(ready_pos, start_pos)
+
+    def test_animal_view_is_customer_facing_without_admin_entry(self):
+        animal_view = (ROOT / "flet_app" / "views" / "animal_view.py").read_text(encoding="utf-8")
+
+        self.assertIn("get_animals_view", animal_view)
+        self.assertIn("on_animal_click", animal_view)
+        self.assertIn("目前尚無動物介紹", animal_view)
+        self.assertNotIn("admin/animals.html", animal_view)
+        self.assertNotIn("動物管理", animal_view)
+        self.assertNotIn("後台", animal_view)
+        self.assertNotIn("launch_url", animal_view)
+
+    def test_animal_admin_page_requires_simple_password_gate(self):
+        admin_page = (ROOT / "admin" / "animals.html").read_text(encoding="utf-8")
+
+        self.assertIn("ADMIN_PASSWORD", admin_page)
+        self.assertIn("artVillageAnimalAdminAuthed", admin_page)
+        self.assertIn("sessionStorage", admin_page)
+        self.assertIn("authShell", admin_page)
+        self.assertIn("appShell", admin_page)
+        self.assertIn("artVillageAnimals", admin_page)
+        self.assertIn("downloadJSON", admin_page)
+        self.assertIn("importJSONData", admin_page)
 
     def test_lightweight_web_prototype_exists_for_framework_comparison(self):
         prototype = (ROOT / "prototype" / "index.html").read_text(encoding="utf-8")
@@ -410,6 +438,48 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertIn('rel="preload" href="pyodide/pyodide.js"', html)
                 self.assertIn('rel="preload" href="canvaskit/canvaskit.js"', html)
                 self.assertIn('flet.appPackageUrl = "assets/app/app-unit-test-build.zip"', html)
+        finally:
+            if previous_build_id is None:
+                os.environ.pop("FLET_BUILD_ID", None)
+            else:
+                os.environ["FLET_BUILD_ID"] = previous_build_id
+
+    def test_loader_patch_refreshes_existing_cache_buster(self):
+        patcher = load_loader_patcher()
+        previous_build_id = os.environ.get("FLET_BUILD_ID")
+        os.environ["FLET_BUILD_ID"] = "new-build"
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                index = root / "index.html"
+                app_dir = root / "assets" / "app"
+                app_dir.mkdir(parents=True)
+                (app_dir / "app.zip").write_bytes(b"updated app package")
+                index.write_text(
+                    """<html><head>
+<link rel="preload" href="assets/app/app-old-build.zip" as="fetch" crossorigin>
+<script id="flet-cache-buster">
+  flet.appPackageUrl = "assets/app/app-old-build.zip";
+  flet.pyodideUrl = `${flet.pyodideUrl}?v=old-build`;
+</script>
+  <script src="python.js"></script></head><body>
+<div id="explorer-loader"></div>
+<script>
+  const artVillageBuildId = "old-build";
+</script>
+</body></html>""",
+                    encoding="utf-8",
+                )
+
+                patcher.patch_index(index)
+
+                html = index.read_text(encoding="utf-8")
+                self.assertTrue((app_dir / "app-new-build.zip").exists())
+                self.assertIn('rel="preload" href="assets/app/app-new-build.zip"', html)
+                self.assertIn('flet.appPackageUrl = "assets/app/app-new-build.zip"', html)
+                self.assertIn("v=new-build", html)
+                self.assertIn('const artVillageBuildId = "new-build";', html)
+                self.assertNotIn("app-old-build.zip", html)
         finally:
             if previous_build_id is None:
                 os.environ.pop("FLET_BUILD_ID", None)

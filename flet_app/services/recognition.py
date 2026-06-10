@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import flet as ft
@@ -13,7 +14,7 @@ from plant_api import (
     parse_plantnet_result,
     post_image_to_worker,
 )
-from pokedex_manager import save_cached_pokedex
+from pokedex_manager import save_cached_pokedex_debounced
 
 
 def status_msg(text: str, level: str = "info") -> str:
@@ -119,7 +120,7 @@ class RecognitionService:
             if metadata_payload.get("status") not in ("ok", "cached"):
                 plant["metadata_status"] = metadata_payload.get("status", "error")
                 self.state.pokedex[plant["zh_name"]] = plant
-                await save_cached_pokedex(self.state.pokedex)
+                await save_cached_pokedex_debounced(self.state.pokedex)
                 return
             fallback = metadata_for_scientific_name(scientific_name)
             enriched_metadata = metadata_from_perenual(metadata_payload, fallback)
@@ -135,7 +136,7 @@ class RecognitionService:
             if self._refresh_gallery:
                 self._refresh_gallery(update_page=False)
             self.page.update()
-        except Exception:
+        except (OSError, json.JSONDecodeError, KeyError, AttributeError):
             plant["metadata_status"] = "error"
             self.state.pokedex[plant["zh_name"]] = plant
-            await save_cached_pokedex(self.state.pokedex)
+            await save_cached_pokedex_debounced(self.state.pokedex)

@@ -31,7 +31,7 @@ def camera_descriptor_text(camera_description: Any) -> str:
         for field in ("name", "label", "display_name", "description", "lens_direction", "position", "device_id"):
             try:
                 value = getattr(camera_description, field)
-            except Exception:
+            except AttributeError:
                 value = None
             if value:
                 parts.append(str(value))

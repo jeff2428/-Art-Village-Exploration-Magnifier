@@ -6,7 +6,7 @@ from typing import Any
 import flet as ft
 from components.illustrations import SECTION_ICONS
 from pokedex_manager import load_animals_db_dynamic
-from ui_theme import THEME, border_all, section_label
+from ui_theme import THEME, interactive_card, section_label
 
 
 def animal_card(
@@ -14,25 +14,34 @@ def animal_card(
     data: dict[str, Any],
     on_click: Callable[[str], None] | None = None,
 ) -> ft.Container:
-    """Build stylized animal card. From main.py lines 1211-1248."""
+    """Build a customer-facing animal introduction card."""
     portrait_src = data.get("portrait", "")
+    description = str(data.get("desc", "")).strip()
+    summary = description if len(description) <= 54 else f"{description[:52]}..."
     portrait_preview: ft.Control
     if portrait_src:
         portrait_preview = ft.Container(
-            width=56, height=56, border_radius=14, clip_behavior=ft.ClipBehavior.HARD_EDGE,
+            width=78, height=78, border_radius=16, clip_behavior=ft.ClipBehavior.HARD_EDGE,
             content=ft.Image(src=portrait_src, fit=ft.BoxFit.COVER),
         )
     else:
         portrait_preview = ft.Container(
-            width=56, height=56, border_radius=14,
+            width=78, height=78, border_radius=16,
             bgcolor=THEME["PERENUAL_BG"], alignment=ft.Alignment(0, 0),
-            content=ft.Text(data.get("emoji", "🐾"), size=24),
+            content=ft.Text(data.get("emoji", "🐾"), size=32),
         )
-    return ft.Container(
-        bgcolor=THEME["CARD_BG"],
-        border_radius=18, padding=16,
-        border=border_all(1, THEME["CARD_BORDER_ALT"]),
-        shadow=ft.BoxShadow(blur_radius=14, color=THEME["SHADOW_CARD2"], offset=ft.Offset(0, 8)),
+    role = str(data.get("role", "")).strip()
+    role_badge = ft.Container(
+        padding=ft.Padding.symmetric(horizontal=10, vertical=4),
+        border_radius=999,
+        bgcolor=THEME["DETAIL_BG"],
+        content=ft.Text(role or "藝素村夥伴", size=12, weight=ft.FontWeight.W_800,
+                        color=THEME["ANIMAL_ROLE"]),
+    )
+    return interactive_card(
+        padding=16,
+        border_radius=12,
+        tooltip=f"{name} 詳細介紹",
         on_click=lambda _event, pet=name: on_click(pet) if on_click else None,
         content=ft.Row(
             controls=[
@@ -40,10 +49,11 @@ def animal_card(
                 ft.Column(
                     controls=[
                         ft.Text(name, size=19, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
-                        ft.Text(data.get("role", ""), size=13, weight=ft.FontWeight.W_700,
-                               color=THEME["ANIMAL_ROLE"]),
+                        role_badge,
+                        ft.Text(summary or "一起認識這位藝素村小夥伴。",
+                                size=13, color=THEME["BODY"]),
                     ],
-                    spacing=2, expand=True,
+                    spacing=6, expand=True,
                     alignment=ft.MainAxisAlignment.CENTER,
                 ),
                 ft.Icon(ft.Icons.CHEVRON_RIGHT, color=THEME["MUTED"]),
@@ -54,26 +64,37 @@ def animal_card(
     )
 
 
-def get_animals_view(page: ft.Page) -> ft.Column:
-    """Build full animal mode view. From main.py lines 1250-1275."""
+def get_animals_view(
+    page: ft.Page,
+    on_animal_click: Callable[[str], None] | None = None,
+) -> ft.Column:
+    """Build the customer-facing animal mode view."""
     animals = load_animals_db_dynamic()
+    animal_controls: list[ft.Control]
+    if animals:
+        animal_controls = [animal_card(name, data, on_animal_click) for name, data in animals.items()]
+    else:
+        animal_controls = [
+            interactive_card(
+                padding=22,
+                border_radius=12,
+                content=ft.Column(
+                    controls=[
+                        ft.Text("目前尚無動物介紹", size=17, weight=ft.FontWeight.W_900,
+                                color=THEME["TITLE"]),
+                        ft.Text("請稍後再回來看看藝素村的小夥伴。", size=13, color=THEME["BODY"]),
+                    ],
+                    spacing=6,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+            )
+        ]
     return ft.Column(
         controls=[
             section_label(SECTION_ICONS["animal_section"], "認識動物"),
             ft.Text("點擊卡片，打開牠的介紹卡片。", size=14, color=THEME["BODY"]),
-            ft.TextButton(
-                content=ft.Row(
-                    controls=[
-                        ft.Icon(ft.Icons.EDIT_NOTE, size=16),
-                        ft.Text("開啟動物管理頁"),
-                    ],
-                    spacing=4,
-                ),
-                tooltip="在獨立頁面管理 admin/animals.json",
-                on_click=lambda _event: page.launch_url("./admin/animals.html"),
-            ),
             ft.Column(
-                controls=[animal_card(name, data) for name, data in animals.items()],
+                controls=animal_controls,
                 spacing=12,
             ),
         ],

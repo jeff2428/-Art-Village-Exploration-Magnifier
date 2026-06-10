@@ -1,11 +1,11 @@
 const PLANTNET_URL = "https://my-api.plantnet.org/v2/identify/all";
 const PERENUAL_SPECIES_LIST_URL = "https://perenual.com/api/v2/species-list";
 const PERENUAL_DETAILS_URL = "https://perenual.com/api/v2/species/details";
-const ALLOWED_PAGES_DOMAINS = ["pages.dev", "github.io"];
 const PERENUAL_CACHE_SECONDS = 7 * 24 * 60 * 60;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
 const rateLimitStore = new Map();
+const inFlightPerenualRequests = new Map();
 const DEFAULT_MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -23,6 +23,8 @@ const ANIMALS_DATA = [
   {"name":"冬瓜","type":"animal","emoji":"🐱","role":"慵懶守護者","desc":"圓滾滾的橘貓，是村裡的慵懶大王。","portrait":"","photos":[]},
 ];
 
+// Note: The rateLimitStore Map only limits requests within a single Cloudflare Worker node (Isolate).
+// For strict global rate limiting, configure WAF Rate Limiting rules in the Cloudflare Dashboard.
 function checkRateLimit(request) {
   const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   const now = Date.now();
@@ -38,10 +40,6 @@ function checkRateLimit(request) {
   return { allowed: true };
 }
 
-function isPagesDomainAllowed(env) {
-  return String(env && env.ALLOW_PAGES_DOMAINS || "").toLowerCase() === "true";
-}
-
 function corsHeaders(request, env = {}) {
   const origin = request.headers.get("Origin") || "";
   const configuredOrigin = env.ALLOWED_ORIGIN || "";
@@ -50,17 +48,11 @@ function corsHeaders(request, env = {}) {
     return origin;
   }
 
-  if (isPagesDomainAllowed(env) && origin) {
-    try {
-      const url = new URL(origin);
-      const hostname = url.hostname;
-      for (const domain of ALLOWED_PAGES_DOMAINS) {
-        if (hostname === domain || hostname.endsWith(`.${domain}`)) {
-          return origin;
-        }
-      }
-    } catch {
-      // Invalid URL, fall through to default
+  const allowedOriginsStr = env.ALLOWED_ORIGINS || "";
+  if (allowedOriginsStr && origin) {
+    const allowedOrigins = allowedOriginsStr.split(",").map((s) => s.trim()).filter(Boolean);
+    if (allowedOrigins.includes(origin)) {
+      return origin;
     }
   }
 
@@ -196,7 +188,8 @@ async function fetchPerenualMetadataCached(scientificName, env) {
     };
   }
 
-  const cacheKeyStr = `cache://perenual/${normalizeScientificName(scientificName)}`;
+  const normalizedName = normalizeScientificName(scientificName);
+  const cacheKeyStr = `cache://perenual/${normalizedName}`;
   const cacheKey = new Request(cacheKeyStr, { method: "GET" });
 
   try {
@@ -212,27 +205,48 @@ async function fetchPerenualMetadataCached(scientificName, env) {
     // Cache is an optimization; metadata lookup should still work if it fails.
   }
 
-  const metadata = await fetchPerenualMetadata(scientificName, env);
-  if (metadata.status === "ok") {
+  // Request deduplication: if there's already an in-flight request for this scientific name, wait for it
+  if (inFlightPerenualRequests.has(normalizedName)) {
     try {
-      await caches.default.put(
-        cacheKey,
-        new Response(JSON.stringify(metadata), {
-          headers: {
-            "Content-Type": "application/json; charset=utf-8",
-            "Cache-Control": `public, max-age=${PERENUAL_CACHE_SECONDS}`,
-          },
-        }),
-      );
+      const metadata = await inFlightPerenualRequests.get(normalizedName);
+      return {
+        metadata,
+        timing: { perenual_ms: Date.now() - startedAt, perenual_cache: "deduped" },
+      };
     } catch {
-      // Ignore cache write failures and return the fresh metadata.
+      // If the deduplicated request fails, fall through to make a new request
     }
   }
 
-  return {
-    metadata,
-    timing: { perenual_ms: Date.now() - startedAt, perenual_cache: "miss" },
-  };
+  // Create a promise for the in-flight request
+  const fetchPromise = fetchPerenualMetadata(scientificName, env);
+  inFlightPerenualRequests.set(normalizedName, fetchPromise);
+
+  try {
+    const metadata = await fetchPromise;
+    if (metadata.status === "ok") {
+      try {
+        await caches.default.put(
+          cacheKey,
+          new Response(JSON.stringify(metadata), {
+            headers: {
+              "Content-Type": "application/json; charset=utf-8",
+              "Cache-Control": `public, max-age=${PERENUAL_CACHE_SECONDS}`,
+            },
+          }),
+        );
+      } catch {
+        // Ignore cache write failures and return the fresh metadata.
+      }
+    }
+
+    return {
+      metadata,
+      timing: { perenual_ms: Date.now() - startedAt, perenual_cache: "miss" },
+    };
+  } finally {
+    inFlightPerenualRequests.delete(normalizedName);
+  }
 }
 
 export default {

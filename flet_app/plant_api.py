@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import binascii
 import json
 import mimetypes
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote
 
 import flet as ft
@@ -36,7 +37,7 @@ PLANT_ORGAN_OPTIONS: dict[str, str] = {
     "fruit": "果",
     "bark": "樹皮",
 }
-PLANT_ORGAN_ICONS: dict[str, object] = {
+PLANT_ORGAN_ICONS: dict[str, Any] = {
     "auto": ft.Icons.AUTO_AWESOME,
     "leaf": ft.Icons.ECO,
     "flower": ft.Icons.LOCAL_FLORIST,
@@ -65,7 +66,7 @@ PLANT_METADATA: dict[str, dict[str, dict[str, str]]] = {
 
 try:
     from build_config import WORKER_URL
-except ImportError:
+except (ImportError, AttributeError):
     WORKER_URL = "https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev"
 
 
@@ -208,7 +209,7 @@ def card_image_from_capture(capture: Any, max_data_url_length: int = MAX_CARD_IM
         data_url = f"data:image/jpeg;base64,{base64.b64encode(binary).decode('ascii')}"
         if len(data_url) <= max_data_url_length:
             return {"src": data_url, "label": "拍攝照片"}
-    except Exception:
+    except (ValueError, TypeError, OSError, binascii.Error):
         pass
     return {"src": "", "label": "照片過大，未存入圖鑑"}
 
@@ -237,16 +238,17 @@ def compress_image(binary: bytes, mime: str, *, optimize: bool = True) -> bytes:
     if Image is None:
         return binary
     try:
-        image = Image.open(BytesIO(binary))
+        image = cast(Any, Image.open(BytesIO(binary)))
         if image.width > MAX_IMAGE_WIDTH:
             ratio = MAX_IMAGE_WIDTH / image.width
             new_height = int(image.height * ratio)
-            image = image.resize((MAX_IMAGE_WIDTH, new_height), Image.LANCZOS)
+            resampling = getattr(getattr(Image, "Resampling", Image), "LANCZOS")
+            image = image.resize((MAX_IMAGE_WIDTH, new_height), resampling)
         buffer = BytesIO()
         fmt = "WEBP" if hasattr(Image, "registered_extensions") and ".webp" in Image.registered_extensions() else "JPEG"
         image.save(buffer, format=fmt, quality=IMAGE_COMPRESSION_QUALITY, optimize=optimize)
         return buffer.getvalue()
-    except Exception:
+    except (OSError, ValueError, AttributeError):
         return binary
 
 

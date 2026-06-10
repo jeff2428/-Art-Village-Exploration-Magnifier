@@ -46,6 +46,11 @@ setTimeout(() => {
 | --- | --- | --- | --- | --- | --- |
 | YYYY-MM-DD | Cloudflare Pages / Chrome 130 | _._ ms | _._ fps | _._ ms | PR3 前 baseline |
 | YYYY-MM-DD | Cloudflare Pages / Chrome 130 | _._ ms | _._ fps | _._ ms | PR3 後（本次重構） |
+| 2026-06-03 | Local Flet Web / HTTP probe | 待瀏覽器補測 | 待瀏覽器補測 | 待瀏覽器補測 | 本機 `127.0.0.1:8550` 回應 200；瀏覽器自動化受 Windows sandbox 限制，需依 `docs/qa-checklist.md` 補人工或可用瀏覽器量測 |
+
+## QA 檢視
+
+固定功能與視覺驗收清單請見 `docs/qa-checklist.md`。效能量測完成後，將實際數字回填到上方表格，並標註桌面或行動裝置環境。
 
 ## 變更摘要（PR3）
 

@@ -4,10 +4,10 @@ import asyncio
 from typing import Any
 
 import flet as ft
-from components.illustrations import MAGNIFYING_GLASS, PAW_PRINTS, SHELL_GINGER_LEAF
-from plant_api import confidence_text
-from pokedex_manager import _DEFAULT_ANIMALS, load_animals_db_dynamic, save_cached_pokedex
-from ui_theme import THEME, border_all
+from components.illustrations import MAGNIFYING_GLASS
+from pokedex_manager import _DEFAULT_ANIMALS, load_animals_db_dynamic, save_cached_pokedex_debounced
+from ui_theme import THEME
+from views.gallery import build_gallery_card
 
 
 class GalleryService:
@@ -49,53 +49,17 @@ class GalleryService:
         )
         self._gallery_card_map: dict[str, ft.Container] = {}
 
-    def _on_card_hover(self, card: ft.Container, event: ft.ControlEvent) -> None:
-        card.scale = 1.04 if event.data == "true" else 1.0
-        card.shadow = [
-            ft.BoxShadow(
-                blur_radius=18 if event.data == "true" else 10,
-                color=THEME["SHADOW_GALLERY"],
-                offset=ft.Offset(0, 8 if event.data == "true" else 5),
-            ),
-        ]
-        card.update()
-
     def _build_gallery_card(self, name: str, item: dict[str, Any]) -> ft.Container:
-        icon = item.get("emoji", SHELL_GINGER_LEAF if item.get("type") == "plant" else PAW_PRINTS)
-        is_low_confidence = item.get("is_low_confidence", False)
-        badge = "⚠️" if is_low_confidence else ""
-        subtitle = confidence_text(item) or item.get("role", "")
-        card = ft.Container(
-            bgcolor=THEME["CARD_BG"],
-            border_radius=12, padding=12,
-            alignment=ft.Alignment(0, 0),
-            border=border_all(1, THEME["CARD_BORDER_ALT"]),
-            shadow=ft.BoxShadow(blur_radius=10, color=THEME["SHADOW_GALLERY"],
-                                offset=ft.Offset(0, 5)),
-            animate=ft.Animation(300, ft.AnimationCurve.EASE_OUT),
-            animate_scale=ft.Animation(180, ft.AnimationCurve.EASE_OUT),
-            animate_opacity=ft.Animation(400, ft.AnimationCurve.EASE_OUT),
-            tooltip=f"{name} 詳細介紹",
-            on_click=lambda _event, item_name=name, item_data=item: (
+        return build_gallery_card(
+            name,
+            item,
+            on_click=lambda item_name, item_data: (
                 self.show_gallery_card(item_name, item_data)
                 if self.show_gallery_card
                 else None
             ),
-            on_long_press=lambda _event, item_name=name: self.confirm_delete(
-                item_name, self.close_dialog
-            ),
-            on_hover=lambda e: self._on_card_hover(card, e),
-            content=ft.Column(
-                controls=[
-                    ft.Text(f"{icon} {badge} {name}", size=14,
-                            weight=ft.FontWeight.W_800, color=THEME["TITLE"]),
-                    ft.Text(subtitle, size=11, color=THEME["BODY"]),
-                ],
-                spacing=2,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
+            on_delete=lambda item_name: self.confirm_delete(item_name, self.close_dialog),
         )
-        return card
 
     def refresh(self, update_page: bool = True) -> None:
         new_cards: list[tuple[str, ft.Container]] = []
@@ -120,7 +84,7 @@ class GalleryService:
         has_items = bool(self.state.pokedex)
         self.grid.visible = has_items
         self.gallery_empty_state.visible = not has_items
-        self.create_background_task(save_cached_pokedex(self.state.pokedex))
+        self.create_background_task(save_cached_pokedex_debounced(self.state.pokedex))
         if update_page:
             self.grid.update()
             if self.gallery_empty_state.page is not None:
@@ -159,7 +123,7 @@ class GalleryService:
     def delete_item(self, name: str) -> None:
         if name in self.state.pokedex:
             self.state.pokedex.pop(name)
-            self.create_background_task(save_cached_pokedex(self.state.pokedex))
+            self.create_background_task(save_cached_pokedex_debounced(self.state.pokedex))
             self.status_text.value = f"已刪除：{name}"
             self.refresh()
         self.page.pop_dialog()
@@ -169,7 +133,7 @@ class GalleryService:
         self.state.pokedex.clear()
         self._gallery_card_map.clear()
         self.grid.controls.clear()
-        self.create_background_task(save_cached_pokedex(self.state.pokedex))
+        self.create_background_task(save_cached_pokedex_debounced(self.state.pokedex))
         self.status_text.value = "已清除探險圖鑑"
         self.page.pop_dialog()
         self.page.update()

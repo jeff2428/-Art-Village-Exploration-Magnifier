@@ -134,6 +134,10 @@ class CameraIdentificationFlowTests(unittest.TestCase):
         self.assertFalse(hasattr(app_main, "plant_candidates_for_gallery"))
 
     def test_save_json_cache_handles_empty_data_gracefully(self):
+        try:
+            from js import localStorage  # type: ignore
+        except ImportError:
+            self.skipTest("Requires pyodide/js environment")
         import asyncio
         asyncio.run(save_json_cache("testDict", {}))
         asyncio.run(save_json_cache("testList", []))
@@ -142,6 +146,10 @@ class CameraIdentificationFlowTests(unittest.TestCase):
         self.assertTrue(LOCAL_CACHE_PATH.exists() or str(LOCAL_CACHE_PATH).endswith("local_pokedex_cache.json"))
 
     def test_legacy_snapshot_cache_cleanup_removes_local_file(self):
+        try:
+            from js import localStorage  # type: ignore
+        except ImportError:
+            self.skipTest("Requires pyodide/js environment")
         with tempfile.TemporaryDirectory() as temp_dir:
             original_cache_dir = LOCAL_CACHE_DIR
             import pokedex_manager

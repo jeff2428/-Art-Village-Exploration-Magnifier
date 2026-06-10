@@ -6,7 +6,6 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 APP_DIR = ROOT / "flet_app"
 APP_PACKAGE = APP_DIR / "build" / "web" / "assets" / "app" / "app.zip"

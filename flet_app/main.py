@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import Any
+from typing import Any, cast
 
 import flet as ft
 
@@ -17,10 +17,11 @@ from build_config import CONTENT_MAX_WIDTH, CONTENT_MIN_PADDING
 from camera_utils import (
     MIN_CAMERA_ZOOM,
 )
-from components.illustrations import LOADING_EMOJI_CYCLE, MODE_ICONS
+from components.illustrations import MODE_ICONS
 from plant_api import PLANT_ORGAN_ICONS, PLANT_ORGAN_OPTIONS
 from pokedex_manager import (
     clear_legacy_snapshot_cache,
+    flush_pokedex_save,
     load_cached_pokedex,
     load_dark_mode_preference,
     save_dark_mode_preference,
@@ -45,7 +46,7 @@ def mark_explorer_ready() -> None:
     try:
         from js import window  # type: ignore
         window.__artVillageReady = True
-    except Exception:
+    except (ImportError, AttributeError):
         pass
 
 
@@ -53,13 +54,16 @@ def mark_load_timing(name: str) -> None:
     try:
         from js import performance  # type: ignore
         performance.mark(name)
-    except Exception:
+    except (ImportError, AttributeError):
         pass
 
 
 def report_performance(page: ft.Page) -> None:
     try:
-        page.run_js("""
+        run_js = getattr(page, "run_js", None)
+        if not callable(run_js):
+            return
+        run_js("""
         try {
           const marks = performance.getEntriesByType("mark");
           const measures = performance.getEntriesByType("measure");
@@ -70,7 +74,7 @@ def report_performance(page: ft.Page) -> None:
           console.warn("\u6548\u80fd\u5831\u544a\u5931\u6557:", e);
         }
         """)
-    except Exception:
+    except (AttributeError, TypeError):
         pass
 
 
@@ -100,6 +104,13 @@ async def main(page: ft.Page) -> None:
 
 async def run_app(page: ft.Page) -> None:
     page.title = "\u85dd\u7d20\u6751\u63a2\u96aa\u653e\u5927\u93e1"
+    
+    page.fonts = {
+        "Inter": "https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap",
+        "Noto Sans TC": "https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap"
+    }
+    page.theme = ft.Theme(font_family="Noto Sans TC")
+    
     state = AppState(page=page)
     state.pokedex = await load_cached_pokedex()
     state.is_dark_mode = await load_dark_mode_preference()
@@ -134,15 +145,15 @@ async def run_app(page: ft.Page) -> None:
     # Organ mode selector
     organ_options = ["auto", "leaf", "flower", "fruit", "bark"]
     organ_mode = ft.SegmentedButton(
-        selected={"auto"},
-        show_selected_foreground=False,
+        selected=["auto"],
         allow_multiple_selection=False,
         on_change=lambda _e: None,
         segments=[
             ft.Segment(
                 value=v,
+                icon=PLANT_ORGAN_ICONS.get(v),
                 label=ft.Text(
-                    f"{PLANT_ORGAN_ICONS.get(v, '')} {PLANT_ORGAN_OPTIONS.get(v, v)}",
+                    PLANT_ORGAN_OPTIONS.get(v, v),
                     size=12,
                 ),
             )
@@ -184,7 +195,7 @@ async def run_app(page: ft.Page) -> None:
         status_text=status,
         create_background_task=create_background_task,
         mark_load_timing=mark_load_timing,
-        initialize_camera=lambda: camera.initialize(),
+        initialize_camera=lambda: camera.initialize(),  # type: ignore[has-type]
         refresh_gallery=gallery_service.refresh,
     )
 
@@ -196,7 +207,7 @@ async def run_app(page: ft.Page) -> None:
             create_background_task(recognition_service.refresh_plant_metadata(plant))
 
     # Camera manager
-    camera = CameraManager(
+    camera: CameraManager = CameraManager(
         page=page,
         state=state,
         status_text=status,
@@ -213,19 +224,25 @@ async def run_app(page: ft.Page) -> None:
     welcome_screen = wv.build_welcome_screen(page)
     start_button = wv.build_start_button()
     loading_carousel, loading_emoji, loading_message = wv.build_loading_carousel()
-    welcome_screen.content.controls.append(start_button)
+    welcome_paper = cast(ft.Container, welcome_screen.content)
+    welcome_content = cast(ft.Column, welcome_paper.content)
+    welcome_content.controls.append(start_button)
 
     # Mode switching
+    async def pause_camera_preview(camera_control: Any) -> None:
+        try:
+            await camera_control.pause_preview()
+        except (AttributeError, RuntimeError):
+            pass
+
     async def hide_camera_preview() -> None:
         state.camera_ready = False
-        if state.camera is not None:
-            try:
-                await state.camera.pause_preview()
-            except Exception:
-                pass
+        current_camera = state.camera
+        state.camera = None
         camera.camera_preview_slot.visible = False
         camera.camera_preview_slot.content = camera.camera_placeholder
-        state.camera = None
+        if current_camera is not None:
+            create_background_task(pause_camera_preview(current_camera))
 
     def restore_camera_preview() -> None:
         camera.camera_preview_slot.visible = True
@@ -270,6 +287,7 @@ async def run_app(page: ft.Page) -> None:
         if mode is not None:
             mode.content = build_mode_selector()
         _rebuild_visible_shell()
+        page.update()
 
     def toggle_dark_mode(_event: ft.ControlEvent | None = None) -> None:
         state.is_dark_mode = not state.is_dark_mode
@@ -285,11 +303,12 @@ async def run_app(page: ft.Page) -> None:
         for ctrl in [gallery_service.grid, gallery_service.gallery_empty_state, mode, content_area]:
             if ctrl is not None and ctrl.parent is not None:
                 try:
-                    if hasattr(ctrl.parent, "controls") and ctrl in ctrl.parent.controls:
-                        ctrl.parent.controls.remove(ctrl)
-                    elif hasattr(ctrl.parent, "content") and ctrl.parent.content == ctrl:
-                        ctrl.parent.content = None
-                except Exception:
+                    parent = cast(Any, ctrl.parent)
+                    if hasattr(parent, "controls") and ctrl in parent.controls:
+                        parent.controls.remove(ctrl)
+                    elif hasattr(parent, "content") and parent.content == ctrl:
+                        parent.content = None
+                except (AttributeError, ValueError):
                     pass
         toggle_icon = ft.Icons.DARK_MODE if not state.is_dark_mode else ft.Icons.LIGHT_MODE
         toggle_tip = "\u6df1\u8272\u6a21\u5f0f" if not state.is_dark_mode else "\u6dfa\u8272\u6a21\u5f0f"
@@ -300,7 +319,10 @@ async def run_app(page: ft.Page) -> None:
             on_clear=gallery_service.confirm_clear,
         )
         if selected_mode["value"] == "animal":
-            new_content = av.get_animals_view(page)
+            new_content = av.get_animals_view(
+                page,
+                lambda name: dv.show_animal_card(page, state, status, gallery_service.add_animal, name),
+            )
         else:
             new_content = pv._build_plant_view(camera.magnifier_body, busy_ring, status,
                                                 restart_camera_button, organ_mode)
@@ -328,52 +350,60 @@ async def run_app(page: ft.Page) -> None:
         )
 
     # Mode UI
-    mode = ft.Container(content=build_mode_selector())
-    content_area = ft.Container(padding=4)
+    mode: ft.Container = ft.Container(content=build_mode_selector())
+    content_area: ft.Container = ft.Container(padding=4)
 
-    shell = ft.Container(
+    shell: ft.Container = ft.Container(
         width=min(CONTENT_MAX_WIDTH, (page.width or 480) - CONTENT_MIN_PADDING * 2),
         visible=False,
     )
     page.add(welcome_screen, shell)
+    await asyncio.sleep(0)
+    mark_explorer_ready()
 
     # Start exploration
     async def start_exploration() -> None:
-        start_button.text = "\u6e96\u5099\u4e2d..."
-        start_button.disabled = True
-        start_button.update()
-        welcome_screen.content.controls[-1] = loading_carousel
-        welcome_screen.update()
-        emoji_cycle = LOADING_EMOJI_CYCLE
-        messages = [
-            "\u6b63\u5728\u547c\u559a\u5c0f\u5925\u4f34\u5011...",
-            "\u7ffb\u958b\u690d\u7269\u5716\u9451\u4e2d...",
-            "\u6e96\u5099\u63a2\u96aa\u88dd\u5099...",
-            "\u555f\u52d5\u653e\u5927\u93e1...",
-            "\u5373\u5c07\u51fa\u767c\uff01",
-        ]
-        for i in range(6):
-            await asyncio.sleep(0.5)
-            loading_emoji.value = emoji_cycle[i % len(emoji_cycle)]
-            loading_message.value = messages[i] if i < len(messages) else "\u6e96\u5099\u5c31\u7e8c\uff01"
-            loading_emoji.update()
-            loading_message.update()
+        try:
+            cast(Any, start_button).text = "\u6e96\u5099\u4e2d..."
+            start_button.disabled = True
+            await asyncio.sleep(0)
 
-        async def build_shell() -> None:
-            content_area.content = pv._build_plant_view(camera.magnifier_body, busy_ring, status,
-                                                         restart_camera_button, organ_mode)
-            camera.render_handle(update_page=False)
-            if state.pokedex:
-                gallery_service.refresh(update_page=False)
+            async def build_shell() -> None:
+                content_area.content = pv._build_plant_view(camera.magnifier_body, busy_ring, status,
+                                                             restart_camera_button, organ_mode)
+                camera.render_handle(update_page=False)
+                if state.pokedex:
+                    gallery_service.refresh(update_page=False)
+                _rebuild_visible_shell()
 
-        await build_shell()
-        welcome_screen.visible = False
-        shell.visible = True
-        page.update()
+            await build_shell()
+            welcome_screen.visible = False
+            shell.visible = True
+            page.update()
+            await page.scroll_to(offset=0)
+            page.update()
 
-        await camera.initialize()
-        report_performance(page)
-        mark_explorer_ready()
+            create_background_task(camera.initialize())
+            report_performance(page)
+        except Exception as error:
+            page.clean()
+            page.add(
+                ft.Container(
+                    width=min(CONTENT_MAX_WIDTH, (page.width or 480) - CONTENT_MIN_PADDING * 2),
+                    padding=24,
+                    content=soft_card(
+                        ft.Column(
+                            controls=[
+                                ft.Text("\u63a2\u96aa\u6d41\u7a0b\u555f\u52d5\u5931\u6557", size=24,
+                                        weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
+                                ft.Text(str(error), size=13, color=THEME["BODY_DARK"], selectable=True),
+                            ],
+                            spacing=12,
+                        )
+                    ),
+                )
+            )
+            page.update()
 
     start_button.on_click = lambda _e: create_background_task(start_exploration())
 
@@ -384,6 +414,11 @@ async def run_app(page: ft.Page) -> None:
         page.update()
 
     page.on_resize = _on_page_resize
+
+    async def _on_page_close(_event: ft.ControlEvent | None = None) -> None:
+        await flush_pokedex_save()
+
+    page.on_close = _on_page_close
 
 
 if os.environ.get("FLET_SKIP_RUN") != "1":

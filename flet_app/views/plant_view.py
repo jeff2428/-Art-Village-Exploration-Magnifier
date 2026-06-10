@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 import flet as ft
-from ui_theme import THEME, border_all
+from ui_theme import THEME, border_all, interactive_card
 
 
 def plant_card(
@@ -16,11 +16,10 @@ def plant_card(
     confidence = data.get("confidence", 0)
     is_low_confidence = data.get("is_low_confidence", False)
     badge = "⚠️" if (is_low_confidence and confidence > 0) else ""
-    return ft.Container(
-        bgcolor=THEME["CARD_BG"],
-        border_radius=18, padding=16,
-        border=border_all(1, THEME["CARD_BORDER_ALT"]),
-        shadow=ft.BoxShadow(blur_radius=14, color=THEME["SHADOW_CARD2"], offset=ft.Offset(0, 8)),
+    return interactive_card(
+        padding=16,
+        border_radius=12,
+        tooltip=f"{name} 詳細介紹",
         on_click=lambda _event, plant_name=name: on_click(plant_name, data) if on_click else None,
         content=ft.Column(
             controls=[

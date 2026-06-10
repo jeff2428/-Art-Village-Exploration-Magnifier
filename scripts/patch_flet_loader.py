@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import time
 from pathlib import Path
-
 
 LOADER_HTML = """
 <div id="explorer-loader" role="status" aria-live="polite">
@@ -250,7 +250,7 @@ self.addEventListener('activate', (event) => {{
 
 self.addEventListener('fetch', (event) => {{
   const url = new URL(event.request.url);
-  
+
   if (url.pathname.includes('/pyodide/') || url.pathname.includes('/canvaskit/')) {{
     event.respondWith(
       caches.match(event.request).then((response) => {{
@@ -264,7 +264,7 @@ self.addEventListener('fetch', (event) => {{
     );
     return;
   }}
-  
+
   if (url.pathname.includes('/assets/app/app-')) {{
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {{
@@ -279,7 +279,7 @@ self.addEventListener('fetch', (event) => {{
     );
     return;
   }}
-  
+
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );
@@ -305,13 +305,35 @@ def patch_index(index_path: Path) -> None:
     loader_html = LOADER_HTML.replace("__ART_VILLAGE_BUILD_ID__", stamp)
     if 'rel="preload"' not in html:
         html = html.replace("</head>", f"{resource_hints(app_package_url)}</head>", 1)
-    if "flet-cache-buster" not in html:
-        html = html.replace('<script src="python.js"></script>', f'{cache_busting_script(stamp, app_package_url)}\n  <script src="python.js"></script>', 1)
+    else:
+        html = re.sub(
+            r'rel="preload" href="assets/app/app-[^"]+\.zip"',
+            f'rel="preload" href="{app_package_url}"',
+            html,
+            count=1,
+        )
+    python_script = '<script src="python.js"></script>'
+    cache_buster = cache_busting_script(stamp, app_package_url).strip()
+    cache_buster_pattern = re.compile(
+        r'\s*<script id="flet-cache-buster">.*?</script>\s*',
+        re.DOTALL,
+    )
+    if "flet-cache-buster" in html:
+        html = cache_buster_pattern.sub(f"\n{cache_buster}\n\n  ", html, count=1)
+    else:
+        html = html.replace(python_script, f"{cache_buster}\n\n  {python_script}", 1)
     if "explorer-loader" not in html:
         if "<body>" in html:
             html = html.replace("<body>", f"<body>\n{loader_html}", 1)
         else:
             html = html.replace("</head>", f"</head>\n<body>\n{loader_html}", 1)
+    else:
+        html = re.sub(
+            r'const artVillageBuildId = "[^"]+";',
+            f'const artVillageBuildId = "{stamp}";',
+            html,
+            count=1,
+        )
     if "serviceWorker" not in html:
         html = html.replace("</body>", f"{service_worker_registration_script()}</body>", 1)
     index_path.write_text(html, encoding="utf-8")

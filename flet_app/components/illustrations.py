@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import flet as ft
 from app_types import AppMode
-from ui_theme import THEME
+from ui_theme import THEME, border_all
 
 TAIWAN_BLUE_MAGPIE = "\U0001f426"
 TAIWAN_LILY = "\U0001f33b"
@@ -102,7 +102,7 @@ def nature_border_container(
                 _lighten(THEME["CARD_BG"], 0.015),
             ],
         ),
-        border=ft.border.all(1, THEME["CARD_BORDER"]),
+        border=border_all(1, THEME["CARD_BORDER"]),
     )
 
 

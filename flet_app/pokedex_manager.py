@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import tempfile
 from pathlib import Path
@@ -36,7 +37,7 @@ def load_animals_db() -> dict[str, dict[str, Any]]:
                 }
         if db:
             return db
-    except Exception:
+    except (OSError, json.JSONDecodeError, StopIteration):
         pass
     return {}
 
@@ -88,7 +89,7 @@ def load_animals_db_dynamic() -> dict[str, dict[str, Any]]:
                     }
             if db:
                 return db
-    except Exception:
+    except (json.JSONDecodeError, AttributeError):
         pass
 
     static_db = load_animals_db()
@@ -108,7 +109,7 @@ async def _cache_get(key: str) -> str | None:
         if response is None:
             return None
         return await response.text()
-    except Exception:
+    except (AttributeError, TypeError):
         return None
 
 
@@ -119,7 +120,7 @@ async def _cache_set(key: str, value: str) -> None:
 
         cache = await js_caches.open("art-village-pokedex")
         await cache.put(key, JsResponse.new(value, {"headers": {"Content-Type": "application/json"}}))
-    except Exception:
+    except (AttributeError, TypeError):
         pass
 
 
@@ -128,7 +129,7 @@ async def load_json_cache(storage_key: str, fallback: Any) -> Any:
     if raw:
         try:
             return json.loads(raw)
-        except Exception:
+        except json.JSONDecodeError:
             pass
     try:
         from js import localStorage  # type: ignore
@@ -136,7 +137,7 @@ async def load_json_cache(storage_key: str, fallback: Any) -> Any:
         raw = localStorage.getItem(storage_key)
         if raw:
             return json.loads(raw)
-    except Exception:
+    except (json.JSONDecodeError, AttributeError):
         pass
     return fallback
 
@@ -148,7 +149,7 @@ async def save_json_cache(storage_key: str, data: Any) -> None:
         from js import localStorage  # type: ignore
 
         localStorage.setItem(storage_key, serialized)
-    except Exception:
+    except (AttributeError, TypeError):
         pass
 
 
@@ -203,11 +204,61 @@ def clear_legacy_snapshot_cache() -> None:
         from js import localStorage  # type: ignore
 
         localStorage.removeItem("artVillageSnapshotQueue")
-    except Exception:
+    except (AttributeError, TypeError):
         pass
     try:
         legacy_path = LOCAL_CACHE_DIR / "local_snapshot_queue.json"
         if legacy_path.exists():
             legacy_path.unlink()
-    except Exception:
+    except OSError:
         pass
+
+
+class _DebouncedSaver:
+    """Debounced saver for pokedex to batch rapid updates."""
+
+    def __init__(self, delay: float = 0.5) -> None:
+        self._delay = delay
+        self._task: asyncio.Task | None = None
+        self._pending_data: dict[str, dict[str, Any]] | None = None
+
+    def schedule_save(self, pokedex: dict[str, dict[str, Any]]) -> None:
+        self._pending_data = pokedex
+        if self._task is not None:
+            self._task.cancel()
+        self._task = asyncio.create_task(self._run_save())
+
+    async def _run_save(self) -> None:
+        try:
+            await asyncio.sleep(self._delay)
+            if self._pending_data is not None:
+                await save_cached_pokedex(self._pending_data)
+        except asyncio.CancelledError:
+            pass
+        except (OSError, json.JSONDecodeError, AttributeError):
+            pass
+        finally:
+            self._task = None
+
+    async def flush(self) -> None:
+        if self._task is not None:
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+        if self._pending_data is not None:
+            await save_cached_pokedex(self._pending_data)
+
+
+_debounced_saver = _DebouncedSaver(delay=0.5)
+
+
+async def save_cached_pokedex_debounced(pokedex: dict[str, dict[str, Any]]) -> None:
+    """Save pokedex with debouncing to batch rapid updates."""
+    _debounced_saver.schedule_save(pokedex)
+
+
+async def flush_pokedex_save() -> None:
+    """Force flush any pending pokedex save."""
+    await _debounced_saver.flush()

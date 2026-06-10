@@ -6,7 +6,7 @@ from typing import Any
 import flet as ft
 from components.illustrations import PAW_PRINTS, SECTION_ICONS, SHELL_GINGER_LEAF
 from plant_api import confidence_text
-from ui_theme import THEME, border_all, soft_card
+from ui_theme import THEME, interactive_card, soft_card
 
 
 def build_gallery_card(
@@ -20,19 +20,12 @@ def build_gallery_card(
     badge = "⚠️" if is_low_confidence else ""
     subtitle = confidence_text(item) or item.get("role", "")
 
-    card = ft.Container(
-        bgcolor=THEME["CARD_BG"],
-        border_radius=12, padding=12,
-        alignment=ft.Alignment(0, 0),
-        border=border_all(1, THEME["CARD_BORDER_ALT"]),
-        shadow=ft.BoxShadow(blur_radius=10, color=THEME["SHADOW_GALLERY"], offset=ft.Offset(0, 5)),
-        animate=ft.Animation(300, ft.AnimationCurve.EASE_OUT),
-        animate_scale=ft.Animation(180, ft.AnimationCurve.EASE_OUT),
-        animate_opacity=ft.Animation(400, ft.AnimationCurve.EASE_OUT),
+    return interactive_card(
+        padding=12,
+        border_radius=12,
         tooltip=f"{name} 詳細介紹",
         on_click=lambda _event, item_name=name, item_data=item: on_click(item_name, item_data) if on_click else None,
         on_long_press=lambda _event, item_name=name: on_delete(item_name) if on_delete else None,
-        on_hover=lambda e: _on_card_hover(card, e),
         content=ft.Column(
             controls=[
                 ft.Text(f"{icon} {badge} {name}", size=14, weight=ft.FontWeight.W_800, color=THEME["TITLE"]),
@@ -42,20 +35,6 @@ def build_gallery_card(
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
         ),
     )
-    return card
-
-
-def _on_card_hover(card: ft.Container, event: ft.ControlEvent) -> None:
-    """Handle gallery card hover animation."""
-    card.scale = 1.04 if event.data == "true" else 1.0
-    card.shadow = [
-        ft.BoxShadow(
-            blur_radius=18 if event.data == "true" else 10,
-            color=THEME["SHADOW_GALLERY"],
-            offset=ft.Offset(0, 8 if event.data == "true" else 5),
-        ),
-    ]
-    card.update()
 
 
 def build_gallery_panel(
