@@ -564,7 +564,7 @@
   <div class="container hidden" id="appShell">
     <header>
       <h1>🐾 藝素村動物資料管理</h1>
-      <p>管理動物資料、上傳大頭貼與生活照；正式資料存放在 <code>admin/animals.json</code></p>
+      <p>管理動物資料、上傳大頭貼與生活照；同瀏覽器前台會讀取本機草稿，正式跨裝置資料需部署 <code>admin/animals.json</code></p>
     </header>
 
     <div class="admin-status">
@@ -575,7 +575,7 @@
     <div class="toolbar">
       <button class="primary" onclick="openAddModal()">＋ 新增動物</button>
       <button onclick="exportJSON()">📋 複製 JSON</button>
-      <button onclick="saveJSONFile()">💾 儲存 animals.json</button>
+      <button onclick="saveJSONFile()">💾 另存 animals.json</button>
       <button onclick="downloadJSON()">⬇️ 下載副本</button>
       <button onclick="importJSON()">📥 匯入 JSON</button>
       <button onclick="logoutAdmin()">登出</button>
@@ -770,7 +770,7 @@
         }
         return false;
       }
-      dataSourceLabel = '已儲存為本機草稿。若要成為正式資料，請下載或儲存 animals.json。';
+      dataSourceLabel = '已儲存為本機草稿。同瀏覽器前台重新整理或切回動物模式後會讀取這份資料。';
       updateStatus();
       return true;
     }
@@ -1139,10 +1139,10 @@
         const writable = await handle.createWritable();
         await writable.write(json);
         await writable.close();
-        localStorage.removeItem('artVillageAnimals');
-        dataSourceLabel = '已儲存 animals.json，並清除本機草稿。';
+        saveToStorage();
+        dataSourceLabel = '已另存 animals.json，並保留本機草稿供同瀏覽器前台同步。';
         updateStatus();
-        showToast('✅ animals.json 已儲存');
+        showToast('✅ animals.json 已另存，本機草稿已保留');
       } catch (e) {
         if (e && e.name !== 'AbortError') {
           showToast('❌ 儲存失敗，請改用下載副本');
