@@ -46,7 +46,7 @@ def animal_card(
         padding=16,
         border_radius=12,
         tooltip=f"{name} 詳細介紹",
-        on_click=open_card,
+        on_click=None,
         content=ft.Row(
             controls=[
                 portrait_preview,
@@ -56,29 +56,26 @@ def animal_card(
                         role_badge,
                         ft.Text(summary or "一起認識這位藝素村小夥伴。",
                                 size=13, color=THEME["BODY"]),
-                        ft.TextButton(
-                            "查看介紹",
-                            icon=ft.Icons.OPEN_IN_NEW,
-                            on_click=open_card,
-                            style=ft.ButtonStyle(
-                                color=THEME["ACCENT"],
-                                padding=ft.Padding.symmetric(horizontal=0, vertical=0),
-                            ),
-                        ),
+                        ft.Text("點擊查看介紹", size=12, color=THEME["ACCENT"],
+                                weight=ft.FontWeight.W_800),
                     ],
                     spacing=6, expand=True,
                     alignment=ft.MainAxisAlignment.CENTER,
                 ),
-                ft.Icon(ft.Icons.CHEVRON_RIGHT, color=THEME["MUTED"]),
+                ft.Icon(ft.Icons.CHEVRON_RIGHT, color=THEME["ACCENT"]),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
         ),
     )
-    return ft.GestureDetector(
+    return ft.TextButton(
         content=card,
-        mouse_cursor=ft.MouseCursor.CLICK,
-        on_tap=open_card,
+        on_click=open_card,
+        tooltip=f"{name} 詳細介紹",
+        style=ft.ButtonStyle(
+            padding=0,
+            overlay_color="#00000000",
+        ),
     )
 
 
