@@ -26,7 +26,7 @@ const source = readFileSync("__WORKER_INDEX__", "utf8");
 // Use a greedy match to consume the entire `export default { ... };` block.
 const wrapped = source.replace(/export default \{[\s\S]*\}\s*;/, "");
 
-const mod = new Function(wrapped + "\nreturn { corsHeaders, readMaxUploadBytes, isPagesDomainAllowed, s2t };")();
+const mod = new Function(wrapped + "\nreturn { corsHeadersMap, corsHeaders, readMaxUploadBytes, isPagesDomainAllowed, normalizeAnimalsPayload, s2t };")();
 
 test("corsHeaders returns configured origin when matched", () => {
   const env = { ALLOWED_ORIGIN: "https://example.com" };
@@ -91,6 +91,38 @@ test("readMaxUploadBytes honors env override", () => {
 test("s2t converts common PlantNet simplified names without frontend OpenCC", () => {
   assert.equal(mod.s2t("榕树"), "榕樹");
   assert.equal(mod.s2t("垂叶榕"), "垂葉榕");
+});
+
+test("corsHeadersMap allows animal admin PUT password header", () => {
+  const env = { ALLOWED_ORIGIN: "https://example.com" };
+  const req = new Request("https://worker/animals", {
+    headers: { Origin: "https://example.com" },
+  });
+  const headers = mod.corsHeadersMap(req, env);
+  assert.match(headers["Access-Control-Allow-Methods"], /PUT/);
+  assert.match(headers["Access-Control-Allow-Headers"], /X-Admin-Password/);
+});
+
+test("normalizeAnimalsPayload accepts valid animal data", () => {
+  const result = mod.normalizeAnimalsPayload({
+    animals: [
+      { name: "  貝貝  ", type: "animal", emoji: "🐶", role: "導覽員", desc: "介紹", portrait: "x", photos: ["a"] },
+    ],
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.payload.animals[0].name, "貝貝");
+  assert.equal(result.payload.animals[0].type, "animal");
+});
+
+test("normalizeAnimalsPayload rejects duplicate animal names", () => {
+  const result = mod.normalizeAnimalsPayload({
+    animals: [
+      { name: "貝貝" },
+      { name: " 貝貝 " },
+    ],
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.error, /duplicate/i);
 });
 """
 

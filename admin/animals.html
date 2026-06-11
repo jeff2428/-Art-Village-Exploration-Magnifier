@@ -120,11 +120,112 @@
     .admin-status strong {
       color: var(--accent-blue);
     }
+    .management-panel {
+      margin-bottom: 18px;
+    }
+    .primary-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      position: relative;
+      flex-wrap: wrap;
+    }
+    .action-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 18px;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      background: var(--card-bg);
+      color: var(--title);
+      font-weight: 800;
+      font-size: 14px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+    }
+    .action-button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .action-button.primary {
+      background: var(--green);
+      color: white;
+      border-color: var(--green);
+      font-size: 15px;
+      padding-inline: 22px;
+    }
+    .action-button.primary:hover {
+      color: white;
+      opacity: 0.92;
+    }
+    .action-button.secondary {
+      background: var(--card-bg);
+    }
+    .more-actions {
+      position: relative;
+    }
+    .more-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 220px;
+      padding: 8px;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      background: var(--card-bg);
+      box-shadow: 0 16px 40px var(--shadow);
+      z-index: 20;
+    }
+    .more-menu[hidden] {
+      display: none;
+    }
+    .more-menu button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--title);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: left;
+      cursor: pointer;
+    }
+    .more-menu button:hover,
+    .more-menu button:focus {
+      outline: none;
+      background: var(--green-soft);
+      color: var(--accent);
+    }
+    .more-menu button.danger {
+      color: var(--danger);
+    }
+    .more-menu button.danger:hover,
+    .more-menu button.danger:focus {
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+    .menu-separator {
+      height: 1px;
+      margin: 6px 4px;
+      background: var(--card-border);
+    }
     .search-row {
       display: grid;
       grid-template-columns: minmax(180px, 1fr) auto;
       gap: 12px;
-      margin-bottom: 18px;
+      margin-bottom: 0;
     }
     .search-row input {
       width: 100%;
@@ -143,46 +244,6 @@
       color: var(--body);
       font-weight: 800;
       cursor: pointer;
-    }
-    .toolbar {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-    .toolbar button {
-      padding: 10px 20px;
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
-      background: var(--card-bg);
-      color: var(--title);
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .toolbar button:hover {
-      background: var(--accent);
-      color: white;
-      border-color: var(--accent);
-    }
-    .toolbar button.danger {
-      background: var(--danger-bg);
-      color: var(--danger);
-      border-color: var(--danger);
-    }
-    .toolbar button.danger:hover {
-      background: var(--danger);
-      color: white;
-    }
-    .toolbar button.primary {
-      background: var(--green);
-      color: white;
-      border-color: var(--green);
-    }
-    .toolbar button.primary:hover {
-      opacity: 0.9;
     }
     .animals-grid {
       display: grid;
@@ -541,11 +602,19 @@
       .search-row {
         grid-template-columns: 1fr;
       }
-      .toolbar {
+      .primary-actions {
         justify-content: stretch;
       }
-      .toolbar button {
+      .action-button.primary,
+      .action-button.secondary {
+        flex: 1 1 calc(50% - 6px);
+      }
+      .more-actions {
         flex: 1 1 100%;
+      }
+      .more-actions > .action-button,
+      .more-menu {
+        width: 100%;
       }
     }
   </style>
@@ -572,18 +641,35 @@
       <strong id="animalCount">0 筆</strong>
     </div>
 
-    <div class="toolbar">
-      <button class="primary" onclick="openAddModal()">＋ 新增動物</button>
-      <button onclick="exportJSON()">📋 複製 JSON</button>
-      <button onclick="saveJSONFile()">💾 另存 animals.json</button>
-      <button onclick="downloadJSON()">⬇️ 下載副本</button>
-      <button onclick="importJSON()">📥 匯入 JSON</button>
-      <button onclick="logoutAdmin()">登出</button>
-    </div>
+    <div class="management-panel">
+      <div class="primary-actions" aria-label="動物資料管理操作">
+        <button class="action-button primary" type="button" onclick="openAddModal()">＋ 新增動物</button>
+        <button class="action-button secondary" type="button" onclick="saveJSONFile()">💾 儲存正式資料</button>
+        <div class="more-actions">
+          <button
+            class="action-button secondary"
+            type="button"
+            id="moreActionsButton"
+            aria-expanded="false"
+            aria-controls="moreActionsMenu"
+            onclick="toggleMoreMenu()"
+          >
+            更多 ▾
+          </button>
+          <div class="more-menu" id="moreActionsMenu" hidden>
+            <button type="button" onclick="runMoreAction(exportJSON)">📋 複製 JSON 內容</button>
+            <button type="button" onclick="runMoreAction(downloadJSON)">⬇️ 下載備份</button>
+            <button type="button" onclick="runMoreAction(importJSON)">📥 匯入資料</button>
+            <div class="menu-separator" role="separator"></div>
+            <button class="danger" type="button" onclick="runMoreAction(logoutAdmin)">登出</button>
+          </div>
+        </div>
+      </div>
 
-    <div class="search-row">
-      <input id="searchInput" type="search" placeholder="搜尋名字、角色或介紹" oninput="renderGrid()">
-      <button onclick="clearSearch()">清除搜尋</button>
+      <div class="search-row">
+        <input id="searchInput" type="search" placeholder="搜尋名字、角色或介紹" oninput="renderGrid()">
+        <button type="button" onclick="clearSearch()">清除搜尋</button>
+      </div>
     </div>
 
     <div class="animals-grid" id="animalsGrid"></div>
@@ -663,6 +749,7 @@
   <div class="modal-overlay" id="importModal">
     <div class="modal">
       <h2>匯入 JSON</h2>
+      <div class="auth-note">匯入資料會取代目前本機草稿。請先確認內容正確，必要時可先從「更多」下載備份。</div>
       <div class="form-group">
         <label>貼上 animals.json 內容</label>
         <textarea class="export-area" id="importArea" style="min-height:200px; background:var(--page-bg); color:var(--title); border:1px solid var(--card-border);"></textarea>
@@ -684,6 +771,7 @@
     const PHOTO_MAX_WIDTH = 760;
     const IMAGE_QUALITY = 0.72;
     const MAX_PHOTOS_PER_ANIMAL = 4;
+    const ANIMALS_WORKER_URL = 'https://art-village-magnifier.jeff2428.workers.dev';
 
     let animalsData = { animals: [] };
     let currentPortrait = '';
@@ -764,15 +852,46 @@
         localStorage.setItem('artVillageAnimals', JSON.stringify(animalsData));
       } catch (error) {
         if (error && (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')) {
-          showToast('❌ 本機暫存空間不足，請減少照片數量或改用「下載副本」保存');
+          showToast('❌ 本機暫存空間不足，請減少照片數量或改用「下載備份」保存');
         } else {
-          showToast('❌ 本機草稿儲存失敗，請改用「下載副本」保存');
+          showToast('❌ 本機草稿儲存失敗，請改用「下載備份」保存');
         }
         return false;
       }
       dataSourceLabel = '已儲存為本機草稿。同瀏覽器前台重新整理或切回動物模式後會讀取這份資料。';
       updateStatus();
       return true;
+    }
+
+    async function saveAnimalsToWorker() {
+      let syncPassword = sessionStorage.getItem('artVillageAnimalSyncPassword') || '';
+      if (!syncPassword) {
+        syncPassword = prompt('請輸入雲端同步密碼');
+        if (!syncPassword) {
+          throw new Error('已取消雲端同步');
+        }
+        sessionStorage.setItem('artVillageAnimalSyncPassword', syncPassword);
+      }
+      const response = await fetch(`${ANIMALS_WORKER_URL}/animals`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': syncPassword
+        },
+        body: JSON.stringify(animalsData)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        if (response.status === 401) {
+          sessionStorage.removeItem('artVillageAnimalSyncPassword');
+        }
+        throw new Error(data.error || '遠端動物資料儲存失敗');
+      }
+      if (data.animals && Array.isArray(data.animals)) {
+        animalsData = { animals: data.animals };
+        localStorage.setItem('artVillageAnimals', JSON.stringify(animalsData));
+      }
+      return data;
     }
 
     function updateStatus(filteredCount) {
@@ -1085,6 +1204,42 @@
     setupDropZone('portraitDropZone', handlePortraitUpload);
     setupDropZone('photosDropZone', handlePhotosUpload);
 
+    function toggleMoreMenu() {
+      const menu = document.getElementById('moreActionsMenu');
+      const button = document.getElementById('moreActionsButton');
+      const isOpen = !menu.hidden;
+      menu.hidden = isOpen;
+      button.setAttribute('aria-expanded', String(!isOpen));
+    }
+
+    function closeMoreMenu() {
+      const menu = document.getElementById('moreActionsMenu');
+      const button = document.getElementById('moreActionsButton');
+      if (!menu || menu.hidden) return;
+      menu.hidden = true;
+      button.setAttribute('aria-expanded', 'false');
+    }
+
+    function runMoreAction(action) {
+      closeMoreMenu();
+      action();
+    }
+
+    document.addEventListener('click', (event) => {
+      const menu = document.getElementById('moreActionsMenu');
+      const button = document.getElementById('moreActionsButton');
+      if (!menu || !button || menu.hidden) return;
+      if (!menu.contains(event.target) && !button.contains(event.target)) {
+        closeMoreMenu();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeMoreMenu();
+      }
+    });
+
     // Export
     function exportJSON() {
       const json = JSON.stringify(animalsData, null, 2);
@@ -1118,14 +1273,26 @@
       a.download = 'animals.json';
       a.click();
       URL.revokeObjectURL(url);
-      showToast('💾 已下載 animals.json');
+      showToast('💾 已下載備份 animals.json');
     }
 
     async function saveJSONFile() {
       const json = JSON.stringify(animalsData, null, 2);
+      if (!saveToStorage()) {
+        return;
+      }
+      try {
+        await saveAnimalsToWorker();
+        dataSourceLabel = '已儲存到雲端動物資料，所有客戶端重新整理後會同步。';
+        updateStatus();
+        showToast('✅ 已同步到客戶端動物卡片');
+      } catch (error) {
+        showToast(`❌ 雲端同步失敗：${error.message || error}`);
+        return;
+      }
       if (!window.showSaveFilePicker) {
         downloadJSON();
-        showToast('瀏覽器不支援直接寫檔，已改為下載');
+        showToast('雲端已同步；瀏覽器不支援直接寫檔，已另下載備份');
         return;
       }
       try {
@@ -1139,13 +1306,12 @@
         const writable = await handle.createWritable();
         await writable.write(json);
         await writable.close();
-        saveToStorage();
-        dataSourceLabel = '已另存 animals.json，並保留本機草稿供同瀏覽器前台同步。';
+        dataSourceLabel = '已同步雲端並儲存正式資料 animals.json。';
         updateStatus();
-        showToast('✅ animals.json 已另存，本機草稿已保留');
+        showToast('✅ 雲端與 animals.json 都已儲存');
       } catch (e) {
         if (e && e.name !== 'AbortError') {
-          showToast('❌ 儲存失敗，請改用下載副本');
+          showToast('雲端已同步；本機檔案儲存失敗，請改用下載備份');
         }
       }
     }
@@ -1172,6 +1338,8 @@
           }
           animalsData = data;
           saveToStorage();
+          dataSourceLabel = '已匯入並儲存為本機草稿。同瀏覽器前台重新整理或切回動物模式後會讀取這份資料。';
+          updateStatus();
           renderGrid();
           closeImportModal();
           showToast('✅ 匯入成功');

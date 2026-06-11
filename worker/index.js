@@ -8,6 +8,8 @@ const rateLimitStore = new Map();
 const inFlightPerenualRequests = new Map();
 const DEFAULT_MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+const ANIMALS_KV_KEY = "animals:v1";
+const MAX_ANIMALS_BYTES = 2 * 1024 * 1024;
 
 function readMaxUploadBytes(env) {
   const raw = env && env.MAX_UPLOAD_BYTES;
@@ -117,8 +119,8 @@ function corsHeaders(request, env = {}) {
 function corsHeadersMap(request, env) {
   return {
     "Access-Control-Allow-Origin": corsHeaders(request, env),
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Password",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
@@ -137,6 +139,83 @@ function jsonResponse(body, init, request, env) {
 
 function isFileLike(value) {
   return value && typeof value.arrayBuffer === "function" && typeof value.type === "string";
+}
+
+function normalizeAnimalsPayload(payload) {
+  if (!payload || !Array.isArray(payload.animals)) {
+    return { ok: false, error: "animals array is required" };
+  }
+  if (payload.animals.length > 100) {
+    return { ok: false, error: "too many animals" };
+  }
+
+  const seenNames = new Set();
+  const animals = [];
+  for (const entry of payload.animals) {
+    const name = String(entry?.name || "").trim();
+    if (!name) {
+      return { ok: false, error: "animal name is required" };
+    }
+    if (seenNames.has(name)) {
+      return { ok: false, error: `duplicate animal name: ${name}` };
+    }
+    seenNames.add(name);
+    animals.push({
+      name,
+      type: "animal",
+      emoji: String(entry?.emoji || "🐾"),
+      role: String(entry?.role || ""),
+      desc: String(entry?.desc || ""),
+      portrait: String(entry?.portrait || ""),
+      photos: Array.isArray(entry?.photos) ? entry.photos.map((photo) => String(photo || "")).filter(Boolean) : [],
+    });
+  }
+
+  const normalized = { animals };
+  const serialized = JSON.stringify(normalized);
+  if (new TextEncoder().encode(serialized).length > MAX_ANIMALS_BYTES) {
+    return { ok: false, error: "animals payload is too large" };
+  }
+  return { ok: true, payload: normalized, serialized };
+}
+
+async function readAnimalsPayload(env) {
+  if (env?.ANIMALS_KV) {
+    try {
+      const stored = await env.ANIMALS_KV.get(ANIMALS_KV_KEY, "json");
+      const normalized = normalizeAnimalsPayload(stored);
+      if (normalized.ok) {
+        return { ...normalized.payload, source: "kv" };
+      }
+    } catch {
+      // Fall back to bundled data if KV is unavailable or contains invalid data.
+    }
+  }
+  return { animals: ANIMALS_DATA, source: "bundled" };
+}
+
+async function writeAnimalsPayload(env, payload) {
+  if (!env?.ANIMALS_KV) {
+    return { ok: false, status: 503, error: "ANIMALS_KV binding is not configured" };
+  }
+  const normalized = normalizeAnimalsPayload(payload);
+  if (!normalized.ok) {
+    return { ok: false, status: 400, error: normalized.error };
+  }
+  await env.ANIMALS_KV.put(ANIMALS_KV_KEY, normalized.serialized);
+  return { ok: true, payload: normalized.payload };
+}
+
+function isAnimalAdminAuthorized(request, env) {
+  const expected = String(env?.ANIMALS_ADMIN_PASSWORD || "");
+  if (!expected) {
+    return { ok: false, status: 503, error: "ANIMALS_ADMIN_PASSWORD is not configured" };
+  }
+  const actual = request.headers.get("X-Admin-Password") || "";
+  if (actual !== expected) {
+    return { ok: false, status: 401, error: "Invalid animal admin password" };
+  }
+  return { ok: true };
 }
 
 function topScientificName(plantNetPayload) {
@@ -325,8 +404,28 @@ export default {
 
       const requestUrl = new URL(request.url);
 
-      if (request.method === "GET" && requestUrl.pathname === "/animals") {
-        return jsonResponse({ animals: ANIMALS_DATA }, { status: 200 }, request, env);
+      if (requestUrl.pathname === "/animals") {
+        if (request.method === "GET") {
+          const animalsPayload = await readAnimalsPayload(env);
+          return jsonResponse(animalsPayload, { status: 200, headers: { "Cache-Control": "no-store" } }, request, env);
+        }
+        if (request.method === "PUT") {
+          const auth = isAnimalAdminAuthorized(request, env);
+          if (!auth.ok) {
+            return jsonResponse({ error: auth.error }, { status: auth.status }, request, env);
+          }
+          let payload;
+          try {
+            payload = await request.json();
+          } catch {
+            return jsonResponse({ error: "Invalid JSON" }, { status: 400 }, request, env);
+          }
+          const writeResult = await writeAnimalsPayload(env, payload);
+          if (!writeResult.ok) {
+            return jsonResponse({ error: writeResult.error }, { status: writeResult.status }, request, env);
+          }
+          return jsonResponse({ ...writeResult.payload, source: "kv" }, { status: 200 }, request, env);
+        }
       }
 
       if (request.method === "GET" && requestUrl.pathname === "/metadata") {

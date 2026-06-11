@@ -104,6 +104,7 @@ LOADER_HTML = """
 
   window.__artVillageReady = false;
   const artVillageBuildId = "__ART_VILLAGE_BUILD_ID__";
+  const ANIMALS_WORKER_URL = "https://art-village-magnifier.jeff2428.workers.dev";
 
   const shouldRefreshRuntimeCache = () => {
     try {
@@ -132,6 +133,22 @@ LOADER_HTML = """
     }
     rememberRuntimeCache();
   }
+
+  const prefetchAnimals = async () => {
+    try {
+      const response = await fetch(`${ANIMALS_WORKER_URL}/animals`, {
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data && Array.isArray(data.animals)) {
+        localStorage.setItem("artVillageAnimals", JSON.stringify({ animals: data.animals }));
+        localStorage.setItem("artVillageAnimalsRemoteSyncedAt", String(Date.now()));
+      }
+    } catch {}
+  };
+  prefetchAnimals();
 
   const removeExplorerLoader = () => {
     const loader = document.getElementById("explorer-loader");
