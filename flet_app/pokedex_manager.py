@@ -92,6 +92,29 @@ def load_animals_db_dynamic() -> dict[str, dict[str, Any]]:
     except (ImportError, json.JSONDecodeError, AttributeError):
         pass
 
+    # Desktop fallback cache
+    try:
+        cache_path = LOCAL_CACHE_DIR / "animals_cache.json"
+        if cache_path.exists():
+            data = json.loads(cache_path.read_text(encoding="utf-8"))
+            animals_list = data.get("animals", [])
+            db: dict[str, dict[str, Any]] = {}
+            for entry in animals_list:
+                name = entry.get("name", "")
+                if name:
+                    db[name] = {
+                        "type": "animal",
+                        "emoji": entry.get("emoji", "🐾"),
+                        "role": entry.get("role", ""),
+                        "desc": entry.get("desc", ""),
+                        "portrait": entry.get("portrait", ""),
+                        "photos": entry.get("photos", []),
+                    }
+            if db:
+                return db
+    except Exception:
+        pass
+
     static_db = load_animals_db()
     if static_db:
         return static_db
@@ -262,3 +285,50 @@ async def save_cached_pokedex_debounced(pokedex: dict[str, dict[str, Any]]) -> N
 async def flush_pokedex_save() -> None:
     """Force flush any pending pokedex save."""
     await _debounced_saver.flush()
+
+
+async def sync_animals_from_worker() -> None:
+    """Fetch animals config from worker and save to local storage/cache."""
+    try:
+        from build_config import WORKER_URL
+    except (ImportError, AttributeError):
+        WORKER_URL = "https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev"  # noqa: N806
+
+    if "YOUR-WORKER" in WORKER_URL:
+        return
+
+    try:
+        from js import fetch, localStorage  # type: ignore
+        response = await fetch(f"{WORKER_URL.rstrip('/')}/animals")
+        if response.ok:
+            text = await response.text()
+            data = json.loads(text)
+            if "animals" in data:
+                # 只有當遠端有自訂資料（非 bundled 預設）時，才覆寫本地草稿，避免清空使用者的編輯
+                if data.get("source") != "bundled":
+                    localStorage.setItem("artVillageAnimals", text)
+
+                # Update in-memory DB as well
+                global ANIMALS_DB
+                ANIMALS_DB = load_animals_db_dynamic()
+    except (ImportError, ModuleNotFoundError):
+        # Fallback for desktop mode
+        def _sync_sync():
+            import requests
+            try:
+                response = requests.get(f"{WORKER_URL.rstrip('/')}/animals", timeout=10)
+                if response.ok:
+                    data = response.json()
+                    if "animals" in data:
+                        if data.get("source") != "bundled":
+                            cache_path = LOCAL_CACHE_DIR / "animals_cache.json"
+                            cache_path.parent.mkdir(parents=True, exist_ok=True)
+                            cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+
+                        # Update in-memory DB
+                        global ANIMALS_DB
+                        ANIMALS_DB = load_animals_db_dynamic()
+            except Exception:
+                pass
+
+        await asyncio.to_thread(_sync_sync)

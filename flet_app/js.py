@@ -13,13 +13,13 @@ class _Performance:
 
 
 class _LocalStorage:
-    def getItem(self, _key: str) -> None:
+    def getItem(self, _key: str) -> None:  # noqa: N802
         return None
 
-    def setItem(self, _key: str, _value: str) -> None:
+    def setItem(self, _key: str, _value: str) -> None:  # noqa: N802
         return None
 
-    def removeItem(self, _key: str) -> None:
+    def removeItem(self, _key: str) -> None:  # noqa: N802
         return None
 
 
@@ -44,5 +44,5 @@ class Response:
 
 window = _Window()
 performance = _Performance()
-localStorage = _LocalStorage()
+localStorage = _LocalStorage()  # noqa: N816
 caches = _Caches()

@@ -26,6 +26,7 @@ from pokedex_manager import (
     load_cached_pokedex,
     load_dark_mode_preference,
     save_dark_mode_preference,
+    sync_animals_from_worker,
 )
 from services.camera_manager import CameraManager
 from services.recognition import RecognitionService
@@ -111,13 +112,13 @@ async def main(page: ft.Page) -> None:
 
 async def run_app(page: ft.Page) -> None:
     page.title = "\u85dd\u7d20\u6751\u63a2\u96aa\u653e\u5927\u93e1"
-    
+
     page.fonts = {
         "Inter": "https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap",
         "Noto Sans TC": "https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap"
     }
     page.theme = ft.Theme(font_family="Noto Sans TC")
-    
+
     state = AppState(page=page)
     state.pokedex = await load_cached_pokedex()
     state.is_dark_mode = await load_dark_mode_preference()
@@ -191,6 +192,15 @@ async def run_app(page: ft.Page) -> None:
             dv.show_animal_card(page, state, status, gallery_service.add_animal, name)
         else:
             dv.show_plant_card(page, state, status, name, data)
+
+    # Sync animals from worker
+    async def _sync_animals() -> None:
+        await sync_animals_from_worker()
+        if selected_mode["value"] == "animal":
+            _rebuild_visible_shell()
+            page.update()
+
+    create_background_task(_sync_animals())
 
     # Gallery service
     gallery_service = GalleryService(

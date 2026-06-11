@@ -2,6 +2,7 @@
 
 不依賴 Flet / Python 端，跑 `node --test` 即可。
 """
+# ruff: noqa: E501
 
 import json
 import subprocess
@@ -26,7 +27,7 @@ const source = readFileSync("__WORKER_INDEX__", "utf8");
 // Use a greedy match to consume the entire `export default { ... };` block.
 const wrapped = source.replace(/export default \{[\s\S]*\}\s*;/, "");
 
-const mod = new Function(wrapped + "\nreturn { corsHeadersMap, corsHeaders, readMaxUploadBytes, isPagesDomainAllowed, normalizeAnimalsPayload, s2t };")();
+const mod = new Function(wrapped + "\nreturn { corsHeadersMap, corsHeaders, readMaxUploadBytes, isPagesDomainAllowed, normalizeAnimalsPayload, s2t };")();  // noqa: E501
 
 test("corsHeaders returns configured origin when matched", () => {
   const env = { ALLOWED_ORIGIN: "https://example.com" };

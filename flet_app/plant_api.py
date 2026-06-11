@@ -209,7 +209,7 @@ def card_image_from_capture(capture: Any, max_data_url_length: int = MAX_CARD_IM
 async def card_image_from_capture_async(capture: Any, max_data_url_length: int = MAX_CARD_IMAGE_DATA_URL_LENGTH) -> dict[str, str]:
     try:
         is_data_url = isinstance(capture, str) and capture.startswith("data:")
-        
+
         if is_data_url and len(capture) <= max_data_url_length:
             return {"src": capture, "label": "拍攝照片"}
 
@@ -251,7 +251,7 @@ async def card_image_from_capture_async(capture: Any, max_data_url_length: int =
             pass # Not in Pyodide or JS error, fallback to synchronous Python Pillow
         except Exception as e:
             print("JS canvas compression error:", e)
-            
+
         return card_image_from_capture(capture, max_data_url_length)
     except Exception:
         pass
