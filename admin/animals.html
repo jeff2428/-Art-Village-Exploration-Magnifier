@@ -633,7 +633,7 @@
   <div class="container hidden" id="appShell">
     <header>
       <h1>🐾 藝素村動物資料管理</h1>
-      <p>管理動物資料、上傳大頭貼與生活照；同瀏覽器前台會讀取本機草稿，正式跨裝置資料需部署 <code>admin/animals.json</code></p>
+      <p>管理動物資料、上傳大頭貼與生活照；按下「儲存正式資料」會同步到雲端，所有客戶端重新整理後會讀取同一份資料。</p>
     </header>
 
     <div class="admin-status">
@@ -1277,7 +1277,6 @@
     }
 
     async function saveJSONFile() {
-      const json = JSON.stringify(animalsData, null, 2);
       if (!saveToStorage()) {
         return;
       }
@@ -1289,30 +1288,6 @@
       } catch (error) {
         showToast(`❌ 雲端同步失敗：${error.message || error}`);
         return;
-      }
-      if (!window.showSaveFilePicker) {
-        downloadJSON();
-        showToast('雲端已同步；瀏覽器不支援直接寫檔，已另下載備份');
-        return;
-      }
-      try {
-        const handle = await window.showSaveFilePicker({
-          suggestedName: 'animals.json',
-          types: [{
-            description: 'JSON file',
-            accept: { 'application/json': ['.json'] }
-          }]
-        });
-        const writable = await handle.createWritable();
-        await writable.write(json);
-        await writable.close();
-        dataSourceLabel = '已同步雲端並儲存正式資料 animals.json。';
-        updateStatus();
-        showToast('✅ 雲端與 animals.json 都已儲存');
-      } catch (e) {
-        if (e && e.name !== 'AbortError') {
-          showToast('雲端已同步；本機檔案儲存失敗，請改用下載備份');
-        }
       }
     }
 

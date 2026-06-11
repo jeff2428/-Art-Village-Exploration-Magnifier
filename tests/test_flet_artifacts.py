@@ -314,13 +314,20 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertNotIn("'X-Admin-Password': ADMIN_PASSWORD", admin_page)
         self.assertIn("downloadJSON", admin_page)
         self.assertIn("importJSONData", admin_page)
-        self.assertIn("同瀏覽器前台會讀取本機草稿", admin_page)
+        self.assertIn("儲存正式資料", admin_page)
+        self.assertIn("會同步到雲端", admin_page)
         self.assertNotIn("localStorage.removeItem('artVillageAnimals')", admin_page)
         self.assertIn("PORTRAIT_MAX_WIDTH = 520", admin_page)
         self.assertIn("PHOTO_MAX_WIDTH = 760", admin_page)
         self.assertIn("MAX_PHOTOS_PER_ANIMAL = 4", admin_page)
         self.assertIn("QuotaExceededError", admin_page)
         self.assertIn("if (!saveToStorage())", admin_page)
+        save_start = admin_page.index("async function saveJSONFile()")
+        save_end = admin_page.index("    // Import", save_start)
+        save_body = admin_page[save_start:save_end]
+        self.assertNotIn("showSaveFilePicker", save_body)
+        self.assertNotIn("downloadJSON()", save_body)
+        self.assertIn("await saveAnimalsToWorker();", save_body)
 
     def test_lightweight_web_prototype_exists_for_framework_comparison(self):
         prototype = (ROOT / "prototype" / "index.html").read_text(encoding="utf-8")
