@@ -346,8 +346,8 @@ def patch_index(index_path: Path) -> None:
             html = html.replace("</head>", f"</head>\n<body>\n{loader_html}", 1)
     else:
         html = re.sub(
-            r'const artVillageBuildId = "[^"]+";',
-            f'const artVillageBuildId = "{stamp}";',
+            r'\n?<div id="explorer-loader"[\s\S]*?</script>\n?',
+            f"\n{loader_html}\n",
             html,
             count=1,
         )
