@@ -384,6 +384,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("artVillageAnimalsRemoteSyncedAt", patcher)
         self.assertIn("generate_service_worker", patcher)
         self.assertIn("sw.js", patcher)
+        self.assertIn("fetch(event.request, {{ cache: 'reload' }})", patcher)
         self.assertIn("Cross-Origin-Opener-Policy", build)
         self.assertIn("Cross-Origin-Embedder-Policy", build)
         self.assertIn("credentialless", build)

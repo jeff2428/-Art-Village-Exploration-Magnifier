@@ -285,12 +285,17 @@ self.addEventListener('fetch', (event) => {{
   if (url.pathname.includes('/assets/app/app-')) {{
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {{
-        return cache.match(event.request).then((cachedResponse) => {{
-          const fetchPromise = fetch(event.request).then((networkResponse) => {{
-            cache.put(event.request, networkResponse.clone());
-            return networkResponse;
+        return fetch(event.request, {{ cache: 'reload' }}).then((networkResponse) => {{
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        }}).catch(() => {{
+          return cache.match(event.request).then((cachedResponse) => {{
+            if (cachedResponse) return cachedResponse;
+            return fetch(event.request).then((networkResponse) => {{
+              cache.put(event.request, networkResponse.clone());
+              return networkResponse;
+            }});
           }});
-          return cachedResponse || fetchPromise;
         }});
       }})
     );
