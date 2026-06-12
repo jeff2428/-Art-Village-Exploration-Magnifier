@@ -17,10 +17,6 @@ try:
 except ImportError:
     Image = None  # type: ignore[assignment]
 
-def to_traditional_chinese(text: str) -> str:
-    return text
-
-
 LOW_CONFIDENCE_THRESHOLD = 50.0
 PLANT_ORGAN_OPTIONS: dict[str, str] = {
     "auto": "自動",
@@ -71,7 +67,7 @@ def common_names_by_script(species: dict[str, Any]) -> tuple[list[str], list[str
             continue
         has_cjk = any("\u4e00" <= char <= "\u9fff" for char in name)
         if has_cjk:
-            chinese_names.append(to_traditional_chinese(name))
+            chinese_names.append(name)
         else:
             other_names.append(name)
     return chinese_names, other_names
@@ -169,14 +165,21 @@ def plant_candidate_from_result(result: dict[str, Any], perenual: dict[str, Any]
 
 
 def parse_plantnet_result(payload: dict[str, Any]) -> dict[str, Any] | None:
-    results = payload.get("results") or []
-    if not results:
+    if not isinstance(payload, dict):
+        return None
+    results = payload.get("results")
+    if not isinstance(results, list) or not results:
         return None
 
-    candidates = [
-        plant_candidate_from_result(result or {}, payload.get("perenual") if index == 0 else None)
-        for index, result in enumerate(results[:4])
-    ]
+    try:
+        candidates = [
+            plant_candidate_from_result(result or {}, payload.get("perenual") if index == 0 else None)
+            for index, result in enumerate(results[:4])
+        ]
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not candidates:
+        return None
     primary = candidates[0]
     primary["alternatives"] = candidates[1:]
     primary["needs_confirmation"] = primary["is_low_confidence"]
@@ -266,7 +269,10 @@ def capture_to_bytes(capture: Any) -> tuple[bytes, str]:
     if isinstance(capture, memoryview):
         return capture.tobytes(), "image/jpeg"
     if isinstance(capture, str) and capture.startswith("data:"):
-        header, encoded = capture.split(",", 1)
+        parts = capture.split(",", 1)
+        if len(parts) != 2:
+            raise ValueError("Invalid data URL: missing comma separator")
+        header, encoded = parts
         mime = header.split(";")[0].replace("data:", "") or "image/jpeg"
         return base64.b64decode(encoded), mime
     if isinstance(capture, str):

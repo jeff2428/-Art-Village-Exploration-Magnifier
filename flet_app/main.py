@@ -39,11 +39,6 @@ from views import plant_view as pv
 from views import welcome as wv
 
 
-def status_msg(text: str, level: str = "info") -> str:
-    prefix = {"ok": "\u2705 ", "warn": "\u26a0\ufe0f ", "err": "\u274c ", "info": ""}
-    return f"{prefix.get(level, '')}{text}"
-
-
 def mark_explorer_ready() -> None:
     try:
         from js import window  # type: ignore
@@ -84,30 +79,33 @@ async def main(page: ft.Page) -> None:
     try:
         await run_app(page)
     except Exception as error:
-        page.clean()
-        page.bgcolor = THEME["PAGE_BG"]
-        page.add(
-            ft.Container(
-                padding=24,
-                alignment=ft.Alignment(0, 0),
-                content=ft.Column(
-                    [
-                        ft.Text("\u63a2\u96aa\u653e\u5927\u93e1\u8f09\u5165\u5931\u6557", size=26,
-                               weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
-                        ft.Text(
-                            "".join(traceback.format_exception(error)),
-                            size=14,
-                            color=THEME["BODY_DARK"],
-                            selectable=True,
-                        ),
-                    ],
-                    spacing=12,
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                ),
-            )
+        _show_error_page(
+            page,
+            "\u63a2\u96aa\u653e\u5927\u93e1\u8f09\u5165\u5931\u6557",
+            "".join(traceback.format_exception(error)),
         )
-        page.update()
         mark_explorer_ready()
+
+
+def _show_error_page(page: ft.Page, title: str, error: str) -> None:
+    page.clean()
+    page.add(
+        ft.Container(
+            padding=24,
+            alignment=ft.Alignment(0, 0),
+            content=ft.Column(
+                [
+                    ft.Text(title, size=26,
+                            weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
+                    ft.Text(error, size=14,
+                            color=THEME["BODY_DARK"], selectable=True),
+                ],
+                spacing=12,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+        )
+    )
+    page.update()
 
 
 async def run_app(page: ft.Page) -> None:
@@ -218,8 +216,6 @@ async def run_app(page: ft.Page) -> None:
         state=state,
         status_text=status,
         create_background_task=create_background_task,
-        mark_load_timing=mark_load_timing,
-        initialize_camera=lambda: camera.initialize(),  # type: ignore[has-type]
         refresh_gallery=gallery_service.refresh,
     )
 
@@ -412,24 +408,7 @@ async def run_app(page: ft.Page) -> None:
             create_background_task(camera.initialize())
             report_performance(page)
         except Exception as error:
-            page.clean()
-            page.add(
-                ft.Container(
-                    width=min(CONTENT_MAX_WIDTH, (page.width or 480) - CONTENT_MIN_PADDING * 2),
-                    padding=24,
-                    content=soft_card(
-                        ft.Column(
-                            controls=[
-                                ft.Text("\u63a2\u96aa\u6d41\u7a0b\u555f\u52d5\u5931\u6557", size=24,
-                                        weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
-                                ft.Text(str(error), size=13, color=THEME["BODY_DARK"], selectable=True),
-                            ],
-                            spacing=12,
-                        )
-                    ),
-                )
-            )
-            page.update()
+            _show_error_page(page, "\u63a2\u96aa\u6d41\u7a0b\u555f\u52d5\u5931\u6557", str(error))
 
     page.add(welcome_screen, shell)
     await asyncio.sleep(0)

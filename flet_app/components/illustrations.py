@@ -75,6 +75,9 @@ def paper_texture_container(
 
 def _lighten(hex_color: str, factor: float) -> str:
     hex_color = hex_color.lstrip("#")
+    if len(hex_color) == 3:
+        hex_color = "".join(c * 2 for c in hex_color)
+    hex_color = hex_color[:6]
     r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
     r = min(255, int(r + (255 - r) * factor))
     g = min(255, int(g + (255 - g) * factor))

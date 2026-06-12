@@ -27,7 +27,7 @@ const source = readFileSync("__WORKER_INDEX__", "utf8");
 // Use a greedy match to consume the entire `export default { ... };` block.
 const wrapped = source.replace(/export default \{[\s\S]*\}\s*;/, "");
 
-const mod = new Function(wrapped + "\nreturn { corsHeadersMap, corsHeaders, readMaxUploadBytes, isPagesDomainAllowed, normalizeAnimalsPayload, s2t };")();  // noqa: E501
+const mod = new Function(wrapped + "\nreturn { corsHeadersMap, corsHeaders, readMaxUploadBytes, isPagesDomainAllowed, normalizeAnimalsPayload, s2t, checkRateLimit, timingSafeEqual };")();  // noqa: E501
 
 test("corsHeaders returns configured origin when matched", () => {
   const env = { ALLOWED_ORIGIN: "https://example.com" };
@@ -124,6 +124,65 @@ test("normalizeAnimalsPayload rejects duplicate animal names", () => {
   });
   assert.equal(result.ok, false);
   assert.match(result.error, /duplicate/i);
+});
+
+test("normalizeAnimalsPayload rejects entries without name", () => {
+  const result = mod.normalizeAnimalsPayload({
+    animals: [
+      { name: "", type: "animal" },
+      { type: "animal" },
+    ],
+  });
+  assert.equal(result.ok, false);
+  assert.match(result.error, /name/i);
+});
+
+test("s2t handles empty string", () => {
+  assert.equal(mod.s2t(""), "");
+});
+
+test("s2t returns non-string input as-is", () => {
+  assert.equal(mod.s2t(42), 42);
+  assert.equal(mod.s2t(null), null);
+});
+
+test("s2t converts multiple characters in one string", () => {
+  assert.equal(mod.s2t("榕树和柳树"), "榕樹和柳樹");
+});
+
+test("checkRateLimit allows requests within limit", () => {
+  const req = new Request("https://worker/x", {
+    headers: { "CF-Connecting-IP": "1.2.3.4" },
+  });
+  const result = mod.checkRateLimit(req);
+  assert.equal(result.allowed, true);
+});
+
+test("checkRateLimit returns retryAfter when exceeded", () => {
+  const req = new Request("https://worker/x", {
+    headers: { "CF-Connecting-IP": "5.6.7.8" },
+  });
+  // Exhaust the rate limit
+  for (let i = 0; i < 30; i++) {
+    mod.checkRateLimit(req);
+  }
+  const result = mod.checkRateLimit(req);
+  assert.equal(result.allowed, false);
+  assert.ok(typeof result.retryAfter === "number");
+  assert.ok(result.retryAfter > 0);
+});
+
+test("timingSafeEqual returns true for identical strings", () => {
+  assert.equal(mod.timingSafeEqual("hello", "hello"), true);
+});
+
+test("timingSafeEqual returns false for different strings", () => {
+  assert.equal(mod.timingSafeEqual("hello", "world"), false);
+});
+
+test("timingSafeEqual returns false for different lengths", () => {
+  assert.equal(mod.timingSafeEqual("hello", "hello!"), false);
+  assert.equal(mod.timingSafeEqual("", "a"), false);
 });
 """
 

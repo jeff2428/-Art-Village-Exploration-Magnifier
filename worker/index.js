@@ -52,7 +52,7 @@ const s2tMapping = {
   "连": "連", "迟": "遲", "适": "適", "选": "選", "逊": "遜", "透": "透", "递": "遞", "途": "途", "逗": "逗", "通": "通", 
   "造": "造", "速": "速", "逢": "逢", "树": "樹", "样": "樣", "根": "根", "茎": "莖", "果": "果", "桃": "桃",
   "莓": "莓", "凤": "鳳", "梨": "梨", "芒": "芒", "百": "百", "合": "合", "牵": "牽", "带": "帶",
-  "蕨": "蕨", "藓": "蘚", "藻": "藻", "菌": "菌", "菇": "菇", "蕈": "蕈", "树": "樹", "样": "樣", "乔": "喬"
+  "蕨": "蕨", "藓": "蘚", "藻": "藻", "菌": "菌", "菇": "菇", "蕈": "蕈", "乔": "喬"
 };
 
 function s2t(str) {
@@ -62,9 +62,18 @@ function s2t(str) {
 
 // Note: The rateLimitStore Map only limits requests within a single Cloudflare Worker node (Isolate).
 // For strict global rate limiting, configure WAF Rate Limiting rules in the Cloudflare Dashboard.
+let lastRateLimitCleanup = 0;
 function checkRateLimit(request) {
-  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   const now = Date.now();
+  if (now - lastRateLimitCleanup > RATE_LIMIT_WINDOW_MS * 2) {
+    for (const [ip, entry] of rateLimitStore) {
+      if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+        rateLimitStore.delete(ip);
+      }
+    }
+    lastRateLimitCleanup = now;
+  }
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
   const entry = rateLimitStore.get(ip);
   if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
     rateLimitStore.set(ip, { windowStart: now, count: 1 });
@@ -206,13 +215,30 @@ async function writeAnimalsPayload(env, payload) {
   return { ok: true, payload: normalized.payload };
 }
 
+function timingSafeEqual(a, b) {
+  const bufA = new TextEncoder().encode(a);
+  const bufB = new TextEncoder().encode(b);
+  if (bufA.length !== bufB.length) {
+    let result = bufA.length ^ bufB.length;
+    for (let i = 0; i < bufA.length; i++) {
+      result |= bufA[i] ^ (bufB[i % bufB.length] || 0);
+    }
+    return result === 0;
+  }
+  let result = 0;
+  for (let i = 0; i < bufA.length; i++) {
+    result |= bufA[i] ^ bufB[i];
+  }
+  return result === 0;
+}
+
 function isAnimalAdminAuthorized(request, env) {
   const expected = String(env?.ANIMALS_ADMIN_PASSWORD || "");
   if (!expected) {
     return { ok: false, status: 503, error: "ANIMALS_ADMIN_PASSWORD is not configured" };
   }
   const actual = request.headers.get("X-Admin-Password") || "";
-  if (actual !== expected) {
+  if (!timingSafeEqual(actual, expected)) {
     return { ok: false, status: 401, error: "Invalid animal admin password" };
   }
   return { ok: true };
@@ -404,6 +430,15 @@ export default {
 
       const requestUrl = new URL(request.url);
 
+      if (requestUrl.pathname === "/animals/auth" && request.method === "POST") {
+        const auth = isAnimalAdminAuthorized(request, env);
+        return jsonResponse(
+          { ok: auth.ok },
+          { status: auth.ok ? 200 : auth.status },
+          request, env,
+        );
+      }
+
       if (requestUrl.pathname === "/animals") {
         if (request.method === "GET") {
           const animalsPayload = await readAnimalsPayload(env);
@@ -413,6 +448,13 @@ export default {
           const auth = isAnimalAdminAuthorized(request, env);
           if (!auth.ok) {
             return jsonResponse({ error: auth.error }, { status: auth.status }, request, env);
+          }
+          const contentLengthHeader = request.headers.get("Content-Length");
+          if (contentLengthHeader) {
+            const contentLength = Number.parseInt(contentLengthHeader, 10);
+            if (contentLength > MAX_ANIMALS_BYTES) {
+              return jsonResponse({ error: "Payload too large" }, { status: 413 }, request, env);
+            }
           }
           let payload;
           try {
@@ -476,13 +518,16 @@ export default {
       }
 
       const maxUploadBytes = readMaxUploadBytes(env);
-      const contentLength = Number.parseInt(request.headers.get("Content-Length") || "0", 10);
-      if (contentLength > maxUploadBytes) {
-        return jsonResponse(
-          { error: "Upload too large", max_bytes: maxUploadBytes },
-          { status: 413, headers: { "Retry-After": "0" } },
-          request, env,
-        );
+      const contentLengthHeader = request.headers.get("Content-Length");
+      if (contentLengthHeader) {
+        const contentLength = Number.parseInt(contentLengthHeader, 10);
+        if (contentLength > maxUploadBytes) {
+          return jsonResponse(
+            { error: "Upload too large", max_bytes: maxUploadBytes },
+            { status: 413, headers: { "Retry-After": "0" } },
+            request, env,
+          );
+        }
       }
 
       const incomingForm = await request.formData();
@@ -574,8 +619,9 @@ export default {
         headers: responseHeaders,
       });
     } catch (error) {
+      console.error("Worker proxy failed:", error);
       return jsonResponse(
-        { error: "Worker proxy failed", detail: error instanceof Error ? error.message : String(error) },
+        { error: "Worker proxy failed" },
         { status: 502 },
         request,
         env,

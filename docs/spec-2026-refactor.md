@@ -8,7 +8,7 @@
 
 本專案「藝素村探險放大鏡」目前以 Flet Web + Cloudflare Worker + Cloudflare Pages 架構提供植物辨識與探險圖鑑服務。經 2026-06 全面健檢，發現以下三類問題需有計畫地解決：
 
-- **安全**：缺少 CSP header、CORS 過於寬鬆、Worker 對上傳大小與 MIME 未限制。
+- **安全**：CSP header（已實施 report-only）、CORS 白名單收斂（已完成）、Worker 上傳大小與 MIME 限制（已完成）。
 - **結構**：`flet_app/main.py` 單檔 1400 行，`AppState` 同時持有 UI 控制項與業務資料，難以維護與測試。
 - **體驗**：相機變焦採整頁 update、圖鑑加入動畫序列執行、圖片壓縮預設 `optimize=True` 在 Pyodide 中偏慢。
 

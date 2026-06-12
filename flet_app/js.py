@@ -4,7 +4,8 @@ from typing import Any
 
 
 class _Window:
-    pass
+    def __setattr__(self, _name: str, _value: Any) -> None:
+        pass
 
 
 class _Performance:

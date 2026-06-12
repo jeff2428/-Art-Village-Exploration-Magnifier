@@ -12,6 +12,17 @@ LOCAL_CACHE_DIR = Path(tempfile.gettempdir()) / "art-village-exploration-magnifi
 LOCAL_CACHE_PATH = LOCAL_CACHE_DIR / "local_pokedex_cache.json"
 
 
+def _entry_to_animal(entry: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "type": "animal",
+        "emoji": entry.get("emoji", "🐾"),
+        "role": entry.get("role", ""),
+        "desc": entry.get("desc", ""),
+        "portrait": entry.get("portrait", ""),
+        "photos": entry.get("photos", []),
+    }
+
+
 def load_animals_db() -> dict[str, dict[str, Any]]:
     module_dir = Path(__file__).resolve().parent
     candidates = (
@@ -27,14 +38,7 @@ def load_animals_db() -> dict[str, dict[str, Any]]:
         for entry in animals_list:
             name = entry.get("name", "")
             if name:
-                db[name] = {
-                    "type": "animal",
-                    "emoji": entry.get("emoji", "🐾"),
-                    "role": entry.get("role", ""),
-                    "desc": entry.get("desc", ""),
-                    "portrait": entry.get("portrait", ""),
-                    "photos": entry.get("photos", []),
-                }
+                db[name] = _entry_to_animal(entry)
         if db:
             return db
     except (OSError, json.JSONDecodeError, StopIteration):
@@ -42,7 +46,7 @@ def load_animals_db() -> dict[str, dict[str, Any]]:
     return {}
 
 
-_DEFAULT_ANIMALS: dict[str, dict[str, Any]] = {
+DEFAULT_ANIMALS: dict[str, dict[str, Any]] = {
     "貝貝": {
         "type": "animal", "emoji": "🐶", "role": "溫柔導覽員",
         "desc": "東北角的米克斯母狗，也是藝素村最溫柔的導嚮員。",
@@ -65,7 +69,7 @@ _DEFAULT_ANIMALS: dict[str, dict[str, Any]] = {
     },
 }
 
-ANIMALS_DB: dict[str, dict[str, Any]] = load_animals_db() or _DEFAULT_ANIMALS
+ANIMALS_DB: dict[str, dict[str, Any]] = load_animals_db() or DEFAULT_ANIMALS
 
 
 def load_animals_db_dynamic() -> dict[str, dict[str, Any]]:
@@ -79,14 +83,7 @@ def load_animals_db_dynamic() -> dict[str, dict[str, Any]]:
             for entry in animals_list:
                 name = entry.get("name", "")
                 if name:
-                    db[name] = {
-                        "type": "animal",
-                        "emoji": entry.get("emoji", "🐾"),
-                        "role": entry.get("role", ""),
-                        "desc": entry.get("desc", ""),
-                        "portrait": entry.get("portrait", ""),
-                        "photos": entry.get("photos", []),
-                    }
+                    db[name] = _entry_to_animal(entry)
             if db:
                 return db
     except (ImportError, json.JSONDecodeError, AttributeError):
@@ -102,14 +99,7 @@ def load_animals_db_dynamic() -> dict[str, dict[str, Any]]:
             for entry in animals_list:
                 name = entry.get("name", "")
                 if name:
-                    db[name] = {
-                        "type": "animal",
-                        "emoji": entry.get("emoji", "🐾"),
-                        "role": entry.get("role", ""),
-                        "desc": entry.get("desc", ""),
-                        "portrait": entry.get("portrait", ""),
-                        "photos": entry.get("photos", []),
-                    }
+                    db[name] = _entry_to_animal(entry)
             if db:
                 return db
     except Exception:
@@ -119,7 +109,7 @@ def load_animals_db_dynamic() -> dict[str, dict[str, Any]]:
     if static_db:
         return static_db
 
-    return _DEFAULT_ANIMALS
+    return DEFAULT_ANIMALS
 
 
 
@@ -183,11 +173,10 @@ def validate_pokedex_size(pokedex: dict[str, dict[str, Any]]) -> int | None:
 
 
 async def save_cached_pokedex(pokedex: dict[str, dict[str, Any]]) -> None:
-    for _ in range(3):
+    for _ in range(5):
         oversize = validate_pokedex_size(pokedex)
         if not oversize:
-            await save_json_cache(POKEDEX_STORAGE_KEY, pokedex)
-            return
+            break
         trim_pokedex_images(pokedex)
     await save_json_cache(POKEDEX_STORAGE_KEY, pokedex)
 
@@ -244,6 +233,7 @@ class _DebouncedSaver:
         self._delay = delay
         self._task: asyncio.Task | None = None
         self._pending_data: dict[str, dict[str, Any]] | None = None
+        self._lock = asyncio.Lock()
 
     def schedule_save(self, pokedex: dict[str, dict[str, Any]]) -> None:
         self._pending_data = pokedex
@@ -254,8 +244,9 @@ class _DebouncedSaver:
     async def _run_save(self) -> None:
         try:
             await asyncio.sleep(self._delay)
-            if self._pending_data is not None:
-                await save_cached_pokedex(self._pending_data)
+            async with self._lock:
+                if self._pending_data is not None:
+                    await save_cached_pokedex(self._pending_data)
         except asyncio.CancelledError:
             pass
         except (OSError, json.JSONDecodeError, AttributeError):
@@ -270,8 +261,9 @@ class _DebouncedSaver:
                 await self._task
             except asyncio.CancelledError:
                 pass
-        if self._pending_data is not None:
-            await save_cached_pokedex(self._pending_data)
+        async with self._lock:
+            if self._pending_data is not None:
+                await save_cached_pokedex(self._pending_data)
 
 
 _debounced_saver = _DebouncedSaver(delay=0.5)

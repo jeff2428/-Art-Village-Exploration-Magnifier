@@ -10,7 +10,7 @@ from plant_api import (
     UNKNOWN_METADATA,
     confidence_text,
 )
-from pokedex_manager import _DEFAULT_ANIMALS, load_animals_db_dynamic
+from pokedex_manager import DEFAULT_ANIMALS, load_animals_db_dynamic
 from ui_theme import THEME, border_all, soft_card
 
 
@@ -67,7 +67,7 @@ def show_animal_card(
     """Show detailed animal card dialog. From main.py lines 567-639."""
     try:
         animals_db = load_animals_db_dynamic()
-        data = animals_db.get(name) or _DEFAULT_ANIMALS.get(name)
+        data = animals_db.get(name) or DEFAULT_ANIMALS.get(name)
         if not data:
             status_text.value = f"找不到動物「{name}」的資料"
             page.update()
@@ -107,7 +107,7 @@ def show_animal_card(
         page.show_dialog(
             ft.AlertDialog(
                 modal=True, scrollable=True,
-                title=ft.Text(f"{data['emoji']} {name}", size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
+                title=ft.Text(f"{data.get('emoji', PAW_PRINTS)} {name}", size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
                 content=ft.Container(
                     width=360, height=dialog_content_height,
                     content=soft_card(
@@ -115,9 +115,9 @@ def show_animal_card(
                             controls=[
                                 portrait_control, *photo_controls,
                                 ft.Container(height=8),
-                                ft.Text(data["role"], size=14, color=THEME["ANIMAL_ROLE"],
+                                ft.Text(data.get("role", ""), size=14, color=THEME["ANIMAL_ROLE"],
                                        weight=ft.FontWeight.W_800),
-                                ft.Text(data["desc"], size=15, color=THEME["TITLE"]),
+                                ft.Text(data.get("desc", ""), size=15, color=THEME["TITLE"]),
                                 ft.Container(
                                     padding=ft.Padding.only(top=8),
                                     content=ft.Text("已加入探險圖鑑", size=13, color=THEME["GREEN"],
@@ -220,7 +220,7 @@ def show_plant_card(
             *[
                 ft.Container(
                     padding=8, border_radius=10, bgcolor=THEME["DETAIL_BG"],
-                    content=ft.Text(f"{candidate['zh_name']} · {candidate['confidence']}%",
+                    content=                    ft.Text(f"{candidate.get('zh_name', '?')} · {candidate.get('confidence', 0)}%",
                                    size=12, color=THEME["BODY_DARK"]),
                 )
                 for candidate in alternatives
@@ -259,7 +259,7 @@ def show_plant_card(
             image_banner, warning_text,
             ft.Row(
                 controls=[
-                    ft.Text(data["zh_name"], size=22, color=THEME["TITLE"],
+                    ft.Text(data.get("zh_name", name), size=22, color=THEME["TITLE"],
                            weight=ft.FontWeight.W_900, expand=True),
                     ft.Container(
                         padding=ft.Padding.symmetric(horizontal=10, vertical=6),
@@ -275,7 +275,7 @@ def show_plant_card(
             detail_text(data.get("sci_name") or "", size=12, color=THEME["MUTED"]),
             *alias_controls,
             ft.Column(controls=metadata_controls, spacing=8),
-            ft.Text(data["desc"], size=14, color=THEME["TITLE"]),
+            ft.Text(data.get("desc", ""), size=14, color=THEME["TITLE"]),
             *care_controls,
             ft.Text(metadata_note, size=11, color=THEME["MUTED"]),
             ft.Text(timing_note, size=11, color=THEME["MUTED"]) if timing_note else ft.Container(),
@@ -291,7 +291,7 @@ def show_plant_card(
     page.show_dialog(
         ft.AlertDialog(
             modal=True, scrollable=True,
-            title=ft.Text(f"{data['emoji']} {name}", size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
+            title=ft.Text(f"{data.get('emoji', '🌿')} {name}", size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
             content=ft.Container(
                 width=360, height=dialog_content_height,
                 content=soft_card(plant_detail_content, padding=14),

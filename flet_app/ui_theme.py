@@ -14,11 +14,6 @@ FONT_XL = 24
 FONT_XXL = 32
 FONT_HERO = 36
 
-SHADOW_CARD_PROPS = {"blur_radius": 16, "offset": ft.Offset(0, 8)}
-SHADOW_CARD2_PROPS = {"blur_radius": 14, "offset": ft.Offset(0, 8)}
-SHADOW_GALLERY_PROPS = {"blur_radius": 10, "offset": ft.Offset(0, 5)}
-
-
 def _theme(is_dark: bool) -> dict[str, str]:
     if is_dark:
         return {
@@ -53,6 +48,13 @@ def _theme(is_dark: bool) -> dict[str, str]:
             "ILLUSTRATION_DECORATIVE": "#536b5e",
             "LEAF_GREEN": "#6fbe86",
             "BIRD_ACCENT": "#72a9d6",
+            "MAG_BUTTON_LIGHT": "#9a8a80",
+            "MAG_BUTTON_MID": "#7a6a60",
+            "MAG_BUTTON_DARK": "#5a4a40",
+            "MAG_BUTTON_DEEP": "#3a2a20",
+            "MAG_BUTTON_BORDER": "#5a4a40",
+            "MAG_BUTTON_HIGHLIGHT": "#b0a098",
+            "MAG_BUTTON_SHADOW": "#4a3a28",
         }
     return {
         "PAGE_BG": "#eef5e9",
@@ -86,6 +88,13 @@ def _theme(is_dark: bool) -> dict[str, str]:
         "ILLUSTRATION_DECORATIVE": "#819282",
         "LEAF_GREEN": "#6a9a5a",
         "BIRD_ACCENT": "#3f6f8f",
+        "MAG_BUTTON_LIGHT": "#f2d5bf",
+        "MAG_BUTTON_MID": "#d9986b",
+        "MAG_BUTTON_DARK": "#8a5335",
+        "MAG_BUTTON_DEEP": "#3f2013",
+        "MAG_BUTTON_BORDER": "#3d1f11",
+        "MAG_BUTTON_HIGHLIGHT": "#f5e0d0",
+        "MAG_BUTTON_SHADOW": "#2a1508",
     }
 
 
@@ -146,12 +155,10 @@ def interactive_card(
 def apply_card_hover(card: ft.Container, event: ft.ControlEvent) -> None:
     is_hovered = event.data == "true"
     card.scale = 1.025 if is_hovered else 1.0
-    card.shadow = [
-        card_shadow(
-            blur_radius=16 if is_hovered else 10,
-            offset=ft.Offset(0, 7 if is_hovered else 5),
-        ),
-    ]
+    card.shadow = card_shadow(
+        blur_radius=16 if is_hovered else 10,
+        offset=ft.Offset(0, 7 if is_hovered else 5),
+    )
     card.update()
 
 

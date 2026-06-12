@@ -4,7 +4,7 @@ from collections.abc import Callable
 from typing import Any
 
 import flet as ft
-from ui_theme import border_all
+from ui_theme import THEME, border_all
 
 Callback = Callable[..., Any] | None
 
@@ -35,18 +35,13 @@ class _PressableRoundButton(ft.GestureDetector):
                 center=ft.Alignment(-0.38, -0.45),
                 radius=0.95,
                 colors=[
-                    "#f2d5bf",
-                    "#d9986b",
-                    "#8a5335",
-                    "#3f2013",
-                ] if not disabled else [
-                    "#9a8a80",
-                    "#7a6a60",
-                    "#5a4a40",
-                    "#3a2a20",
+                    THEME["MAG_BUTTON_LIGHT"],
+                    THEME["MAG_BUTTON_MID"],
+                    THEME["MAG_BUTTON_DARK"],
+                    THEME["MAG_BUTTON_DEEP"],
                 ],
             ),
-            border=border_all(3, "#3d1f11" if not disabled else "#5a4a40"),
+            border=border_all(3, THEME["MAG_BUTTON_BORDER"] if not disabled else THEME["MAG_BUTTON_DEEP"]),
             shadow=[
                 ft.BoxShadow(
                     blur_radius=18 if not disabled else 6,
@@ -65,9 +60,15 @@ class _PressableRoundButton(ft.GestureDetector):
             animate_scale=ft.Animation(120, ft.AnimationCurve.EASE_OUT),
             content=ft.Column(
                 [
-                    ft.Icon(icon, size=icon_size, color="#2b1308" if not disabled else "#7a6a60"),
+                    ft.Icon(
+                        icon, size=icon_size,
+                        color=THEME["MAG_BUTTON_DEEP"] if not disabled else THEME["MAG_BUTTON_MID"],
+                    ),
                     (
-                        ft.Text(label, size=13, weight=ft.FontWeight.W_900, color="#2b1308" if not disabled else "#7a6a60")
+                        ft.Text(
+                            label, size=13, weight=ft.FontWeight.W_900,
+                            color=THEME["MAG_BUTTON_DEEP"] if not disabled else THEME["MAG_BUTTON_MID"],
+                        )
                         if show_label else ft.Container()
                     ),
                 ],

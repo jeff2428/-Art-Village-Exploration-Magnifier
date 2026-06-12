@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from typing import Any
 
 import flet as ft
+from app_state import AppState
 from components.illustrations import MAGNIFYING_GLASS
-from pokedex_manager import _DEFAULT_ANIMALS, load_animals_db_dynamic, save_cached_pokedex_debounced
+from pokedex_manager import DEFAULT_ANIMALS, load_animals_db_dynamic, save_cached_pokedex_debounced
 from ui_theme import THEME
 from views.gallery import build_gallery_card
 
@@ -14,11 +16,11 @@ class GalleryService:
     def __init__(
         self,
         page: ft.Page,
-        state,
+        state: AppState,
         status_text: ft.Text,
-        create_background_task,
-        show_gallery_card=None,
-        close_dialog=None,
+        create_background_task: Callable,
+        show_gallery_card: Callable | None = None,
+        close_dialog: Callable | None = None,
     ):
         self.page = page
         self.state = state
@@ -58,7 +60,10 @@ class GalleryService:
                 if self.show_gallery_card
                 else None
             ),
-            on_delete=lambda item_name: self.confirm_delete(item_name, self.close_dialog),
+            on_delete=lambda item_name: self.confirm_delete(
+                item_name,
+                self.close_dialog or (lambda _e=None: None),
+            ),
         )
 
     def refresh(self, update_page: bool = True) -> None:
@@ -115,7 +120,7 @@ class GalleryService:
 
     def add_animal(self, name: str) -> None:
         animals_db = load_animals_db_dynamic()
-        data = animals_db.get(name) or _DEFAULT_ANIMALS.get(name, {})
+        data = animals_db.get(name) or DEFAULT_ANIMALS.get(name, {})
         self.state.pokedex[name] = {"zh_name": name, **data}
         self.status_text.value = f"已遇見：{name}"
         self.refresh()
@@ -126,7 +131,10 @@ class GalleryService:
             self.create_background_task(save_cached_pokedex_debounced(self.state.pokedex))
             self.status_text.value = f"已刪除：{name}"
             self.refresh()
-        self.page.pop_dialog()
+        try:
+            self.page.pop_dialog()
+        except (AttributeError, RuntimeError):
+            pass
         self.page.update()
 
     def clear_all(self) -> None:
@@ -135,7 +143,10 @@ class GalleryService:
         self.grid.controls.clear()
         self.create_background_task(save_cached_pokedex_debounced(self.state.pokedex))
         self.status_text.value = "已清除探險圖鑑"
-        self.page.pop_dialog()
+        try:
+            self.page.pop_dialog()
+        except (AttributeError, RuntimeError):
+            pass
         self.page.update()
 
     def confirm_delete(self, name: str, close_dialog) -> None:

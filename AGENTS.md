@@ -4,7 +4,7 @@ This file provides guidance to AI coding agents (Claude Code, Cursor, Copilot, A
 
 ## Repository Overview
 
-A collection of skills for Claude.ai and Claude Code for senior software engineers. Skills are packaged instructions and scripts that extend Claude and your coding agents capabilities.
+藝素村探險放大鏡（Art Village Exploration Magnifier）— 以 Flet Web + Cloudflare Worker 架構打造的植物辨識與探險圖鑑 web app。使用者可透過裝置鏡頭拍攝植物，經 PlantNet API 辨識物種，並以 Perenual API 取得毒性、照護等補充資訊。同時收錄藝素村在地動物角色，形成完整的探險圖鑑體驗。
 
 ## OpenCode Integration
 
