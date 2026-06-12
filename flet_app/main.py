@@ -303,6 +303,7 @@ async def run_app(page: ft.Page) -> None:
         if value == "animal":
             await hide_camera_preview()
             state.current_mode = AppMode.ANIMAL
+            create_background_task(_sync_animals())
         else:
             restore_camera_preview()
             state.current_mode = AppMode.PLANT

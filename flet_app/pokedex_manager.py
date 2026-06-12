@@ -296,9 +296,7 @@ async def sync_animals_from_worker() -> None:
             text = await response.text()
             data = json.loads(text)
             if "animals" in data:
-                # 只有當遠端有自訂資料（非 bundled 預設）時，才覆寫本地草稿，避免清空使用者的編輯
-                if data.get("source") != "bundled":
-                    localStorage.setItem("artVillageAnimals", text)
+                localStorage.setItem("artVillageAnimals", text)
 
                 # Update in-memory DB as well
                 global ANIMALS_DB
@@ -312,10 +310,9 @@ async def sync_animals_from_worker() -> None:
                 if response.ok:
                     data = response.json()
                     if "animals" in data:
-                        if data.get("source") != "bundled":
-                            cache_path = LOCAL_CACHE_DIR / "animals_cache.json"
-                            cache_path.parent.mkdir(parents=True, exist_ok=True)
-                            cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+                        cache_path = LOCAL_CACHE_DIR / "animals_cache.json"
+                        cache_path.parent.mkdir(parents=True, exist_ok=True)
+                        cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
                         # Update in-memory DB
                         global ANIMALS_DB
