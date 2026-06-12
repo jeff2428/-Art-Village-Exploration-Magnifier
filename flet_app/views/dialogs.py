@@ -23,6 +23,16 @@ def close_dialog(page: ft.Page, _event: ft.ControlEvent | None = None) -> None:
     page.update()
 
 
+def close_alert_dialog(page: ft.Page, dialog: ft.AlertDialog) -> None:
+    """Close a concrete dialog instance, with a stack fallback for older Flet."""
+    try:
+        dialog.open = False
+    except (AttributeError, RuntimeError):
+        close_dialog(page)
+        return
+    page.update()
+
+
 def show_recognition_loading_card(page: ft.Page, state) -> None:
     """Show recognition loading dialog. From main.py lines 469-489."""
     state.recognition_loading_visible = True
@@ -104,35 +114,37 @@ def show_animal_card(
             if len(photos) > 6:
                 photo_controls.append(ft.Text(f"+{len(photos) - 6} 張更多照片", size=11, color=THEME["MUTED"]))
         dialog_content_height = max(420, min(520, round((page.height or 760) * 0.58)))
-        page.show_dialog(
-            ft.AlertDialog(
-                modal=True, scrollable=True,
-                title=ft.Text(f"{data.get('emoji', PAW_PRINTS)} {name}", size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
-                content=ft.Container(
-                    width=360, height=dialog_content_height,
-                    content=soft_card(
-                        ft.Column(
-                            controls=[
-                                portrait_control, *photo_controls,
-                                ft.Container(height=8),
-                                ft.Text(data.get("role", ""), size=14, color=THEME["ANIMAL_ROLE"],
-                                       weight=ft.FontWeight.W_800),
-                                ft.Text(data.get("desc", ""), size=15, color=THEME["TITLE"]),
-                                ft.Container(
-                                    padding=ft.Padding.only(top=8),
-                                    content=ft.Text("已加入探險圖鑑", size=13, color=THEME["GREEN"],
-                                                   weight=ft.FontWeight.W_800),
-                                ),
-                            ],
-                            spacing=8, scroll=ft.ScrollMode.AUTO,
-                        ),
-                        padding=14,
+        def close_current_dialog(_event: ft.ControlEvent | None = None) -> None:
+            close_alert_dialog(page, dialog)
+
+        dialog = ft.AlertDialog(
+            modal=True, scrollable=True,
+            title=ft.Text(f"{data.get('emoji', PAW_PRINTS)} {name}", size=24, weight=ft.FontWeight.W_900, color=THEME["TITLE"]),
+            content=ft.Container(
+                width=360, height=dialog_content_height,
+                content=soft_card(
+                    ft.Column(
+                        controls=[
+                            portrait_control, *photo_controls,
+                            ft.Container(height=8),
+                            ft.Text(data.get("role", ""), size=14, color=THEME["ANIMAL_ROLE"],
+                                   weight=ft.FontWeight.W_800),
+                            ft.Text(data.get("desc", ""), size=15, color=THEME["TITLE"]),
+                            ft.Container(
+                                padding=ft.Padding.only(top=8),
+                                content=ft.Text("已加入探險圖鑑", size=13, color=THEME["GREEN"],
+                                               weight=ft.FontWeight.W_800),
+                            ),
+                        ],
+                        spacing=8, scroll=ft.ScrollMode.AUTO,
                     ),
+                    padding=14,
                 ),
-                actions=[ft.TextButton("關閉", on_click=lambda e: close_dialog(page, e))],
-                actions_alignment=ft.MainAxisAlignment.END,
-            )
+            ),
+            actions=[ft.TextButton("關閉", on_click=close_current_dialog)],
+            actions_alignment=ft.MainAxisAlignment.END,
         )
+        page.show_dialog(dialog)
         page.update()
     except Exception as e:
         status_text.value = f"無法打開動物卡片：{e}"
