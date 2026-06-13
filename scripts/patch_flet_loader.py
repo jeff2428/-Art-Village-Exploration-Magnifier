@@ -205,11 +205,15 @@ def versioned_app_package_url(index_path: Path, stamp: str) -> str:
     return f"assets/app/{versioned_name}"
 
 
-def resource_hints(app_package_url: str) -> str:
+def runtime_asset_url(path: str, stamp: str) -> str:
+    return f"{path}?v={stamp}"
+
+
+def resource_hints(app_package_url: str, stamp: str) -> str:
     return f"""
   <link rel="preload" href="{app_package_url}" as="fetch" crossorigin>
-  <link rel="preload" href="pyodide/pyodide.js" as="script">
-  <link rel="preload" href="canvaskit/canvaskit.js" as="script">
+  <link rel="preload" href="{runtime_asset_url('pyodide/pyodide.js', stamp)}" as="script">
+  <link rel="preload" href="{runtime_asset_url('canvaskit/canvaskit.js', stamp)}" as="script">
 """
 
 
@@ -232,7 +236,7 @@ def generate_service_worker(sw_path: Path, stamp: str) -> None:
 const CACHE_VERSION = '{stamp}';
 const CACHE_NAME = `art-village-${{CACHE_VERSION}}`;
 
-const IMMUTABLE_ASSETS = [
+const RUNTIME_ASSETS = [
   '/pyodide/pyodide.js',
   '/pyodide/pyodide.asm.wasm',
   '/pyodide/pyodide.asm.data',
@@ -243,8 +247,17 @@ const IMMUTABLE_ASSETS = [
 self.addEventListener('install', (event) => {{
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {{
-      console.log('[SW] 快取不變資源');
-      return cache.addAll(IMMUTABLE_ASSETS);
+      console.log('[SW] 更新 runtime 資源快取');
+      return Promise.all(
+        RUNTIME_ASSETS.map((asset) => {{
+          return fetch(asset, {{ cache: 'reload' }}).then((response) => {{
+            if (response.ok) {{
+              cache.put(asset, response.clone());
+            }}
+            return response;
+          }});
+        }})
+      );
     }}).catch(err => console.warn('[SW] 快取失敗:', err))
   );
   self.skipWaiting();
@@ -270,13 +283,11 @@ self.addEventListener('fetch', (event) => {{
 
   if (url.pathname.includes('/pyodide/') || url.pathname.includes('/canvaskit/')) {{
     event.respondWith(
-      caches.match(event.request).then((response) => {{
-        return response || fetch(event.request).then((fetchResponse) => {{
-          return caches.open(CACHE_NAME).then((cache) => {{
-            cache.put(event.request, fetchResponse.clone());
-            return fetchResponse;
-          }});
-        }});
+      caches.open(CACHE_NAME).then((cache) => {{
+        return fetch(event.request, {{ cache: 'reload' }}).then((fetchResponse) => {{
+          cache.put(event.request, fetchResponse.clone());
+          return fetchResponse;
+        }}).catch(() => cache.match(event.request));
       }})
     );
     return;
@@ -317,6 +328,12 @@ def cache_busting_script(stamp: str, app_package_url: str) -> str:
   flet.appPackageUrl = "{app_package_url}";
   flet.noCdn = true;
   flet.pyodideUrl = `${{flet.pyodideUrl}}?v={stamp}`;
+  if (typeof flet.canvasKitUrl === "string") {{
+    flet.canvasKitUrl = `${{flet.canvasKitUrl}}?v={stamp}`;
+  }}
+  if (typeof flet.canvaskitUrl === "string") {{
+    flet.canvaskitUrl = `${{flet.canvaskitUrl}}?v={stamp}`;
+  }}
 </script>
 """
 
@@ -327,11 +344,29 @@ def patch_index(index_path: Path) -> None:
     app_package_url = versioned_app_package_url(index_path, stamp)
     loader_html = LOADER_HTML.replace("__ART_VILLAGE_BUILD_ID__", stamp)
     if 'rel="preload"' not in html:
-        html = html.replace("</head>", f"{resource_hints(app_package_url)}</head>", 1)
+        html = html.replace("</head>", f"{resource_hints(app_package_url, stamp)}</head>", 1)
     else:
-        html = re.sub(
+        html, app_preload_count = re.subn(
             r'rel="preload" href="assets/app/app-[^"]+\.zip"',
             f'rel="preload" href="{app_package_url}"',
+            html,
+            count=1,
+        )
+        if app_preload_count == 0:
+            html = html.replace(
+                "</head>",
+                f'  <link rel="preload" href="{app_package_url}" as="fetch" crossorigin>\n</head>',
+                1,
+            )
+        html = re.sub(
+            r'href="pyodide/pyodide\.js(?:\?v=[^"]+)?"',
+            f'href="{runtime_asset_url("pyodide/pyodide.js", stamp)}"',
+            html,
+            count=1,
+        )
+        html = re.sub(
+            r'href="canvaskit/canvaskit\.js(?:\?v=[^"]+)?"',
+            f'href="{runtime_asset_url("canvaskit/canvaskit.js", stamp)}"',
             html,
             count=1,
         )
@@ -379,21 +414,38 @@ def resolve_sw_path(index_path: Path) -> Path:
     return index_path.parent / "sw.js"
 
 
-def patch_flutter_bootstrap(index_path: Path) -> None:
-    import re
+def cache_bust_runtime_references(content: str, stamp: str) -> str:
+    for asset in (
+        "pyodide/pyodide.js",
+        "pyodide/pyodide.asm.wasm",
+        "pyodide/pyodide.asm.data",
+        "canvaskit/canvaskit.js",
+        "canvaskit/canvaskit.wasm",
+    ):
+        content = re.sub(
+            rf"(?P<asset>/?{re.escape(asset)})(?:\?v=[A-Za-z0-9_.-]+)?",
+            rf"\g<asset>?v={stamp}",
+            content,
+        )
+    return content
+
+
+def patch_flutter_bootstrap(index_path: Path, stamp: str) -> None:
     fb_path = index_path.parent / "flutter_bootstrap.js"
     if fb_path.exists():
         content = fb_path.read_text(encoding="utf-8")
+        patched = cache_bust_runtime_references(content, stamp)
         if "serviceWorkerSettings:" in content:
-            content = re.sub(r'serviceWorkerSettings:\s*\{[^}]+\},', '', content)
-            fb_path.write_text(content, encoding="utf-8")
-            print(f"Patched {fb_path.name} to remove Flutter service worker.")
+            patched = re.sub(r'serviceWorkerSettings:\s*\{[^}]+\},', '', patched)
+        if patched != content:
+            fb_path.write_text(patched, encoding="utf-8")
+            print(f"Patched {fb_path.name} runtime URLs.")
 
 
 if __name__ == "__main__":
     index_path = resolve_index_path()
     stamp = build_stamp()
     patch_index(index_path)
-    patch_flutter_bootstrap(index_path)
+    patch_flutter_bootstrap(index_path, stamp)
     sw_path = resolve_sw_path(index_path)
     generate_service_worker(sw_path, stamp)

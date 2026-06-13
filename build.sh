@@ -44,7 +44,16 @@ rm -rf flet_app/build/web/admin
 cp -R admin flet_app/build/web/admin
 
 echo "Writing Cloudflare Pages cache headers..." >&2
-python -c "from pathlib import Path; Path('flet_app/build/web/_headers').write_text('''/index.html
+python -c "from pathlib import Path; Path('flet_app/build/web/_headers').write_text('''/
+  Cache-Control: no-store
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: credentialless
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Content-Security-Policy-Report-Only: default-src '\''self'\''; img-src '\''self'\'' data: blob:; media-src '\''self'\'' blob:; connect-src '\''self'\'' https://art-village-magnifier.jeff2428.workers.dev; style-src '\''self'\'' '\''unsafe-inline'\''; script-src '\''self'\'' '\''wasm-unsafe-eval'\''; worker-src '\''self'\'' blob:; font-src '\''self'\'' data:; report-uri /__csp_report
+  Report-To: {\"group\":\"csp-endpoint\",\"max_age\":10886400,\"endpoints\":[{\"url\":\"/__csp_report\"}]}
+/index.html
   Cache-Control: no-store
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: credentialless
@@ -61,11 +70,11 @@ python -c "from pathlib import Path; Path('flet_app/build/web/_headers').write_t
 /assets/app/app-*.zip
   Cache-Control: public, max-age=31536000, immutable
 /pyodide/*
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: no-cache, no-store, must-revalidate
 /canvaskit/*
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: no-cache, no-store, must-revalidate
 /*.wasm
-  Cache-Control: public, max-age=31536000, immutable
+  Cache-Control: no-cache, no-store, must-revalidate
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
   X-Content-Type-Options: nosniff
