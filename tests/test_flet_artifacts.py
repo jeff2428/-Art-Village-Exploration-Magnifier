@@ -359,6 +359,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("--yes", build)
         self.assertIn("--route-url-strategy hash", build)
         self.assertIn("--web-renderer skwasm", build)
+        self.assertNotIn("--no-wasm", build)
         self.assertNotIn("--web-renderer canvaskit", build)
         self.assertNotIn("--web-renderer auto", build)
         self.assertIn("WORKER_URL", build)
@@ -387,6 +388,8 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("assets/app/{versioned_name}", patcher)
         self.assertIn("pyodide/pyodide.js", patcher)
         self.assertIn("canvaskit/canvaskit.js", patcher)
+        self.assertIn("canvaskit/skwasm.js", patcher)
+        self.assertIn("canvaskit/skwasm.wasm", patcher)
         self.assertIn("__artVillageReady", patcher)
         self.assertIn("45000", patcher)
         self.assertIn("serviceWorker", patcher)
@@ -531,6 +534,8 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertIn('rel="preload" href="assets/app/app-unit-test-build.zip"', html)
                 self.assertIn('rel="preload" href="pyodide/pyodide.js?v=unit-test-build"', html)
                 self.assertIn('rel="preload" href="canvaskit/canvaskit.js?v=unit-test-build"', html)
+                self.assertIn('rel="preload" href="canvaskit/skwasm.js?v=unit-test-build"', html)
+                self.assertIn('rel="preload" href="canvaskit/skwasm.wasm?v=unit-test-build"', html)
                 self.assertIn('flet.appPackageUrl = "assets/app/app-unit-test-build.zip"', html)
                 self.assertIn('flet.webRenderer = "skwasm"', html)
         finally:
@@ -608,6 +613,8 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertIn('rel="preload" href="assets/app/app-runtime-preloads.zip"', html)
                 self.assertIn('rel="preload" href="pyodide/pyodide.js?v=runtime-preloads"', html)
                 self.assertIn('rel="preload" href="canvaskit/canvaskit.js?v=runtime-preloads"', html)
+                self.assertIn('rel="preload" href="canvaskit/skwasm.js?v=runtime-preloads"', html)
+                self.assertIn('rel="preload" href="canvaskit/skwasm.wasm?v=runtime-preloads"', html)
                 self.assertIn('flet.appPackageUrl = "assets/app/app-runtime-preloads.zip"', html)
                 self.assertIn('flet.webRenderer = "skwasm"', html)
         finally:
@@ -627,6 +634,8 @@ class FletArtifactsTests(unittest.TestCase):
                 """
 const canvasKit = "canvaskit/canvaskit.js";
 const canvasKitWasm = "/canvaskit/canvaskit.wasm?v=old-build";
+const skwasm = "canvaskit/skwasm.js";
+const skwasmWasm = "/canvaskit/skwasm.wasm?v=old-build";
 const pyodide = "pyodide/pyodide.js";
 serviceWorkerSettings: { serviceWorkerVersion: "old" },
 """,
@@ -638,6 +647,8 @@ serviceWorkerSettings: { serviceWorkerVersion: "old" },
             content = bootstrap.read_text(encoding="utf-8")
             self.assertIn("canvaskit/canvaskit.js?v=new-build", content)
             self.assertIn("/canvaskit/canvaskit.wasm?v=new-build", content)
+            self.assertIn("canvaskit/skwasm.js?v=new-build", content)
+            self.assertIn("/canvaskit/skwasm.wasm?v=new-build", content)
             self.assertIn("pyodide/pyodide.js?v=new-build", content)
             self.assertNotIn("?v=old-build", content)
             self.assertNotIn("serviceWorkerSettings:", content)

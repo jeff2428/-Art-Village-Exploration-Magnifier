@@ -126,8 +126,10 @@ flet build web --yes --verbose --route-url-strategy hash --web-renderer auto
 如果正式站卡在「探險家載入中...」且 console 出現 CanvasKit WebAssembly `LinkError`，不要用 `auto` 或 `canvaskit` renderer。Cloudflare Pages build 目前固定用：
 
 ```bash
-flet build web --yes --verbose --route-url-strategy hash --web-renderer skwasm --no-wasm
+flet build web --yes --verbose --route-url-strategy hash --web-renderer skwasm
 ```
+
+不要加 `--no-wasm`。`skwasm` 需要 Flutter 的 wasm build；如果同時加 `--no-wasm`，`flutter_bootstrap.js` 會產生不完整的 build metadata，線上會停在載入畫面。
 
 ### 6. `--web-renderer html` 錯誤
 

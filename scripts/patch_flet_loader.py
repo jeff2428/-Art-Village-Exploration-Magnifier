@@ -214,7 +214,16 @@ def resource_hints(app_package_url: str, stamp: str) -> str:
   <link rel="preload" href="{app_package_url}" as="fetch" crossorigin>
   <link rel="preload" href="{runtime_asset_url('pyodide/pyodide.js', stamp)}" as="script">
   <link rel="preload" href="{runtime_asset_url('canvaskit/canvaskit.js', stamp)}" as="script">
+  <link rel="preload" href="{runtime_asset_url('canvaskit/skwasm.js', stamp)}" as="script">
+  <link rel="preload" href="{runtime_asset_url('canvaskit/skwasm.wasm', stamp)}" as="fetch" crossorigin>
 """
+
+
+def skwasm_resource_hints(stamp: str) -> str:
+    return (
+        f'  <link rel="preload" href="{runtime_asset_url("canvaskit/skwasm.js", stamp)}" as="script">\n'
+        f'  <link rel="preload" href="{runtime_asset_url("canvaskit/skwasm.wasm", stamp)}" as="fetch" crossorigin>\n'
+    )
 
 
 def service_worker_registration_script() -> str:
@@ -242,6 +251,8 @@ const RUNTIME_ASSETS = [
   '/pyodide/pyodide.asm.data',
   '/canvaskit/canvaskit.js',
   '/canvaskit/canvaskit.wasm',
+  '/canvaskit/skwasm.js',
+  '/canvaskit/skwasm.wasm',
   '/canvaskit/chromium/canvaskit.js',
   '/canvaskit/chromium/canvaskit.wasm',
 ];
@@ -373,6 +384,20 @@ def patch_index(index_path: Path) -> None:
             html,
             count=1,
         )
+        html = re.sub(
+            r'href="canvaskit/skwasm\.js(?:\?v=[^"]+)?"',
+            f'href="{runtime_asset_url("canvaskit/skwasm.js", stamp)}"',
+            html,
+            count=1,
+        )
+        html = re.sub(
+            r'href="canvaskit/skwasm\.wasm(?:\?v=[^"]+)?"',
+            f'href="{runtime_asset_url("canvaskit/skwasm.wasm", stamp)}"',
+            html,
+            count=1,
+        )
+        if "canvaskit/skwasm.js" not in html:
+            html = html.replace("</head>", f"{skwasm_resource_hints(stamp)}</head>", 1)
     python_script = '<script src="python.js"></script>'
     cache_buster = cache_busting_script(stamp, app_package_url).strip()
     cache_buster_pattern = re.compile(
@@ -424,6 +449,8 @@ def cache_bust_runtime_references(content: str, stamp: str) -> str:
         "pyodide/pyodide.asm.data",
         "canvaskit/canvaskit.js",
         "canvaskit/canvaskit.wasm",
+        "canvaskit/skwasm.js",
+        "canvaskit/skwasm.wasm",
         "canvaskit/chromium/canvaskit.js",
         "canvaskit/chromium/canvaskit.wasm",
     ):

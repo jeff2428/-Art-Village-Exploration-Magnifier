@@ -30,7 +30,7 @@ rm -rf flet_app/build
 
 echo "Building Flet web app for Cloudflare Pages..." >&2
 cd flet_app
-flet build web --yes --verbose --route-url-strategy hash --web-renderer skwasm --no-wasm
+flet build web --yes --verbose --route-url-strategy hash --web-renderer skwasm
 cd ..
 
 echo "Patching Flet app package with local modules..." >&2
