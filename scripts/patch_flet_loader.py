@@ -242,6 +242,8 @@ const RUNTIME_ASSETS = [
   '/pyodide/pyodide.asm.data',
   '/canvaskit/canvaskit.js',
   '/canvaskit/canvaskit.wasm',
+  '/canvaskit/chromium/canvaskit.js',
+  '/canvaskit/chromium/canvaskit.wasm',
 ];
 
 self.addEventListener('install', (event) => {{
@@ -421,6 +423,8 @@ def cache_bust_runtime_references(content: str, stamp: str) -> str:
         "pyodide/pyodide.asm.data",
         "canvaskit/canvaskit.js",
         "canvaskit/canvaskit.wasm",
+        "canvaskit/chromium/canvaskit.js",
+        "canvaskit/chromium/canvaskit.wasm",
     ):
         content = re.sub(
             rf"(?P<asset>/?{re.escape(asset)})(?:\?v=[A-Za-z0-9_.-]+)?",

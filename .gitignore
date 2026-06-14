@@ -205,6 +205,10 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# Cloudflare Worker local state
+worker/.dev.vars
+worker/.wrangler/
+
 # Ruff stuff:
 .ruff_cache/
 

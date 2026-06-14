@@ -23,6 +23,23 @@ def _entry_to_animal(entry: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _animals_payload_to_db(payload: Any) -> tuple[bool, dict[str, dict[str, Any]]]:
+    if not isinstance(payload, dict):
+        return False, {}
+    animals_list = payload.get("animals")
+    if not isinstance(animals_list, list):
+        return False, {}
+
+    db: dict[str, dict[str, Any]] = {}
+    for entry in animals_list:
+        if not isinstance(entry, dict):
+            continue
+        name = str(entry.get("name", "")).strip()
+        if name:
+            db[name] = _entry_to_animal(entry)
+    return True, db
+
+
 def load_animals_db() -> dict[str, dict[str, Any]]:
     module_dir = Path(__file__).resolve().parent
     candidates = (
@@ -33,12 +50,7 @@ def load_animals_db() -> dict[str, dict[str, Any]]:
         json_path = next(path for path in candidates if path.exists())
         raw = json_path.read_text(encoding="utf-8")
         data = json.loads(raw)
-        animals_list = data.get("animals", [])
-        db: dict[str, dict[str, Any]] = {}
-        for entry in animals_list:
-            name = entry.get("name", "")
-            if name:
-                db[name] = _entry_to_animal(entry)
+        _valid, db = _animals_payload_to_db(data)
         if db:
             return db
     except (OSError, json.JSONDecodeError, StopIteration):
@@ -78,13 +90,8 @@ def load_animals_db_dynamic() -> dict[str, dict[str, Any]]:
         stored = localStorage.getItem("artVillageAnimals")
         if stored:
             data = json.loads(stored)
-            animals_list = data.get("animals", [])
-            db: dict[str, dict[str, Any]] = {}
-            for entry in animals_list:
-                name = entry.get("name", "")
-                if name:
-                    db[name] = _entry_to_animal(entry)
-            if db:
+            valid, db = _animals_payload_to_db(data)
+            if valid:
                 return db
     except (ImportError, json.JSONDecodeError, AttributeError):
         pass
@@ -94,13 +101,8 @@ def load_animals_db_dynamic() -> dict[str, dict[str, Any]]:
         cache_path = LOCAL_CACHE_DIR / "animals_cache.json"
         if cache_path.exists():
             data = json.loads(cache_path.read_text(encoding="utf-8"))
-            animals_list = data.get("animals", [])
-            db: dict[str, dict[str, Any]] = {}
-            for entry in animals_list:
-                name = entry.get("name", "")
-                if name:
-                    db[name] = _entry_to_animal(entry)
-            if db:
+            valid, db = _animals_payload_to_db(data)
+            if valid:
                 return db
     except Exception:
         pass

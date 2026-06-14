@@ -247,9 +247,9 @@ class CameraManager:
             plant = parse_plantnet_result(payload)
             if plant is None:
                 self._status_text.value = status_msg(
-                "\u627e\u4e0d\u5230\u5339\u914d\u7684\u690d\u7269\uff0c\u8acb\u5c0d\u6e96\u8449\u5b50\u3001\u82b1\u6216\u679c\u5be6\u518d\u62cd\u4e00\u6b21",
-                "warn",
-            )
+                    "找不到匹配的植物，請對準葉子、花或果實再拍一次",
+                    "warn",
+                )
                 self._page.update()
                 return
             plant["organ"] = selected_organ

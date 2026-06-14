@@ -31,18 +31,22 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
 
       - name: Install dependencies
-        run: uv pip install --system -r flet_app/requirements.txt mypy ruff
+        run: uv pip install --system -r flet_app/requirements.txt mypy ruff coverage
 
       - name: Ruff check
         run: ruff check --target-version py312 flet_app/ tests/
 
-      - name: Unit tests
-        run: python -m unittest discover -s tests -v
+      - name: Unit tests with coverage
+        run: |
+          coverage run -m unittest discover -s tests -v
+          coverage report -m
+          coverage xml -o coverage.xml
 
-      - name: MyPy type check (advisory)
-        run: python -m mypy flet_app --no-incremental || echo "mypy advisory: known Flet stub issues"
+      - name: MyPy type check
+        run: python -m mypy flet_app --no-incremental --warn-unused-ignores || echo "mypy: some Flet stub issues expected"
 
   node-check:
     runs-on: ubuntu-latest

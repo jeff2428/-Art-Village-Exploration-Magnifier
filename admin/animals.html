@@ -626,7 +626,7 @@
       <p>此頁面僅供管理者維護動物介紹、照片與 JSON 資料。</p>
       <input type="password" id="adminPassword" autocomplete="current-password" placeholder="請輸入管理密碼">
       <button type="submit">進入管理頁</button>
-      <div class="auth-note">預設管理密碼：<strong>artvillage</strong>。這是簡易密碼門檻，用來避免一般訪客看見管理介面；正式權限控管需另接登入服務。</div>
+      <div class="auth-note">請輸入管理密碼。這是簡易密碼門檻，用來避免一般訪客看見管理介面；正式權限控管需另接登入服務。</div>
     </form>
   </div>
 
@@ -765,7 +765,6 @@
 
   <script>
     const EMOJI_LIST = ['🐶', '🐕', '🐈', '🐈‍⬛', '🐱', '🐾', '🐭', '🐹', '🐰', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🦊', '🐺', '🐗', '🐴', '🦄', '🐝', '🦋', '🐛', '🐞', '🐢', '🐍', '🦎', '🐙', '🦑', '🐬', '🐳', '🦅', '🦉', '🦜', '🐦'];
-    const ADMIN_PASSWORD = 'artvillage';
     const AUTH_SESSION_KEY = 'artVillageAnimalAdminAuthed';
     const PORTRAIT_MAX_WIDTH = 520;
     const PHOTO_MAX_WIDTH = 760;
@@ -783,17 +782,28 @@
     initAuth();
     renderEmojiPicker();
 
-    function initAuth() {
-      document.getElementById('authForm').addEventListener('submit', (event) => {
+    async function initAuth() {
+      document.getElementById('authForm').addEventListener('submit', async (event) => {
         event.preventDefault();
         const input = document.getElementById('adminPassword');
-        if (input.value.trim() === ADMIN_PASSWORD) {
-          sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
-          unlockAdmin();
-        } else {
-          input.value = '';
-          input.focus();
-          showToast('❌ 管理密碼錯誤');
+        const password = input.value.trim();
+        if (!password) return;
+        try {
+          const resp = await fetch(`${ANIMALS_WORKER_URL}/animals/auth`, {
+            method: 'POST',
+            headers: { 'X-Admin-Password': password },
+          });
+          if (resp.ok) {
+            sessionStorage.setItem(AUTH_SESSION_KEY, 'true');
+            sessionStorage.setItem('artVillageAnimalSyncPassword', password);
+            unlockAdmin();
+          } else {
+            input.value = '';
+            input.focus();
+            showToast('❌ 管理密碼錯誤');
+          }
+        } catch (e) {
+          showToast('❌ 無法連線到伺服器');
         }
       });
       if (sessionStorage.getItem(AUTH_SESSION_KEY) === 'true') {
@@ -811,6 +821,7 @@
 
     function logoutAdmin() {
       sessionStorage.removeItem(AUTH_SESSION_KEY);
+      sessionStorage.removeItem('artVillageAnimalSyncPassword');
       document.getElementById('appShell').classList.add('hidden');
       document.getElementById('authShell').classList.remove('hidden');
       document.getElementById('adminPassword').value = '';
@@ -818,33 +829,91 @@
       showToast('已登出管理頁');
     }
 
+    function normalizeAnimalsData(data) {
+      if (data && Array.isArray(data.animals)) {
+        return { animals: data.animals };
+      }
+      return null;
+    }
+
+    function rememberAnimalsData(data) {
+      try {
+        localStorage.setItem('artVillageAnimals', JSON.stringify(data));
+      } catch (e) {
+        // Remote data is still usable even if the browser refuses local cache writes.
+      }
+    }
+
     async function loadAnimals() {
+      if (await loadAnimalsFromWorker()) {
+        renderGrid();
+        showToast('已載入雲端正式資料');
+        return;
+      }
+      if (loadAnimalsFromStorage()) {
+        renderGrid();
+        showToast('已載入本機草稿');
+        return;
+      }
+      if (await loadAnimalsFromBundledJson()) {
+        renderGrid();
+        return;
+      }
+      animalsData = { animals: [] };
+      dataSourceLabel = '找不到可用資料，請新增或匯入 animals.json。';
+      renderGrid();
+    }
+
+    async function loadAnimalsFromWorker() {
+      try {
+        const response = await fetch(`${ANIMALS_WORKER_URL}/animals`, {
+          cache: 'no-store',
+          headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) return false;
+        const normalized = normalizeAnimalsData(await response.json());
+        if (!normalized) return false;
+        animalsData = normalized;
+        dataSourceLabel = '已載入雲端正式資料。所有客戶端重新整理後會同步這份資料。';
+        rememberAnimalsData(animalsData);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function loadAnimalsFromStorage() {
       const stored = localStorage.getItem('artVillageAnimals');
       if (stored) {
         try {
-          animalsData = JSON.parse(stored);
-          dataSourceLabel = '已載入本機草稿。前台重新整理後會讀取這份資料。';
-          renderGrid();
-          showToast('已載入本機草稿');
-          return;
+          const normalized = normalizeAnimalsData(JSON.parse(stored));
+          if (normalized) {
+            animalsData = normalized;
+            dataSourceLabel = '雲端資料暫時無法讀取，已載入本機草稿。';
+            return true;
+          }
         } catch (e) {
-          animalsData = { animals: [] };
+          return false;
         }
       }
+      return false;
+    }
+
+    async function loadAnimalsFromBundledJson() {
       try {
         const response = await fetch('animals.json', { cache: 'no-store' });
         if (response.ok) {
-          const data = await response.json();
-          if (data.animals && Array.isArray(data.animals)) {
-            animalsData = data;
+          const normalized = normalizeAnimalsData(await response.json());
+          if (normalized) {
+            animalsData = normalized;
             dataSourceLabel = '已載入 admin/animals.json。編輯後會先存成本機草稿。';
+            return true;
           }
         }
       } catch (e) {
-        animalsData = { animals: [] };
-        dataSourceLabel = '找不到可用資料，請新增或匯入 animals.json。';
+        return false;
       }
-      renderGrid();
+      return false;
     }
 
     function saveToStorage() {

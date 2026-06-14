@@ -217,10 +217,8 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("invasive", dialogs)
         self.assertIn("尚無拍攝照片", dialogs)
         self.assertIn("await post_image_to_worker(image_data, selected_organ)", camera_mgr)
-        self.assertIn("show_recognition_loading_card()", recognition)
-        self.assertIn("close_recognition_loading_card(update_page=False)", recognition)
+        self.assertIn("refresh_plant_metadata", recognition)
         self.assertIn("辨識中", dialogs)
-        self.assertIn("show_plant_card(plant[\"zh_name\"], plant)", recognition)
         self.assertIn("alternatives", dialogs)
         self.assertIn("建議確認", plant_api)
         self.assertIn("clear_legacy_snapshot_cache", main)
@@ -297,9 +295,8 @@ class FletArtifactsTests(unittest.TestCase):
     def test_animal_admin_page_requires_simple_password_gate(self):
         admin_page = (ROOT / "admin" / "animals.html").read_text(encoding="utf-8")
 
-        self.assertIn("ADMIN_PASSWORD", admin_page)
-        self.assertIn("預設管理密碼：<strong>artvillage</strong>", admin_page)
-        self.assertIn("input.value.trim() === ADMIN_PASSWORD", admin_page)
+        self.assertNotIn("ADMIN_PASSWORD", admin_page)
+        self.assertNotIn("預設管理密碼", admin_page)
         self.assertIn("artVillageAnimalAdminAuthed", admin_page)
         self.assertIn("sessionStorage", admin_page)
         self.assertIn("authShell", admin_page)
@@ -308,9 +305,17 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("ANIMALS_WORKER_URL", admin_page)
         self.assertIn("saveAnimalsToWorker", admin_page)
         self.assertIn("fetch(`${ANIMALS_WORKER_URL}/animals`", admin_page)
+        self.assertIn("loadAnimalsFromWorker", admin_page)
+        self.assertIn("loadAnimalsFromStorage", admin_page)
+        self.assertIn("loadAnimalsFromBundledJson", admin_page)
+        self.assertLess(
+            admin_page.index("await loadAnimalsFromWorker()"),
+            admin_page.index("loadAnimalsFromStorage()"),
+        )
         self.assertIn("X-Admin-Password", admin_page)
         self.assertIn("artVillageAnimalSyncPassword", admin_page)
-        self.assertIn("prompt('請輸入雲端同步密碼')", admin_page)
+        self.assertIn("sessionStorage.removeItem('artVillageAnimalSyncPassword')", admin_page)
+        self.assertIn("animals/auth", admin_page)
         self.assertNotIn("'X-Admin-Password': ADMIN_PASSWORD", admin_page)
         self.assertIn("downloadJSON", admin_page)
         self.assertIn("importJSONData", admin_page)
@@ -360,9 +365,15 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("patch_flet_app_package.py", build)
         self.assertIn("FLET_BUILD_ID", build)
         self.assertIn("_headers", build)
+        self.assertIn("/\n  Cache-Control: no-store", build)
+        self.assertIn("/index.html\n  Cache-Control: no-store", build)
         self.assertIn("Cache-Control: no-store", build)
         self.assertIn("/assets/app/app-*.zip", build)
         self.assertIn("max-age=31536000, immutable", build)
+        self.assertIn("/pyodide/*\n  Cache-Control: no-cache, no-store, must-revalidate", build)
+        self.assertIn("/canvaskit/*\n  Cache-Control: no-cache, no-store, must-revalidate", build)
+        self.assertNotIn("/pyodide/*\n  Cache-Control: public, max-age=31536000, immutable", build)
+        self.assertNotIn("/canvaskit/*\n  Cache-Control: public, max-age=31536000, immutable", build)
         self.assertIn('pages_build_output_dir = "flet_app/build/web"', wrangler)
         self.assertIn("flet_app/build/web/index.html", patcher)
         self.assertIn("探險家載入中", patcher)
@@ -390,6 +401,8 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("prefetchAnimals", patcher)
         self.assertIn("artVillageAnimalsRemoteSyncedAt", patcher)
         self.assertIn("generate_service_worker", patcher)
+        self.assertIn("RUNTIME_ASSETS", patcher)
+        self.assertNotIn("IMMUTABLE_ASSETS", patcher)
         self.assertIn("sw.js", patcher)
         self.assertIn("fetch(event.request, {{ cache: 'reload' }})", patcher)
         self.assertIn("Cross-Origin-Opener-Policy", build)
@@ -412,6 +425,16 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("Referrer-Policy", build)
         self.assertIn("report-uri /__csp_report", build)
         self.assertIn("Report-To", build)
+
+    def test_powershell_build_matches_runtime_cache_policy(self):
+        build = (ROOT / "scripts" / "build.ps1").read_text(encoding="utf-8")
+
+        self.assertIn("/\n  Cache-Control: no-store", build)
+        self.assertIn("/index.html\n  Cache-Control: no-store", build)
+        self.assertIn("/pyodide/*\n  Cache-Control: no-cache, no-store, must-revalidate", build)
+        self.assertIn("/canvaskit/*\n  Cache-Control: no-cache, no-store, must-revalidate", build)
+        self.assertNotIn("/pyodide/*\n  Cache-Control: public, max-age=31536000, immutable", build)
+        self.assertNotIn("/canvaskit/*\n  Cache-Control: public, max-age=31536000, immutable", build)
 
     def test_camera_zoom_uses_granular_updates_only(self):
         cm = (ROOT / "flet_app" / "services" / "camera_manager.py").read_text(encoding="utf-8")
@@ -501,8 +524,8 @@ class FletArtifactsTests(unittest.TestCase):
                 html = index.read_text(encoding="utf-8")
                 self.assertTrue((app_dir / "app-unit-test-build.zip").exists())
                 self.assertIn('rel="preload" href="assets/app/app-unit-test-build.zip"', html)
-                self.assertIn('rel="preload" href="pyodide/pyodide.js"', html)
-                self.assertIn('rel="preload" href="canvaskit/canvaskit.js"', html)
+                self.assertIn('rel="preload" href="pyodide/pyodide.js?v=unit-test-build"', html)
+                self.assertIn('rel="preload" href="canvaskit/canvaskit.js?v=unit-test-build"', html)
                 self.assertIn('flet.appPackageUrl = "assets/app/app-unit-test-build.zip"', html)
         finally:
             if previous_build_id is None:
@@ -551,6 +574,65 @@ class FletArtifactsTests(unittest.TestCase):
                 os.environ.pop("FLET_BUILD_ID", None)
             else:
                 os.environ["FLET_BUILD_ID"] = previous_build_id
+
+    def test_loader_patch_adds_app_preload_when_runtime_preloads_already_exist(self):
+        patcher = load_loader_patcher()
+        previous_build_id = os.environ.get("FLET_BUILD_ID")
+        os.environ["FLET_BUILD_ID"] = "runtime-preloads"
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                root = Path(temp_dir)
+                index = root / "index.html"
+                app_dir = root / "assets" / "app"
+                app_dir.mkdir(parents=True)
+                (app_dir / "app.zip").write_bytes(b"updated app package")
+                index.write_text(
+                    """<html><head>
+<link rel="preload" href="pyodide/pyodide.js" as="script">
+<link rel="preload" href="canvaskit/canvaskit.js" as="script">
+<script src="python.js"></script></head><body></body></html>""",
+                    encoding="utf-8",
+                )
+
+                patcher.patch_index(index)
+
+                html = index.read_text(encoding="utf-8")
+                self.assertTrue((app_dir / "app-runtime-preloads.zip").exists())
+                self.assertIn('rel="preload" href="assets/app/app-runtime-preloads.zip"', html)
+                self.assertIn('rel="preload" href="pyodide/pyodide.js?v=runtime-preloads"', html)
+                self.assertIn('rel="preload" href="canvaskit/canvaskit.js?v=runtime-preloads"', html)
+                self.assertIn('flet.appPackageUrl = "assets/app/app-runtime-preloads.zip"', html)
+        finally:
+            if previous_build_id is None:
+                os.environ.pop("FLET_BUILD_ID", None)
+            else:
+                os.environ["FLET_BUILD_ID"] = previous_build_id
+
+    def test_loader_patch_versions_flutter_runtime_urls(self):
+        patcher = load_loader_patcher()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            index = root / "index.html"
+            bootstrap = root / "flutter_bootstrap.js"
+            index.write_text("<html></html>", encoding="utf-8")
+            bootstrap.write_text(
+                """
+const canvasKit = "canvaskit/canvaskit.js";
+const canvasKitWasm = "/canvaskit/canvaskit.wasm?v=old-build";
+const pyodide = "pyodide/pyodide.js";
+serviceWorkerSettings: { serviceWorkerVersion: "old" },
+""",
+                encoding="utf-8",
+            )
+
+            patcher.patch_flutter_bootstrap(index, "new-build")
+
+            content = bootstrap.read_text(encoding="utf-8")
+            self.assertIn("canvaskit/canvaskit.js?v=new-build", content)
+            self.assertIn("/canvaskit/canvaskit.wasm?v=new-build", content)
+            self.assertIn("pyodide/pyodide.js?v=new-build", content)
+            self.assertNotIn("?v=old-build", content)
+            self.assertNotIn("serviceWorkerSettings:", content)
 
 
 if __name__ == "__main__":

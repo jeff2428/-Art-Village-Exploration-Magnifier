@@ -25,6 +25,7 @@ from pokedex_manager import (  # noqa: E402
     LOCAL_CACHE_DIR,
     LOCAL_CACHE_PATH,
     clear_legacy_snapshot_cache,
+    load_animals_db_dynamic,
     save_json_cache,
 )
 
@@ -32,6 +33,78 @@ import main as app_main  # noqa: E402
 
 
 class CameraIdentificationFlowTests(unittest.TestCase):
+    def test_dynamic_animals_accepts_empty_local_storage_payload(self):
+        import json
+        import types
+
+        fake_storage = types.SimpleNamespace(
+            getItem=lambda key: json.dumps({"animals": []}) if key == "artVillageAnimals" else None
+        )
+        previous_js = sys.modules.get("js")
+        sys.modules["js"] = types.SimpleNamespace(localStorage=fake_storage)
+        try:
+            self.assertEqual(load_animals_db_dynamic(), {})
+        finally:
+            if previous_js is None:
+                sys.modules.pop("js", None)
+            else:
+                sys.modules["js"] = previous_js
+
+    def test_dynamic_animals_prefers_local_storage_payload(self):
+        import json
+        import types
+
+        payload = {
+            "animals": [
+                {
+                    "name": "貝貝(女)",
+                    "type": "animal",
+                    "emoji": "🐶",
+                    "role": "溫柔老實的大塊頭",
+                    "desc": "正式雲端資料",
+                    "portrait": "data:image/png;base64,x",
+                    "photos": ["data:image/png;base64,y"],
+                }
+            ]
+        }
+        fake_storage = types.SimpleNamespace(
+            getItem=lambda key: json.dumps(payload) if key == "artVillageAnimals" else None
+        )
+        previous_js = sys.modules.get("js")
+        sys.modules["js"] = types.SimpleNamespace(localStorage=fake_storage)
+        try:
+            animals = load_animals_db_dynamic()
+        finally:
+            if previous_js is None:
+                sys.modules.pop("js", None)
+            else:
+                sys.modules["js"] = previous_js
+
+        self.assertEqual(list(animals), ["貝貝(女)"])
+        self.assertEqual(animals["貝貝(女)"]["role"], "溫柔老實的大塊頭")
+        self.assertEqual(animals["貝貝(女)"]["photos"], ["data:image/png;base64,y"])
+
+    def test_dynamic_animals_falls_back_to_static_data_without_cache(self):
+        import types
+
+        fake_storage = types.SimpleNamespace(getItem=lambda _key: None)
+        previous_js = sys.modules.get("js")
+        sys.modules["js"] = types.SimpleNamespace(localStorage=fake_storage)
+        import pokedex_manager
+        original_cache_dir = pokedex_manager.LOCAL_CACHE_DIR
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                pokedex_manager.LOCAL_CACHE_DIR = Path(temp_dir)
+                animals = load_animals_db_dynamic()
+        finally:
+            pokedex_manager.LOCAL_CACHE_DIR = original_cache_dir
+            if previous_js is None:
+                sys.modules.pop("js", None)
+            else:
+                sys.modules["js"] = previous_js
+
+        self.assertIn("貝貝", animals)
+
     def test_plantnet_result_tracks_confidence_and_alternatives(self):
         payload = {
             "results": [
