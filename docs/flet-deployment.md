@@ -39,7 +39,7 @@ Add this Pages environment variable before the first production build:
 WORKER_URL=https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
 ```
 
-`build.sh` installs the Flet dependencies, writes the Worker URL into `flet_app/build_config.py`, builds the static web app with the CanvasKit renderer, then patches the custom loading animation.
+`build.sh` installs the Flet dependencies, writes the Worker URL into `flet_app/build_config.py`, builds the static web app with the Skwasm renderer, then patches the custom loading animation.
 
 Do not use this old build command:
 

@@ -329,8 +329,7 @@ def cache_busting_script(stamp: str, app_package_url: str) -> str:
 <script id="flet-cache-buster">
   flet.appPackageUrl = "{app_package_url}";
   flet.noCdn = true;
-  flet.webRenderer = "canvaskit";
-  flet.canvasKitVariant = "full";
+  flet.webRenderer = "skwasm";
   flet.pyodideUrl = `${{flet.pyodideUrl}}?v={stamp}`;
   if (typeof flet.canvasKitUrl === "string") {{
     flet.canvasKitUrl = `${{flet.canvasKitUrl}}?v={stamp}`;
@@ -441,22 +440,11 @@ def patch_flutter_bootstrap(index_path: Path, stamp: str) -> None:
     if fb_path.exists():
         content = fb_path.read_text(encoding="utf-8")
         patched = cache_bust_runtime_references(content, stamp)
-        patched = force_full_canvaskit_variant(patched)
         if "serviceWorkerSettings:" in content:
             patched = re.sub(r'serviceWorkerSettings:\s*\{[^}]+\},', '', patched)
         if patched != content:
             fb_path.write_text(patched, encoding="utf-8")
             print(f"Patched {fb_path.name} runtime URLs.")
-
-
-def force_full_canvaskit_variant(content: str) -> str:
-    if 'canvasKitVariant: flet.canvasKitVariant || "full"' in content:
-        return content
-    return content.replace(
-        "    assetBase: flet.assetBase\n};",
-        '    assetBase: flet.assetBase,\n    canvasKitVariant: flet.canvasKitVariant || "full"\n};',
-        1,
-    )
 
 
 if __name__ == "__main__":
