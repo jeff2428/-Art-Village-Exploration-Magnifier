@@ -396,6 +396,8 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("flet-cache-buster", patcher)
         self.assertIn("appPackageUrl", patcher)
         self.assertIn('webRenderer = "canvaskit"', patcher)
+        self.assertIn('canvasKitVariant = "full"', patcher)
+        self.assertIn("force_full_canvaskit_variant", patcher)
         self.assertIn("pyodideUrl", patcher)
         self.assertIn("performance.measure", patcher)
         self.assertIn("loader-duration", patcher)
@@ -530,6 +532,7 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertIn('rel="preload" href="canvaskit/canvaskit.js?v=unit-test-build"', html)
                 self.assertIn('flet.appPackageUrl = "assets/app/app-unit-test-build.zip"', html)
                 self.assertIn('flet.webRenderer = "canvaskit"', html)
+                self.assertIn('flet.canvasKitVariant = "full"', html)
         finally:
             if previous_build_id is None:
                 os.environ.pop("FLET_BUILD_ID", None)
@@ -570,6 +573,7 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertIn('rel="preload" href="assets/app/app-new-build.zip"', html)
                 self.assertIn('flet.appPackageUrl = "assets/app/app-new-build.zip"', html)
                 self.assertIn('flet.webRenderer = "canvaskit"', html)
+                self.assertIn('flet.canvasKitVariant = "full"', html)
                 self.assertIn("v=new-build", html)
                 self.assertIn('const artVillageBuildId = "new-build";', html)
                 self.assertNotIn("app-old-build.zip", html)
@@ -607,6 +611,7 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertIn('rel="preload" href="canvaskit/canvaskit.js?v=runtime-preloads"', html)
                 self.assertIn('flet.appPackageUrl = "assets/app/app-runtime-preloads.zip"', html)
                 self.assertIn('flet.webRenderer = "canvaskit"', html)
+                self.assertIn('flet.canvasKitVariant = "full"', html)
         finally:
             if previous_build_id is None:
                 os.environ.pop("FLET_BUILD_ID", None)
@@ -622,6 +627,10 @@ class FletArtifactsTests(unittest.TestCase):
             index.write_text("<html></html>", encoding="utf-8")
             bootstrap.write_text(
                 """
+var flutterConfig = {
+    multiViewEnabled: flet.multiView,
+    assetBase: flet.assetBase
+};
 const canvasKit = "canvaskit/canvaskit.js";
 const canvasKitWasm = "/canvaskit/canvaskit.wasm?v=old-build";
 const pyodide = "pyodide/pyodide.js";
@@ -636,6 +645,7 @@ serviceWorkerSettings: { serviceWorkerVersion: "old" },
             self.assertIn("canvaskit/canvaskit.js?v=new-build", content)
             self.assertIn("/canvaskit/canvaskit.wasm?v=new-build", content)
             self.assertIn("pyodide/pyodide.js?v=new-build", content)
+            self.assertIn('canvasKitVariant: flet.canvasKitVariant || "full"', content)
             self.assertNotIn("?v=old-build", content)
             self.assertNotIn("serviceWorkerSettings:", content)
 
