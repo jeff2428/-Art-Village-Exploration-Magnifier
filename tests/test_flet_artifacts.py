@@ -358,7 +358,8 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertNotIn("flet-cli", (ROOT / "flet_app" / "pyproject.toml").read_text(encoding="utf-8"))
         self.assertIn("--yes", build)
         self.assertIn("--route-url-strategy hash", build)
-        self.assertIn("--web-renderer auto", build)
+        self.assertIn("--web-renderer canvaskit", build)
+        self.assertNotIn("--web-renderer auto", build)
         self.assertIn("WORKER_URL", build)
         self.assertIn("PRE_BUILD_NOTES.md", build)
         self.assertIn("patch_flet_loader.py", build)
@@ -394,6 +395,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("app-{stamp}.zip", patcher)
         self.assertIn("flet-cache-buster", patcher)
         self.assertIn("appPackageUrl", patcher)
+        self.assertIn('webRenderer = "canvaskit"', patcher)
         self.assertIn("pyodideUrl", patcher)
         self.assertIn("performance.measure", patcher)
         self.assertIn("loader-duration", patcher)
@@ -527,6 +529,7 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertIn('rel="preload" href="pyodide/pyodide.js?v=unit-test-build"', html)
                 self.assertIn('rel="preload" href="canvaskit/canvaskit.js?v=unit-test-build"', html)
                 self.assertIn('flet.appPackageUrl = "assets/app/app-unit-test-build.zip"', html)
+                self.assertIn('flet.webRenderer = "canvaskit"', html)
         finally:
             if previous_build_id is None:
                 os.environ.pop("FLET_BUILD_ID", None)
@@ -566,6 +569,7 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertTrue((app_dir / "app-new-build.zip").exists())
                 self.assertIn('rel="preload" href="assets/app/app-new-build.zip"', html)
                 self.assertIn('flet.appPackageUrl = "assets/app/app-new-build.zip"', html)
+                self.assertIn('flet.webRenderer = "canvaskit"', html)
                 self.assertIn("v=new-build", html)
                 self.assertIn('const artVillageBuildId = "new-build";', html)
                 self.assertNotIn("app-old-build.zip", html)
@@ -602,6 +606,7 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertIn('rel="preload" href="pyodide/pyodide.js?v=runtime-preloads"', html)
                 self.assertIn('rel="preload" href="canvaskit/canvaskit.js?v=runtime-preloads"', html)
                 self.assertIn('flet.appPackageUrl = "assets/app/app-runtime-preloads.zip"', html)
+                self.assertIn('flet.webRenderer = "canvaskit"', html)
         finally:
             if previous_build_id is None:
                 os.environ.pop("FLET_BUILD_ID", None)

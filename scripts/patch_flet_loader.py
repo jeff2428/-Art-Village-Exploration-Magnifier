@@ -329,6 +329,7 @@ def cache_busting_script(stamp: str, app_package_url: str) -> str:
 <script id="flet-cache-buster">
   flet.appPackageUrl = "{app_package_url}";
   flet.noCdn = true;
+  flet.webRenderer = "canvaskit";
   flet.pyodideUrl = `${{flet.pyodideUrl}}?v={stamp}`;
   if (typeof flet.canvasKitUrl === "string") {{
     flet.canvasKitUrl = `${{flet.canvasKitUrl}}?v={stamp}`;

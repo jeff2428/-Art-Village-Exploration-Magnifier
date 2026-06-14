@@ -25,7 +25,7 @@ if (Test-Path "flet_app/build") {
 Write-Host "Building Flet web app for Cloudflare Pages..." -ForegroundColor Cyan
 Set-Location "flet_app"
 # We run flet build web
-flet build web --yes --verbose --route-url-strategy hash --web-renderer auto --no-wasm
+flet build web --yes --verbose --route-url-strategy hash --web-renderer canvaskit --no-wasm
 Set-Location ".."
 
 Write-Host "Patching Flet app package with local modules..." -ForegroundColor Cyan

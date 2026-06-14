@@ -107,7 +107,7 @@ WORKER_URL=https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
 pip install flet requests opencc-python-reimplemented && flet build web
 ```
 
-這個舊指令沒有 `--yes`，Cloudflare 無互動建置環境會在 Flet 詢問是否安裝 Flutter SDK 時失敗。新版 Flet 的 `--web-renderer` 也只接受 `auto`、`canvaskit`、`skwasm`。
+這個舊指令沒有 `--yes`，Cloudflare 無互動建置環境會在 Flet 詢問是否安裝 Flutter SDK 時失敗。新版 Flet 的 `--web-renderer` 也只接受 `auto`、`canvaskit`、`skwasm`；正式站固定使用 `canvaskit`，避免 `auto` 在 Cloudflare Pages 上選到不相容的 WebAssembly runtime。
 
 ## 本機建置
 
