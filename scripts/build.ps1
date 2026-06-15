@@ -41,24 +41,30 @@ if (Test-Path "flet_app/build/web/admin") {
 Copy-Item -Recurse -Force "admin" "flet_app/build/web/admin"
 
 Write-Host "Writing Cloudflare Pages cache headers..." -ForegroundColor Cyan
-python -c "from pathlib import Path; Path('flet_app/build/web/_headers').write_text('''/
+python -c "
+from pathlib import Path
+import os
+worker_url = os.environ.get('WORKER_URL', 'https://art-village-magnifier.jeff2428.workers.dev')
+headers_content = f'''/
   Cache-Control: no-store
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Resource-Policy: cross-origin
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy-Report-Only: default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://art-village-magnifier.jeff2428.workers.dev; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; font-src 'self' data:; report-uri /__csp_report
-  Report-To: {\"group\":\"csp-endpoint\",\"max_age\":10886400,\"endpoints\":[{\"url\":\"/__csp_report\"}]}
+  Content-Security-Policy-Report-Only: default-src '\''self'\''; img-src '\''self'\'' data: blob:; media-src '\''self'\'' blob:; connect-src '\''self'\'' {worker_url}; style-src '\''self'\'' '\''unsafe-inline'\''; script-src '\''self'\'' '\''wasm-unsafe-eval'\''; worker-src '\''self'\'' blob:; font-src '\''self'\'' data:; report-uri /__csp_report
+  Report-To: {{\"group\":\"csp-endpoint\",\"max_age\":10886400,\"endpoints\":[{{\"url\":\"/__csp_report\"}]}}}
 /index.html
   Cache-Control: no-store
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Resource-Policy: cross-origin
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy-Report-Only: default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https://art-village-magnifier.jeff2428.workers.dev; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; font-src 'self' data:; report-uri /__csp_report
-  Report-To: {\"group\":\"csp-endpoint\",\"max_age\":10886400,\"endpoints\":[{\"url\":\"/__csp_report\"}]}
+  Content-Security-Policy-Report-Only: default-src '\''self'\''; img-src '\''self'\'' data: blob:; media-src '\''self'\'' blob:; connect-src '\''self'\'' {worker_url}; style-src '\''self'\'' '\''unsafe-inline'\''; script-src '\''self'\'' '\''wasm-unsafe-eval'\''; worker-src '\''self'\'' blob:; font-src '\''self'\'' data:; report-uri /__csp_report
+  Report-To: {{\"group\":\"csp-endpoint\",\"max_age\":10886400,\"endpoints\":[{{\"url\":\"/__csp_report\"}]}}}
 /flutter_service_worker.js
   Cache-Control: no-cache, no-store, must-revalidate
   X-Content-Type-Options: nosniff
@@ -68,13 +74,27 @@ python -c "from pathlib import Path; Path('flet_app/build/web/_headers').write_t
   Cache-Control: public, max-age=31536000, immutable
 /pyodide/*
   Cache-Control: no-cache, no-store, must-revalidate
+  Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Resource-Policy: cross-origin
 /canvaskit/*
   Cache-Control: no-cache, no-store, must-revalidate
+  Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Resource-Policy: cross-origin
+/*.js
+  Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Resource-Policy: cross-origin
+/*.mjs
+  Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Resource-Policy: cross-origin
 /*.wasm
   Cache-Control: no-cache, no-store, must-revalidate
+  Cross-Origin-Embedder-Policy: credentialless
+  Cross-Origin-Resource-Policy: cross-origin
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
   X-Content-Type-Options: nosniff
-''', encoding='utf-8')"
+'''
+Path('flet_app/build/web/_headers').write_text(headers_content, encoding='utf-8')
+"
 
 Write-Host "Build complete! Output directory: flet_app/build/web" -ForegroundColor Green

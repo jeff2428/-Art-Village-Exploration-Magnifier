@@ -11,7 +11,7 @@ ALLOWED_ORIGIN = "https://art-village-exploration-magnifier.pages.dev"
 ALLOWED_ORIGINS = ""
 
 # 預設不放行 *.pages.dev / *.github.io；臨時預覽環境要明確打開。
-ALLOW_PAGES_DOMAINS = "false"
+ALLOW_PAGES_DOMAINS = "true"
 
 # POST 圖片最大位元組（bytes），預設 10 MiB。
 MAX_UPLOAD_BYTES = "10485760"

@@ -297,10 +297,13 @@ self.addEventListener('fetch', (event) => {{
   if (url.pathname.includes('/pyodide/') || url.pathname.includes('/canvaskit/')) {{
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {{
-        return fetch(event.request, {{ cache: 'reload' }}).then((fetchResponse) => {{
-          cache.put(event.request, fetchResponse.clone());
-          return fetchResponse;
-        }}).catch(() => cache.match(event.request));
+        return cache.match(event.request, {{ ignoreSearch: true }}).then((cachedResponse) => {{
+          if (cachedResponse) return cachedResponse;
+          return fetch(event.request).then((networkResponse) => {{
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          }});
+        }}).catch(() => fetch(event.request));
       }})
     );
     return;
@@ -309,16 +312,11 @@ self.addEventListener('fetch', (event) => {{
   if (url.pathname.includes('/assets/app/app-')) {{
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {{
-        return fetch(event.request, {{ cache: 'reload' }}).then((networkResponse) => {{
-          cache.put(event.request, networkResponse.clone());
-          return networkResponse;
-        }}).catch(() => {{
-          return cache.match(event.request).then((cachedResponse) => {{
-            if (cachedResponse) return cachedResponse;
-            return fetch(event.request).then((networkResponse) => {{
-              cache.put(event.request, networkResponse.clone());
-              return networkResponse;
-            }});
+        return cache.match(event.request).then((cachedResponse) => {{
+          if (cachedResponse) return cachedResponse;
+          return fetch(event.request).then((networkResponse) => {{
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
           }});
         }});
       }})

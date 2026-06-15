@@ -1,2 +1,2 @@
-flet
+flet==0.85.1
 flet-camera

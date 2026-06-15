@@ -416,6 +416,9 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("Cross-Origin-Opener-Policy", build)
         self.assertIn("Cross-Origin-Embedder-Policy", build)
         self.assertIn("credentialless", build)
+        self.assertIn("Cross-Origin-Resource-Policy: cross-origin", build)
+        self.assertIn("/*.mjs\n  Cross-Origin-Embedder-Policy: credentialless", build)
+        self.assertIn("/*.js\n  Cross-Origin-Embedder-Policy: credentialless", build)
         package_patcher = (ROOT / "scripts" / "patch_flet_app_package.py").read_text(encoding="utf-8")
         self.assertIn("local_python_modules", package_patcher)
         self.assertIn("admin/animals.json", package_patcher)
@@ -441,6 +444,8 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("/index.html\n  Cache-Control: no-store", build)
         self.assertIn("/pyodide/*\n  Cache-Control: no-cache, no-store, must-revalidate", build)
         self.assertIn("/canvaskit/*\n  Cache-Control: no-cache, no-store, must-revalidate", build)
+        self.assertIn("Cross-Origin-Resource-Policy: cross-origin", build)
+        self.assertIn("/*.mjs\n  Cross-Origin-Embedder-Policy: credentialless", build)
         self.assertNotIn("/pyodide/*\n  Cache-Control: public, max-age=31536000, immutable", build)
         self.assertNotIn("/canvaskit/*\n  Cache-Control: public, max-age=31536000, immutable", build)
 
