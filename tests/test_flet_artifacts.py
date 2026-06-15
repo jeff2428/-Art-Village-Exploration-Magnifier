@@ -412,7 +412,7 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("RUNTIME_ASSETS", patcher)
         self.assertNotIn("IMMUTABLE_ASSETS", patcher)
         self.assertIn("sw.js", patcher)
-        self.assertIn("fetch(event.request, {{ cache: 'reload' }})", patcher)
+        self.assertNotIn("fetch(event.request, {{ cache: 'reload' }})", patcher)
         self.assertIn("Cross-Origin-Opener-Policy", build)
         self.assertIn("Cross-Origin-Embedder-Policy", build)
         self.assertIn("credentialless", build)
