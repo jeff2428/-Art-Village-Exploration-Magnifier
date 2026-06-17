@@ -4,8 +4,33 @@ const PERENUAL_DETAILS_URL = "https://perenual.com/api/v2/species/details";
 const PERENUAL_CACHE_SECONDS = 7 * 24 * 60 * 60;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX_REQUESTS = 30;
+const RATE_LIMIT_CLEANUP_INTERVAL_MS = RATE_LIMIT_WINDOW_MS * 2; // 120 seconds
 const rateLimitStore = new Map();
 const inFlightPerenualRequests = new Map();
+
+// Periodic cleanup of stale rate limit entries every 2 minutes
+if (typeof fetch !== 'undefined' && typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [ip, entry] of rateLimitStore) {
+      if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS * 3) {
+        rateLimitStore.delete(ip);
+      }
+    }
+  }, RATE_LIMIT_CLEANUP_INTERVAL_MS).unref?.();
+}
+
+// Clean up stale in-flight Perenual requests every 60 seconds
+if (typeof fetch !== 'undefined' && typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    if (inFlightPerenualRequests.size > 100) {
+      const keys = [...inFlightPerenualRequests.keys()];
+      for (let i = 0; i < keys.length - 50; i++) {
+        inFlightPerenualRequests.delete(keys[i]);
+      }
+    }
+  }, 60_000).unref?.();
+}
 const DEFAULT_MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 const ANIMALS_KV_KEY = "animals:v1";
@@ -55,9 +80,14 @@ const s2tMapping = {
   "蕨": "蕨", "藓": "蘚", "藻": "藻", "菌": "菌", "菇": "菇", "蕈": "蕈", "乔": "喬"
 };
 
+const _S2T_REGEX = new RegExp(
+  Object.keys(s2tMapping).map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'),
+  'g'
+);
+
 function s2t(str) {
   if (typeof str !== 'string') return str;
-  return str.split('').map(c => s2tMapping[c] || c).join('');
+  return str.replace(_S2T_REGEX, match => s2tMapping[match] || match);
 }
 
 // Note: The rateLimitStore Map only limits requests within a single Cloudflare Worker node (Isolate).
@@ -65,9 +95,9 @@ function s2t(str) {
 let lastRateLimitCleanup = 0;
 function checkRateLimit(request) {
   const now = Date.now();
-  if (now - lastRateLimitCleanup > RATE_LIMIT_WINDOW_MS * 2) {
+  if (now - lastRateLimitCleanup > RATE_LIMIT_CLEANUP_INTERVAL_MS) {
     for (const [ip, entry] of rateLimitStore) {
-      if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+      if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS * 3) { // Remove stale entries older than 3 windows
         rateLimitStore.delete(ip);
       }
     }
@@ -379,7 +409,17 @@ async function fetchPerenualMetadataCached(scientificName, env) {
   }
 
   // Create a promise for the in-flight request
-  const fetchPromise = fetchPerenualMetadata(scientificName, env);
+  const fetchTimeout = setTimeout(() => {
+    if (inFlightPerenualRequests.get(normalizedName) === fetchPromise) {
+      inFlightPerenualRequests.delete(normalizedName);
+    }
+  }, 30_000);
+
+  const fetchPromise = fetchPerenualMetadata(scientificName, env).finally(() => {
+    clearTimeout(fetchTimeout);
+    inFlightPerenualRequests.delete(normalizedName);
+  });
+
   inFlightPerenualRequests.set(normalizedName, fetchPromise);
 
   try {
@@ -405,7 +445,7 @@ async function fetchPerenualMetadataCached(scientificName, env) {
       timing: { perenual_ms: Date.now() - startedAt, perenual_cache: "miss" },
     };
   } finally {
-    inFlightPerenualRequests.delete(normalizedName);
+    // inFlightPerenualRequests.delete(normalizedName) handled by fetchPromise.finally()
   }
 }
 

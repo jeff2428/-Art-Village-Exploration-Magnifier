@@ -2,9 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import tempfile
+import urllib.request
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
+from config import POKEDEX_SAVE_DEBOUNCE_DELAY, MAX_POKEDEX_STORAGE_BYTES
+from services.indexed_db import indexed_db
+from services.lru_cache import lru_cache_manager
 
 POKEDEX_STORAGE_KEY = "artVillagePokedex"
 THEME_STORAGE_KEY = "artVillageDarkMode"
@@ -84,38 +92,31 @@ DEFAULT_ANIMALS: dict[str, dict[str, Any]] = {
 ANIMALS_DB: dict[str, dict[str, Any]] = load_animals_db() or DEFAULT_ANIMALS
 
 
+async def _preload_animals_from_idb() -> None:
+    """Background preload animals from IndexedDB into ANIMALS_DB global."""
+    try:
+        cached = await indexed_db.get("pokedex", "artVillageAnimals")
+        if cached and isinstance(cached, dict):
+            valid, db = _animals_payload_to_db(cached)
+            if valid:
+                global ANIMALS_DB
+                ANIMALS_DB = db
+    except Exception as exc:
+        logger.debug("IndexedDB animals preload failed: %s", exc)
+
+
 def load_animals_db_dynamic() -> dict[str, dict[str, Any]]:
-    try:
-        from js import localStorage
-        stored = localStorage.getItem("artVillageAnimals")
-        if stored:
-            data = json.loads(stored)
-            valid, db = _animals_payload_to_db(data)
-            if valid:
-                return db
-    except (ImportError, json.JSONDecodeError, AttributeError):
-        pass
+    """Load animals DB from in-memory cache (sync).
 
-    # Desktop fallback cache
-    try:
-        cache_path = LOCAL_CACHE_DIR / "animals_cache.json"
-        if cache_path.exists():
-            data = json.loads(cache_path.read_text(encoding="utf-8"))
-            valid, db = _animals_payload_to_db(data)
-            if valid:
-                return db
-    except Exception:
-        pass
-
-    static_db = load_animals_db()
-    if static_db:
-        return static_db
-
-    return DEFAULT_ANIMALS
+    For async IndexedDB loading, use _preload_animals_from_idb() on startup.
+    Sync callers always get the current ANIMALS_DB global value.
+    """
+    return ANIMALS_DB
 
 
 
 async def _cache_get(key: str) -> str | None:
+    """Get from Service Worker Cache API (fast, browser-only)."""
     try:
         from js import caches as js_caches  # type: ignore
 
@@ -129,6 +130,7 @@ async def _cache_get(key: str) -> str | None:
 
 
 async def _cache_set(key: str, value: str) -> None:
+    """Write to Service Worker Cache API (fast, browser-only)."""
     try:
         from js import Response as JsResponse
         from js import caches as js_caches  # type: ignore
@@ -140,38 +142,70 @@ async def _cache_set(key: str, value: str) -> None:
 
 
 async def load_json_cache(storage_key: str, fallback: Any) -> Any:
+    """Load JSON data with IndexedDB primary + Service Worker Cache secondary.
+
+    Priority order:
+      1. In-memory LRU cache (fastest, survives page reload for active images)
+      2. IndexedDB (primary persistent store, ~50MB+)
+      3. Service Worker Cache API (secondary persistent store)
+      4. Fallback value
+    """
+    # Check in-memory LRU cache first
+    lru_key = f"json_{storage_key}"
+    cached = await lru_cache_manager.get(lru_key)
+    if cached is not None:
+        return cached
+
+    # Try IndexedDB (primary persistent store)
+    try:
+        idb_value = await indexed_db.get("pokedex", storage_key)
+        if idb_value is not None:
+            # Re-populate LRU cache for future fast access
+            await lru_cache_manager.set(lru_key, idb_value)
+            return idb_value
+    except Exception as exc:
+        logger.debug("IndexedDB get failed for %s: %s", storage_key, exc)
+
+    # Fallback to Service Worker Cache API
     raw = await _cache_get(storage_key)
     if raw:
         try:
-            return json.loads(raw)
+            data = json.loads(raw)
+            # Store in IndexedDB and LRU cache for future reads
+            await indexed_db.put("pokedex", storage_key, data)
+            await lru_cache_manager.set(lru_key, data)
+            return data
         except json.JSONDecodeError:
             pass
-    try:
-        from js import localStorage  # type: ignore
 
-        raw = localStorage.getItem(storage_key)
-        if raw:
-            return json.loads(raw)
-    except (ImportError, json.JSONDecodeError, AttributeError):
-        pass
     return fallback
 
 
 async def save_json_cache(storage_key: str, data: Any) -> None:
-    serialized = json.dumps(data, ensure_ascii=False)
-    await _cache_set(storage_key, serialized)
-    try:
-        from js import localStorage  # type: ignore
+    """Save JSON data to IndexedDB (primary) + Service Worker Cache (secondary).
 
-        localStorage.setItem(storage_key, serialized)
-    except (ImportError, AttributeError, TypeError):
-        pass
+    Also stores in LRU cache for immediate subsequent reads.
+    """
+    serialized = json.dumps(data, ensure_ascii=False)
+    lru_key = f"json_{storage_key}"
+
+    # Write to IndexedDB (primary persistent store)
+    try:
+        await indexed_db.put("pokedex", storage_key, data)
+    except Exception as exc:
+        logger.warning("IndexedDB save failed for %s: %s", storage_key, exc)
+
+    # Write to Service Worker Cache API (secondary, fast repeat reads)
+    await _cache_set(storage_key, serialized)
+
+    # Update LRU cache for immediate subsequent reads
+    await lru_cache_manager.set(lru_key, data, size_bytes=len(serialized.encode("utf-8")))
 
 
 def validate_pokedex_size(pokedex: dict[str, dict[str, Any]]) -> int | None:
     serialized = json.dumps(pokedex, ensure_ascii=False)
     size = len(serialized.encode("utf-8"))
-    return size if size > 50_000_000 else None
+    return size if size > MAX_POKEDEX_STORAGE_BYTES else None
 
 
 async def save_cached_pokedex(pokedex: dict[str, dict[str, Any]]) -> None:
@@ -197,9 +231,134 @@ def trim_pokedex_images(pokedex: dict[str, dict[str, Any]]) -> None:
     entry["captured_image"] = {"src": "", "label": "照片已移除（容量不足）"}
 
 
+def _image_hash(src: str) -> str:
+    """Generate a short hash key for image storage."""
+    import hashlib
+    return f"img_{hashlib.md5(src.encode('utf-8')).hexdigest()[:12]}"
+
+
+async def _store_image_in_idb(src: str) -> None:
+    """Store base64 image data in IndexedDB images store (keyed by hash)."""
+    if not src or len(src) < 100:
+        return  # Skip small/non-image strings
+    try:
+        img_key = _image_hash(src)
+        await indexed_db.put("images", img_key, src)
+    except Exception as exc:
+        logger.debug("IndexedDB image store failed for hash %s: %s", _image_hash(src)[:8], exc)
+
+
+async def _restore_image_from_idb(src_ref: str) -> str:
+    """Restore base64 image data from IndexedDB images store or LRU cache."""
+    if not src_ref or len(src_ref) < 100:
+        return src_ref  # Not a base64 image, return as-is
+
+    img_key = _image_hash(src_ref)
+
+    # Check LRU cache first (fastest)
+    cached = await lru_cache_manager.get(f"idb_img_{img_key}")
+    if cached is not None:
+        return cached  # type: ignore[return-value]
+
+    # Try IndexedDB images store
+    try:
+        data = await indexed_db.get("images", img_key)
+        if data and isinstance(data, str):
+            # Populate LRU cache for future reads
+            await lru_cache_manager.set(f"idb_img_{img_key}", data, size_bytes=len(data.encode("utf-8")))
+            return data
+    except Exception as exc:
+        logger.debug("IndexedDB image restore failed for hash %s: %s", img_key[:8], exc)
+
+    return src_ref  # Return original if not found
+
+
+async def _compress_pokedex_for_storage(pokedex: dict[str, dict[str, Any]]) -> tuple[dict[str, dict[str, Any]], list[tuple[str, str]]]:
+    """Compress pokedex for storage by moving images to IndexedDB.
+
+    Returns (compressed_pokedex, image_refs) where image_refs is a list of
+    (img_key, original_src) tuples for storing in IndexedDB.
+    Images are replaced with hash references in the pokedex entry.
+    """
+    compressed = {}
+    image_refs: list[tuple[str, str]] = []
+
+    for name, entry in pokedex.items():
+        if not isinstance(entry, dict):
+            compressed[name] = entry
+            continue
+
+        new_entry = dict(entry)
+        captured = new_entry.get("captured_image", {})
+        src = captured.get("src", "") if isinstance(captured, dict) else ""
+
+        if src and len(src) >= 100:
+            img_key = _image_hash(src)
+            new_entry["captured_image"] = {"src": img_key, "label": captured.get("label", ""), "_is_ref": True}
+            image_refs.append((img_key, src))
+        else:
+            new_entry["captured_image"] = captured
+
+        compressed[name] = new_entry
+
+    return compressed, image_refs
+
+
+async def _decompress_pokedex_for_display(pokedex: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Restore full image data from references for display."""
+    result = {}
+
+    for name, entry in pokedex.items():
+        if not isinstance(entry, dict):
+            result[name] = entry
+            continue
+
+        new_entry = dict(entry)
+        captured = new_entry.get("captured_image", {})
+        src_ref = captured.get("src", "") if isinstance(captured, dict) else ""
+
+        if src_ref and len(src_ref) >= 100 and captured.get("_is_ref"):
+            full_src = await _restore_image_from_idb(src_ref)
+            new_entry["captured_image"] = {"src": full_src, "label": captured.get("label", "")}
+
+        result[name] = new_entry
+
+    return result
+
+
+async def save_cached_pokedex(pokedex: dict[str, dict[str, Any]]) -> None:
+    """Save pokedex to IndexedDB with image compression."""
+    for _ in range(5):
+        oversize = validate_pokedex_size(pokedex)
+        if not oversize:
+            break
+        trim_pokedex_images(pokedex)
+
+    # Compress images before storage
+    compressed, image_refs = await _compress_pokedex_for_storage(pokedex)
+    await save_json_cache(POKEDEX_STORAGE_KEY, compressed)
+
+    # Store images in IndexedDB (separate store for better management)
+    for img_key, original_src in image_refs:
+        try:
+            await indexed_db.put("images", img_key, original_src)
+        except Exception as exc:
+            logger.warning("IndexedDB image store failed for %s: %s", img_key[:8], exc)
+
+
 async def load_cached_pokedex() -> dict[str, dict[str, Any]]:
+    """Load pokedex from IndexedDB with image restoration."""
     cached = await load_json_cache(POKEDEX_STORAGE_KEY, {})
-    return cached if isinstance(cached, dict) else {}
+    if not isinstance(cached, dict):
+        return {}
+
+    # Restore full image data for display
+    try:
+        restored = await _decompress_pokedex_for_display(cached)
+        return restored
+    except Exception as exc:
+        logger.debug("Image decompression failed, returning raw cache: %s", exc)
+        return cached
 
 
 async def load_dark_mode_preference() -> bool:
@@ -213,13 +372,13 @@ async def save_dark_mode_preference(is_dark: bool) -> None:
     await save_json_cache(THEME_STORAGE_KEY, "true" if is_dark else "false")
 
 
-def clear_legacy_snapshot_cache() -> None:
+async def clear_legacy_snapshot_cache() -> None:
+    """Clear legacy snapshot data from IndexedDB."""
     try:
-        from js import localStorage  # type: ignore
-
-        localStorage.removeItem("artVillageSnapshotQueue")
-    except (ImportError, AttributeError, TypeError):
-        pass
+        await indexed_db.delete("pokedex", "artVillageSnapshotQueue")
+    except Exception as exc:
+        logger.debug("IndexedDB clear legacy snapshot failed: %s", exc)
+    # Also clean up file system cache
     try:
         legacy_path = LOCAL_CACHE_DIR / "local_snapshot_queue.json"
         if legacy_path.exists():
@@ -231,16 +390,17 @@ def clear_legacy_snapshot_cache() -> None:
 class _DebouncedSaver:
     """Debounced saver for pokedex to batch rapid updates."""
 
-    def __init__(self, delay: float = 0.5) -> None:
+    def __init__(self, delay: float = POKEDEX_SAVE_DEBOUNCE_DELAY) -> None:
         self._delay = delay
         self._task: asyncio.Task | None = None
         self._pending_data: dict[str, dict[str, Any]] | None = None
         self._lock = asyncio.Lock()
 
-    def schedule_save(self, pokedex: dict[str, dict[str, Any]]) -> None:
+    async def schedule_save(self, pokedex: dict[str, dict[str, Any]]) -> None:
         self._pending_data = pokedex
         if self._task is not None:
-            self._task.cancel()
+            async with self._lock:
+                self._task.cancel()
         self._task = asyncio.create_task(self._run_save())
 
     async def _run_save(self) -> None:
@@ -273,7 +433,7 @@ _debounced_saver = _DebouncedSaver(delay=0.5)
 
 async def save_cached_pokedex_debounced(pokedex: dict[str, dict[str, Any]]) -> None:
     """Save pokedex with debouncing to batch rapid updates."""
-    _debounced_saver.schedule_save(pokedex)
+    await _debounced_saver.schedule_save(pokedex)
 
 
 async def flush_pokedex_save() -> None:
@@ -282,7 +442,7 @@ async def flush_pokedex_save() -> None:
 
 
 async def sync_animals_from_worker() -> None:
-    """Fetch animals config from worker and save to local storage/cache."""
+    """Fetch animals config from worker and save to IndexedDB + in-memory DB."""
     try:
         from build_config import WORKER_URL
     except (ImportError, AttributeError):
@@ -292,33 +452,36 @@ async def sync_animals_from_worker() -> None:
         return
 
     try:
-        from js import fetch, localStorage  # type: ignore
+        from js import fetch  # type: ignore
         response = await fetch(f"{WORKER_URL.rstrip('/')}/animals")
         if response.ok:
             text = await response.text()
             data = json.loads(text)
             if "animals" in data:
-                localStorage.setItem("artVillageAnimals", text)
+                # Save to IndexedDB (primary persistent store)
+                await indexed_db.put("pokedex", "artVillageAnimals", data)
 
                 # Update in-memory DB as well
                 global ANIMALS_DB
-                ANIMALS_DB = load_animals_db_dynamic()
+                valid, db = _animals_payload_to_db(data)
+                if valid:
+                    ANIMALS_DB = db
     except (ImportError, ModuleNotFoundError):
         # Fallback for desktop mode
         def _sync_sync():
-            import requests
             try:
-                response = requests.get(f"{WORKER_URL.rstrip('/')}/animals", timeout=10)
-                if response.ok:
-                    data = response.json()
-                    if "animals" in data:
-                        cache_path = LOCAL_CACHE_DIR / "animals_cache.json"
-                        cache_path.parent.mkdir(parents=True, exist_ok=True)
-                        cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+                with urllib.request.urlopen(f"{WORKER_URL.rstrip('/')}/animals", timeout=10) as response:
+                    data = json.loads(response.read().decode("utf-8"))
+                if "animals" in data:
+                    cache_path = LOCAL_CACHE_DIR / "animals_cache.json"
+                    cache_path.parent.mkdir(parents=True, exist_ok=True)
+                    cache_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
 
-                        # Update in-memory DB
-                        global ANIMALS_DB
-                        ANIMALS_DB = load_animals_db_dynamic()
+                    # Update in-memory DB
+                    global ANIMALS_DB
+                    valid, db = _animals_payload_to_db(data)
+                    if valid:
+                        ANIMALS_DB = db
             except Exception:
                 pass
 

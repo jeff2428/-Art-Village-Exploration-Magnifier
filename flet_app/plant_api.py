@@ -17,7 +17,16 @@ try:
 except ImportError:
     Image = None  # type: ignore[assignment]
 
-LOW_CONFIDENCE_THRESHOLD = 50.0
+from config import (
+    IMAGE_COMPRESSION_QUALITY,
+    LOW_CONFIDENCE_THRESHOLD,
+    MAX_CARD_IMAGE_DATA_URL_LENGTH,
+    MAX_IMAGE_WIDTH,
+    METADATA_REQUEST_TIMEOUT,
+    WORKER_REQUEST_TIMEOUT,
+)
+from errors import RecognitionError, worker_error_message
+
 PLANT_ORGAN_OPTIONS: dict[str, str] = {
     "auto": "自動",
     "leaf": "葉",
@@ -220,8 +229,8 @@ async def card_image_from_capture_async(capture: Any, max_data_url_length: int =
         try:
             import js
             if is_data_url:
-                if not hasattr(js.window, "compressImageAsync"):
-                    js.eval("""
+                js.eval("""
+                if (typeof window.compressImageAsync === 'undefined') {
                     window.compressImageAsync = function(src, maxWidth, quality) {
                         return new Promise((resolve, reject) => {
                             const img = new Image();
@@ -244,7 +253,8 @@ async def card_image_from_capture_async(capture: Any, max_data_url_length: int =
                             img.src = src;
                         });
                     };
-                    """)
+                }
+                """)
                 compressed_data_url = await js.window.compressImageAsync(capture, MAX_IMAGE_WIDTH, IMAGE_COMPRESSION_QUALITY / 100.0)
                 if len(compressed_data_url) <= max_data_url_length:
                     return {"src": compressed_data_url, "label": "拍攝照片"}
@@ -302,10 +312,9 @@ def compress_image(binary: bytes, mime: str, *, optimize: bool = True) -> bytes:
         return binary
 
 
-class RecognitionServiceError(RuntimeError):
+class RecognitionServiceError(RecognitionError):
     def __init__(self, message: str, retryable: bool = False) -> None:
-        super().__init__(message)
-        self.retryable = retryable
+        super().__init__(message, retryable=retryable)
 
 
 def post_image_to_worker_sync(binary: bytes, mime: str, organ: str = "leaf") -> dict[str, Any]:
@@ -315,7 +324,7 @@ def post_image_to_worker_sync(binary: bytes, mime: str, organ: str = "leaf") -> 
         WORKER_URL,
         files={"images": ("capture.jpg", binary, mime)},
         data={"organs": organ},
-        timeout=30,
+        timeout=WORKER_REQUEST_TIMEOUT,
     )
     if not response.ok:
         raise RecognitionServiceError(worker_error_message(response.status_code, response.text))
@@ -350,7 +359,7 @@ def metadata_url_for_scientific_name(scientific_name: str) -> str:
 def get_metadata_from_worker_sync(scientific_name: str) -> dict[str, Any]:
     import requests
 
-    response = requests.get(metadata_url_for_scientific_name(scientific_name), timeout=20)
+    response = requests.get(metadata_url_for_scientific_name(scientific_name), timeout=METADATA_REQUEST_TIMEOUT)
     if not response.ok:
         raise RecognitionServiceError(worker_error_message(response.status_code, response.text))
     return response.json()

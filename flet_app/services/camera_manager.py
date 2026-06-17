@@ -22,6 +22,12 @@ from camera_utils import (
     clamp_camera_zoom,
     select_preferred_cameras,
 )
+from config import (
+    CAMERA_INITIALIZE_TIMEOUT,
+    CAMERA_GET_AVAILABLE_TIMEOUT,
+    MAX_CAMERA_INIT_ATTEMPTS,
+)
+from errors import CameraError
 from magnifier_handle import MagnifierHandle
 from plant_api import (
     PLANT_ORGAN_OPTIONS,
@@ -59,12 +65,14 @@ class CameraManager:
         get_selected_organ: Any = None,
         is_plant_mode: Any = None,
     ) -> None:
+        from _types_reexport import VoidControlEventCallback, CreateBackgroundTask
+
         self._page = page
         self._state = state
         self._status_text = status_text
         self._busy_ring = busy_ring
-        self._on_capture_result = on_capture_result
-        self._create_background_task = create_background_task
+        self._on_capture_result = on_capture_result  # type: ignore[assignment]
+        self._create_background_task = create_background_task or (lambda _: None)  # type: ignore[arg-type]
         self._get_selected_organ = get_selected_organ or (lambda: "auto")
         self._is_plant_mode = is_plant_mode or (lambda: True)
 
@@ -302,17 +310,25 @@ class CameraManager:
             self._status_text.value = "\u6b63\u5728\u5c0b\u627e\u53ef\u7528\u76f8\u6a5f..."
             self._page.update()
             last_error: Exception | None = None
-            for attempt in range(3):
+            for attempt in range(MAX_CAMERA_INIT_ATTEMPTS):
                 try:
-                    self._state.cameras = await asyncio.wait_for(self._state.camera.get_available_cameras(), timeout=8)
+                    self._state.cameras = await asyncio.wait_for(
+                        self._state.camera.get_available_cameras(),
+                        timeout=CAMERA_GET_AVAILABLE_TIMEOUT,
+                    )
                     last_error = None
                     break
                 except Exception as error:
                     last_error = error
                     error_text = str(error)
-                    if ("TimeoutException" not in error_text and "TimeoutError" not in error_text) or attempt == 2:
+                    if (
+                        "TimeoutException" not in error_text
+                        and "TimeoutError" not in error_text
+                    ) or attempt == MAX_CAMERA_INIT_ATTEMPTS - 1:
                         break
-                    self._status_text.value = f"\u76f8\u6a5f\u5143\u4ef6\u6e96\u5099\u4e2d\uff0c\u6b63\u5728\u91cd\u8a66 {attempt + 2}/3..."
+                    self._status_text.value = (
+                        f"相機元件準備中，正在重試 {attempt + 2}/{MAX_CAMERA_INIT_ATTEMPTS}..."
+                    )
                     self._page.update()
                     await asyncio.sleep(1.5)
             if last_error is not None:
@@ -329,9 +345,12 @@ class CameraManager:
                         return
                     try:
                         await asyncio.wait_for(
-                            self._state.camera.initialize(camera_description, fc.ResolutionPreset.MEDIUM,
-                                                           enable_audio=False),
-                            timeout=12,
+                            self._state.camera.initialize(
+                                camera_description,
+                                fc.ResolutionPreset.MEDIUM,
+                                enable_audio=False,
+                            ),
+                            timeout=CAMERA_INITIALIZE_TIMEOUT,
                         )
                         self._state.camera_ready = True
                         self._status_text.value = "\u76f8\u6a5f\u5df2\u555f\u52d5"
