@@ -1063,12 +1063,14 @@ class FletArtifactsTests(unittest.TestCase):
             package = app_dir / "build" / "web" / "assets" / "app" / "app.zip"
 
             admin_dir = root / "admin"
+            shared_dir = root / "shared"
 
             package.parent.mkdir(parents=True)
 
             app_dir.mkdir(exist_ok=True)
 
             admin_dir.mkdir()
+            shared_dir.mkdir()
 
             (app_dir / "main.py").write_text("import ui_theme\n", encoding="utf-8")
 
@@ -1083,6 +1085,7 @@ class FletArtifactsTests(unittest.TestCase):
             (app_dir / "views" / "welcome.py").write_text("WELCOME = True\n", encoding="utf-8")
 
             (admin_dir / "animals.json").write_text('{"animals": []}\n', encoding="utf-8")
+            (shared_dir / "config.py").write_text("CONTENT_MAX_WIDTH = 430\n", encoding="utf-8")
 
             with zipfile.ZipFile(package, "w") as archive:
 
@@ -1131,8 +1134,13 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertNotIn("types.py", names)
 
                 self.assertIn("admin/animals.json", names)
+                self.assertIn("shared/config.py", names)
 
                 self.assertEqual(archive.read("main.py").decode("utf-8").replace("\r\n", "\n"), "import ui_theme\n")
+                self.assertEqual(
+                    archive.read("shared/config.py").decode("utf-8").replace("\r\n", "\n"),
+                    "CONTENT_MAX_WIDTH = 430\n",
+                )
 
                 self.assertEqual(archive.read("views/welcome.py").decode("utf-8").replace("\r\n", "\n"), "WELCOME = True\n")
 

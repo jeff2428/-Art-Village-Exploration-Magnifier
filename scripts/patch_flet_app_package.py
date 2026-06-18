@@ -33,7 +33,13 @@ def local_python_modules(app_dir: Path | None = None) -> dict[str, Path]:
 def extra_assets(root: Path | None = None) -> dict[str, Path]:
     root = root or ROOT
     animals = root / "admin" / "animals.json"
-    return {"admin/animals.json": animals} if animals.exists() else {}
+    assets: dict[str, Path] = {}
+    if animals.exists():
+        assets["admin/animals.json"] = animals
+    shared_config = root / "shared" / "config.py"
+    if shared_config.exists():
+        assets["shared/config.py"] = shared_config
+    return assets
 
 
 def rewrite_app_package(app_package: Path = APP_PACKAGE) -> list[str]:
