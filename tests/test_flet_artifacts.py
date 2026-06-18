@@ -6,6 +6,8 @@ import tempfile
 
 import unittest
 
+from unittest import mock
+
 import zipfile
 
 from pathlib import Path
@@ -59,6 +61,26 @@ def load_app_package_patcher():
     return module
 
 
+
+
+
+def load_deploy_verifier():
+
+    spec = importlib.util.spec_from_file_location(
+
+        "verify_pages_deploy",
+
+        ROOT / "scripts" / "verify_pages_deploy.py",
+
+    )
+
+    module = importlib.util.module_from_spec(spec)
+
+    assert spec.loader is not None
+
+    spec.loader.exec_module(module)
+
+    return module
 
 
 
@@ -720,6 +742,8 @@ class FletArtifactsTests(unittest.TestCase):
 
         self.assertIn("patch_flet_app_package.py", build)
 
+        self.assertIn("validate_flet_runtime.py", build)
+
         self.assertNotIn("sync_flutter_canvaskit.py", build)
 
         self.assertIn("FLET_BUILD_ID", build)
@@ -769,6 +793,8 @@ class FletArtifactsTests(unittest.TestCase):
         package_patcher = (ROOT / "scripts" / "patch_flet_app_package.py").read_text(encoding="utf-8")
 
         self.assertIn("local_python_modules", package_patcher)
+
+        self.assertIn("validate_flet_runtime.py", build)
 
         self.assertIn("admin/animals.json", package_patcher)
 
@@ -841,6 +867,122 @@ class FletArtifactsTests(unittest.TestCase):
         self.assertIn("/canvaskit/canvaskit.js", verifier)
 
         self.assertIn("/assets/app/app-", verifier)
+
+        self.assertIn("flutter_bootstrap.js", verifier)
+
+        self.assertIn("HTML forces skwasm but flutter_bootstrap.js has no valid skwasm build", verifier)
+
+        self.assertIn("has_valid_renderer_build", verifier)
+
+        static_smoke = (ROOT / "scripts" / "static_build_smoke_cdp.py").read_text(encoding="utf-8")
+
+        self.assertIn("探險工具載入失敗", static_smoke)
+
+        self.assertIn("network_failures", static_smoke)
+
+
+    def test_pages_deploy_verifier_fetches_flutter_bootstrap(self):
+
+        verifier = load_deploy_verifier()
+
+        html = """
+        <html><head>
+        <script>var flet = { webRenderer: "skwasm" }</script>
+        <script id="flet-cache-buster">
+          flet.appPackageUrl = "assets/app/app-unit.zip";
+          flet.webRenderer = "skwasm";
+          flet.pyodideUrl = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js";
+        </script>
+        <script src="python.js"></script>
+        </head><body><div id="explorer-loader"></div>
+        <script>
+          removeFletSplash();
+          retryExplorerLoad();
+          window.addEventListener("error", () => {});
+          window.addEventListener("unhandledrejection", () => {});
+        </script>
+        </body></html>
+        """
+
+        sw = "if (url.pathname.includes('/assets/app/app-')) {}"
+        bootstrap = (
+            '_flutter.buildConfig = {"builds":[{"compileTarget":"dart2wasm",'
+            '"renderer":"skwasm","mainWasmPath":"main.dart.wasm"}]};'
+        )
+        fetched: list[str] = []
+
+        def fake_read_url(url: str):
+
+            fetched.append(url)
+
+            if url.endswith("/sw.js"):
+
+                return sw, {}
+
+            if url.endswith("/flutter_bootstrap.js"):
+
+                return bootstrap, {}
+
+            return html, {}
+
+        with mock.patch.object(verifier, "read_url", side_effect=fake_read_url):
+
+            failures = verifier.verify("https://example.test/")
+
+        self.assertEqual([], failures)
+
+        self.assertIn("https://example.test/flutter_bootstrap.js", fetched)
+
+
+    def test_pages_deploy_verifier_rejects_skwasm_html_without_skwasm_bootstrap_build(self):
+
+        verifier = load_deploy_verifier()
+
+        html = (
+            '<script id="flet-cache-buster">flet.webRenderer = "skwasm"; '
+            'flet.appPackageUrl = "assets/app/app-unit.zip";</script>'
+            '<script src="python.js"></script><div id="explorer-loader"></div>'
+            '<script>removeFletSplash(); retryExplorerLoad(); '
+            'window.addEventListener("error", () => {}); '
+            'window.addEventListener("unhandledrejection", () => {});</script>'
+            '<script>flet.pyodideUrl = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js";</script>'
+        )
+
+        sw = "if (url.pathname.includes('/assets/app/app-')) {}"
+
+        bootstrap = (
+            '_flutter.buildConfig = {"builds":[{"compileTarget":"dart2js",'
+            '"renderer":"canvaskit","mainJsPath":"main.dart.js"},{}]};'
+        )
+
+        failures = []
+
+        verifier.verify_html(html, {}, failures)
+
+        verifier.verify_sw(sw, failures)
+
+        verifier.verify_bootstrap(html, bootstrap, failures)
+
+        self.assertIn("HTML forces skwasm but flutter_bootstrap.js has no valid skwasm build", failures)
+
+
+    def test_pages_deploy_verifier_accepts_valid_skwasm_bootstrap_build(self):
+
+        verifier = load_deploy_verifier()
+
+        html = 'flet.webRenderer = "skwasm"'
+
+        bootstrap = (
+            '_flutter.buildConfig = {"builds":[{"compileTarget":"dart2wasm",'
+            '"renderer":"skwasm","mainWasmPath":"main.dart.wasm",'
+            '"jsSupportRuntimePath":"main.dart.mjs"}]};'
+        )
+
+        failures = []
+
+        verifier.verify_bootstrap(html, bootstrap, failures)
+
+        self.assertEqual([], failures)
 
 
 

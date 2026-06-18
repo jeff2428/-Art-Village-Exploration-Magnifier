@@ -33,6 +33,9 @@ cd flet_app
 flet build web --yes --verbose --route-url-strategy hash --web-renderer skwasm
 cd ..
 
+echo "Validating Flet runtime metadata..." >&2
+python scripts/validate_flet_runtime.py
+
 echo "Patching Flet app package with local modules..." >&2
 python scripts/patch_flet_app_package.py
 
@@ -56,7 +59,7 @@ headers_content = f'''/
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy-Report-Only: default-src '\''self'\''; img-src '\''self'\'' data: blob:; media-src '\''self'\'' blob:; connect-src '\''self'\'' {worker_url}; style-src '\''self'\'' '\''unsafe-inline'\''; script-src '\''self'\'' '\''wasm-unsafe-eval'\''; worker-src '\''self'\'' blob:; font-src '\''self'\'' data:; report-uri /__csp_report
+  Content-Security-Policy-Report-Only: default-src '\''self'\''; img-src '\''self'\'' data: blob:; media-src '\''self'\'' blob:; connect-src '\''self'\'' {worker_url} https://cdn.jsdelivr.net; style-src '\''self'\'' '\''unsafe-inline'\''; script-src '\''self'\'' https://cdn.jsdelivr.net '\''wasm-unsafe-eval'\''; worker-src '\''self'\'' blob:; font-src '\''self'\'' data:; report-uri /__csp_report
   Report-To: {{\"group\":\"csp-endpoint\",\"max_age\":10886400,\"endpoints\":[{{\"url\":\"/__csp_report\"}]}}}
 /index.html
   Cache-Control: no-store
@@ -66,7 +69,7 @@ headers_content = f'''/
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy-Report-Only: default-src '\''self'\''; img-src '\''self'\'' data: blob:; media-src '\''self'\'' blob:; connect-src '\''self'\'' {worker_url}; style-src '\''self'\'' '\''unsafe-inline'\''; script-src '\''self'\'' '\''wasm-unsafe-eval'\''; worker-src '\''self'\'' blob:; font-src '\''self'\'' data:; report-uri /__csp_report
+  Content-Security-Policy-Report-Only: default-src '\''self'\''; img-src '\''self'\'' data: blob:; media-src '\''self'\'' blob:; connect-src '\''self'\'' {worker_url} https://cdn.jsdelivr.net; style-src '\''self'\'' '\''unsafe-inline'\''; script-src '\''self'\'' https://cdn.jsdelivr.net '\''wasm-unsafe-eval'\''; worker-src '\''self'\'' blob:; font-src '\''self'\'' data:; report-uri /__csp_report
   Report-To: {{\"group\":\"csp-endpoint\",\"max_age\":10886400,\"endpoints\":[{{\"url\":\"/__csp_report\"}]}}}
 /flutter_service_worker.js
   Cache-Control: no-cache, no-store, must-revalidate
