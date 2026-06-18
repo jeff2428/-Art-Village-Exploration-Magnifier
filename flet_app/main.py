@@ -80,8 +80,9 @@ async def _run_app(page: ft.Page) -> None:
     # --- Page setup ----------------------------------------------------------
     page.title = APP_TITLE
     page.fonts = {
-        "Inter": "https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap",
-        "Noto Sans TC": "https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap",
+        "Noto Sans TC": "assets/fonts/NotoSansTC-Regular.ttf",
+        "Noto Sans TC Bold": "assets/fonts/NotoSansTC-Bold.ttf",
+        "Noto Sans TC Black": "assets/fonts/NotoSansTC-Black.ttf",
     }
     page.theme = ft.Theme(font_family="Noto Sans TC")
 
@@ -181,6 +182,7 @@ async def _run_app(page: ft.Page) -> None:
     )
 
     page.add(welcome_screen, shell)
+    page.update()
     await asyncio.sleep(0)
     mark_explorer_ready(page)
 

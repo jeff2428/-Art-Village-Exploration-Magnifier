@@ -564,6 +564,14 @@ class FletArtifactsTests(unittest.TestCase):
 
         self.assertIn('path.name != "js.py"', package_patcher)
 
+    def test_main_flushes_welcome_screen_before_ready_marker(self):
+
+        main = (ROOT / "flet_app" / "main.py").read_text(encoding="utf-8")
+
+        self.assertIn("page.add(welcome_screen, shell)\n    page.update()\n    await asyncio.sleep(0)\n    mark_explorer_ready(page)", main)
+        self.assertIn('"Noto Sans TC": "assets/fonts/NotoSansTC-Regular.ttf"', main)
+        self.assertNotIn("fonts.googleapis.com", main)
+
 
 
     def test_animal_view_is_customer_facing_without_admin_entry(self):
@@ -1085,7 +1093,9 @@ class FletArtifactsTests(unittest.TestCase):
             (app_dir / "views" / "welcome.py").write_text("WELCOME = True\n", encoding="utf-8")
 
             (admin_dir / "animals.json").write_text('{"animals": []}\n', encoding="utf-8")
+            (shared_dir / "__init__.py").write_text("", encoding="utf-8")
             (shared_dir / "config.py").write_text("CONTENT_MAX_WIDTH = 430\n", encoding="utf-8")
+            (shared_dir / "logging_setup.py").write_text("def setup_logging(): pass\n", encoding="utf-8")
 
             with zipfile.ZipFile(package, "w") as archive:
 
@@ -1134,7 +1144,9 @@ class FletArtifactsTests(unittest.TestCase):
                 self.assertNotIn("types.py", names)
 
                 self.assertIn("admin/animals.json", names)
+                self.assertIn("shared/__init__.py", names)
                 self.assertIn("shared/config.py", names)
+                self.assertIn("shared/logging_setup.py", names)
 
                 self.assertEqual(archive.read("main.py").decode("utf-8").replace("\r\n", "\n"), "import ui_theme\n")
                 self.assertEqual(

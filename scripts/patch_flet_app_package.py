@@ -36,9 +36,11 @@ def extra_assets(root: Path | None = None) -> dict[str, Path]:
     assets: dict[str, Path] = {}
     if animals.exists():
         assets["admin/animals.json"] = animals
-    shared_config = root / "shared" / "config.py"
-    if shared_config.exists():
-        assets["shared/config.py"] = shared_config
+    shared_dir = root / "shared"
+    if shared_dir.exists():
+        for path in sorted(shared_dir.rglob("*.py")):
+            if "__pycache__" not in path.relative_to(shared_dir).parts:
+                assets[path.relative_to(root).as_posix()] = path
     return assets
 
 

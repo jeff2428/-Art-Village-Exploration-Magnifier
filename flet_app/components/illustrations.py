@@ -112,11 +112,11 @@ def nature_border_container(
 def build_welcome_decoration() -> ft.Row:
     return ft.Row(
         controls=[
-            ft.Text(SHELL_GINGER_LEAF, size=16, opacity=0.3),
-            ft.Text(TAIWAN_LILY, size=20, opacity=0.25),
-            ft.Text(LEAF_FLUTTER, size=14, opacity=0.3),
-            ft.Text(BUTTERFLY, size=18, opacity=0.2),
-            ft.Text(CHERRY_BLOSSOM, size=16, opacity=0.25),
+            ft.Container(width=8, height=8, border_radius=999, bgcolor=THEME["GREEN"], opacity=0.35),
+            ft.Container(width=12, height=12, border_radius=999, bgcolor=THEME["ACCENT"], opacity=0.28),
+            ft.Container(width=7, height=7, border_radius=999, bgcolor=THEME["BODY"], opacity=0.35),
+            ft.Container(width=10, height=10, border_radius=999, bgcolor=THEME["ANIMAL_ROLE"], opacity=0.25),
+            ft.Container(width=8, height=8, border_radius=999, bgcolor=THEME["GREEN"], opacity=0.3),
         ],
         spacing=16,
         alignment=ft.MainAxisAlignment.CENTER,
