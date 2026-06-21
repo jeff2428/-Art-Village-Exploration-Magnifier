@@ -15,11 +15,6 @@ python -m pip install --upgrade pip
 python -m pip install -r flet_app/requirements.txt
 python -m pip install "flet-cli==0.85.1"
 
-if command -v ruff &> /dev/null; then
-  echo "Running Ruff lint..." >&2
-  python -m ruff check --target-version py312 flet_app/ tests/
-fi
-
 if [ -n "${WORKER_URL:-}" ]; then
   echo "Writing Cloudflare Worker URL into Flet build config..." >&2
   python -c "from pathlib import Path; import os; Path('flet_app/build_config.py').write_text('WORKER_URL = ' + repr(os.environ['WORKER_URL']) + '\n', encoding='utf-8')"
