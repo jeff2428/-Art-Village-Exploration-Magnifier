@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getPokedexEntries, PokedexEntry, getImage } from '../services/storage'
 import { fetchAnimals } from '../services/api'
 import './Gallery.css'

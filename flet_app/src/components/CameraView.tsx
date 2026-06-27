@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { identifyPlant } from '../services/api'
 import { savePokedexEntry } from '../services/storage'
 import './CameraView.css'
@@ -70,7 +70,6 @@ export default function CameraView({ onOpenGallery }: CameraViewProps) {
           const topMatch = result?.results?.[0]
           const scientificName = topMatch?.species?.scientificNameWithoutAuthor || 'Unknown'
           const commonName = topMatch?.species?.commonNames?.[0] || scientificName
-          const score = (topMatch?.score || 0) * 100
 
           await savePokedexEntry({
             id: Date.now().toString(),
