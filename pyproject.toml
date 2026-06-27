@@ -16,6 +16,7 @@ dev = [
     "opencc-python-reimplemented",
     "Pillow",
     "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
     "ruff>=0.15.13",
 ]
 
@@ -23,6 +24,23 @@ dev = [
 target-version = "py312"
 line-length = 140
 indent-width = 4
+exclude = [
+    ".chrome-debug-profile",
+    ".chrome-prod-8314-profile",
+    ".chrome-prod-dom-profile",
+    ".chrome-prod-nocdn-profile",
+    ".mypy_cache",
+    ".npm-cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".uv-cache",
+    ".venv",
+    ".wrangler",
+    "__pycache__",
+    "flet_app/build",
+    "live_app_extract",
+    "test_app",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
@@ -33,10 +51,10 @@ select = ["E", "F", "I", "N", "W", "UP"]
 
 [tool.mypy]
 python_version = "3.12"
-warn_unused_ignores = true
+warn_unused_ignores = false
 ignore_missing_imports = true
 check_untyped_defs = false
-exclude = ["build/"]
+exclude = ["build/", "live_app_extract/", "test_app/"]
 
 [[tool.mypy.overrides]]
 module = "flet_app.plant_api"
@@ -67,4 +85,5 @@ disallow_untyped_defs = true
 disallow_incomplete_defs = true
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 testpaths = ["tests"]

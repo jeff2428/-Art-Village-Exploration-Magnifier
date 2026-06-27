@@ -1,0 +1,16 @@
+{
+  "name": "藝素村探險放大鏡",
+  "short_name": "探險圖鑑",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2e7d32",
+  "description": "藝素村在地動植物探險與辨識圖鑑",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/x-icon"
+    }
+  ]
+}
