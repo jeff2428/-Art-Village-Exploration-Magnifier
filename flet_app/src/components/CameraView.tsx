@@ -95,7 +95,7 @@ export default function CameraView({ onOpenGallery }: CameraViewProps) {
       <video ref={videoRef} autoPlay playsInline muted className="camera-video" />
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       
-      <div className="magnifier-overlay glass-panel">
+      <div className="magnifier-overlay">
         <div className="magnifier-circle" />
       </div>
 
