@@ -1,0 +1,118 @@
+.admin-container {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 16px;
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.admin-input {
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.2);
+  color: white;
+  font-size: 16px;
+}
+
+.admin-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.admin-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.admin-message {
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.admin-message.error {
+  background: rgba(255, 68, 68, 0.2);
+  color: #ff4444;
+}
+
+.admin-message.success {
+  background: rgba(0, 200, 81, 0.2);
+  color: #00c851;
+}
+
+.admin-animals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-animal-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-animal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-form-group label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.admin-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 20px;
+}
+
+.danger-btn {
+  background: rgba(255, 68, 68, 0.2) !important;
+  color: #ff4444 !important;
+  border: 1px solid rgba(255, 68, 68, 0.3) !important;
+}
+
+.success-btn {
+  background: rgba(0, 200, 81, 0.8) !important;
+  color: white !important;
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 14px;
+}

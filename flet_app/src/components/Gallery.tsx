@@ -12,6 +12,7 @@ export default function Gallery({ onClose }: GalleryProps) {
   const [animals, setAnimals] = useState<any[]>([])
   const [filter, setFilter] = useState<'all' | 'plant' | 'animal'>('all')
   const [selectedEntry, setSelectedEntry] = useState<PokedexEntry | null>(null)
+  const [selectedAnimal, setSelectedAnimal] = useState<any | null>(null)
   
   useEffect(() => {
     async function loadData() {
@@ -47,7 +48,7 @@ export default function Gallery({ onClose }: GalleryProps) {
 
       <div className="gallery-grid">
         {filter !== 'plant' && animals.map((animal, i) => (
-          <div key={`animal-${i}`} className="gallery-card animal-card glass-panel">
+          <div key={`animal-${i}`} className="gallery-card animal-card glass-panel" onClick={() => setSelectedAnimal(animal)}>
             <div className="emoji-avatar">{animal.emoji}</div>
             <div className="card-info">
               <h3>{animal.name}</h3>
@@ -70,6 +71,10 @@ export default function Gallery({ onClose }: GalleryProps) {
 
       {selectedEntry && (
         <DetailModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
+      )}
+
+      {selectedAnimal && (
+        <AnimalModal animal={selectedAnimal} onClose={() => setSelectedAnimal(null)} />
       )}
     </div>
   )
@@ -132,6 +137,20 @@ function DetailModal({ entry, onClose }: { entry: PokedexEntry, onClose: () => v
         {perenual?.description && (
           <p className="description">{perenual.description}</p>
         )}
+      </div>
+    </div>
+  )
+}
+
+function AnimalModal({ animal, onClose }: { animal: any, onClose: () => void }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-content glass-panel animal-modal" onClick={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>✕</button>
+        <div className="modal-emoji-avatar" style={{ fontSize: '4rem', textAlign: 'center', margin: '20px 0' }}>{animal.emoji}</div>
+        <h2 style={{ textAlign: 'center' }}>{animal.name}</h2>
+        <p className="animal-role" style={{ color: 'var(--primary)', fontWeight: 'bold', textAlign: 'center', marginBottom: '16px' }}>{animal.role}</p>
+        <p className="description">{animal.desc}</p>
       </div>
     </div>
   )
