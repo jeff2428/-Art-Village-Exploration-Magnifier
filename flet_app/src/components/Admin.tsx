@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchAnimals, getApiUrl } from '../services/api'
+import { fetchAnimals, API_URL } from '../services/api'
 import './Admin.css'
 
 export default function Admin() {
@@ -32,7 +32,7 @@ export default function Admin() {
     setLoading(true)
     setMessage('')
     try {
-      const res = await fetch(`${getApiUrl()}/animals/auth`, {
+      const res = await fetch(`${API_URL}/animals/auth`, {
         method: 'POST',
         headers: {
           'X-Admin-Password': password,
@@ -56,7 +56,7 @@ export default function Admin() {
     setLoading(true)
     setMessage('')
     try {
-      const res = await fetch(`${getApiUrl()}/animals`, {
+      const res = await fetch(`${API_URL}/animals`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

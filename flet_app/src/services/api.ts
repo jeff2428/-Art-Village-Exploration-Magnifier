@@ -1,6 +1,6 @@
 // In production, this will be / 
 // In dev, we can proxy or set the env var
-const API_URL = import.meta.env.VITE_API_URL || ''
+export const API_URL = import.meta.env.VITE_API_URL || ''
 
 export async function identifyPlant(imageBlob: Blob, organ: string = 'auto') {
   const formData = new FormData()
