@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { fetchAnimals, API_URL } from '../services/api'
+import { fetchAnimals, API_URL, type Animal } from '../services/api'
 import './Admin.css'
 
 export default function Admin() {
   const [password, setPassword] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [animals, setAnimals] = useState<any[]>([])
+  const [animals, setAnimals] = useState<Animal[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -88,7 +88,7 @@ export default function Admin() {
     setAnimals(newAnimals)
   }
 
-  function handleUpdateAnimal(index: number, field: string, value: string) {
+  function handleUpdateAnimal(index: number, field: 'name' | 'emoji' | 'role' | 'desc', value: string) {
     const newAnimals = [...animals]
     newAnimals[index] = { ...newAnimals[index], [field]: value }
     setAnimals(newAnimals)

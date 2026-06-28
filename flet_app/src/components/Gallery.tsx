@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getPokedexEntries, PokedexEntry, getImage } from '../services/storage'
-import { fetchAnimals } from '../services/api'
+import { fetchAnimals, type Animal } from '../services/api'
 import './Gallery.css'
 
 interface GalleryProps {
@@ -9,10 +9,10 @@ interface GalleryProps {
 
 export default function Gallery({ onClose }: GalleryProps) {
   const [entries, setEntries] = useState<PokedexEntry[]>([])
-  const [animals, setAnimals] = useState<any[]>([])
+  const [animals, setAnimals] = useState<Animal[]>([])
   const [filter, setFilter] = useState<'all' | 'plant' | 'animal'>('all')
   const [selectedEntry, setSelectedEntry] = useState<PokedexEntry | null>(null)
-  const [selectedAnimal, setSelectedAnimal] = useState<any | null>(null)
+  const [selectedAnimal, setSelectedAnimal] = useState<Animal | null>(null)
   
   useEffect(() => {
     async function loadData() {
@@ -142,7 +142,7 @@ function DetailModal({ entry, onClose }: { entry: PokedexEntry, onClose: () => v
   )
 }
 
-function AnimalModal({ animal, onClose }: { animal: any, onClose: () => void }) {
+function AnimalModal({ animal, onClose }: { animal: Animal, onClose: () => void }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content glass-panel animal-modal" onClick={e => e.stopPropagation()}>

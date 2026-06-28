@@ -3,10 +3,8 @@ set -euo pipefail
 
 echo "Building Vite React web app for Cloudflare Pages..." >&2
 cd flet_app
-# Clear node_modules to avoid caching issues with permissions on Cloudflare Pages
-rm -rf node_modules package-lock.json
-npm install
-chmod +x node_modules/.bin/*
+export VITE_API_URL="${VITE_API_URL:-${WORKER_URL:-https://art-village-magnifier.jeff2428.workers.dev}}"
+npm ci
 npm run build
 cd ..
 

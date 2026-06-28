@@ -1,119 +1,70 @@
 # 藝素村探險放大鏡
 
-Flet Web + Cloudflare Worker + Cloudflare Pages 版本。
+以 React/Vite、Cloudflare Pages 與 Cloudflare Worker 建構的植物辨識與探險圖鑑 Web App。使用者可透過裝置相機拍攝植物，由 PlantNet 辨識物種，並以 Perenual 補充照護與毒性資料。
 
-## 架構
+## 正式架構
 
-- `flet_app/`：Flet Web 前端，負責相機、擬物化放大鏡 UI、模式切換與探險圖鑑。
-- `worker/`：Cloudflare Worker API 中繼站，負責隱藏 `PLANTNET_API_KEY` 並處理 CORS。
-- `build.sh` / `wrangler.toml`：Cloudflare Pages 建置設定，push 到 `main` 後由 Cloudflare 自動建置與發布。
-
-## 安全模型
-
-- **密鑰管理**：`PLANTNET_API_KEY` 與 `PERENUAL_API_KEY` 僅放在 Cloudflare Worker Secret，前端從不接觸。
-- **CORS 收斂**：Worker 預設僅放行 `ALLOWED_ORIGIN` 完全相符的瀏覽器 Origin；放行 `*.pages.dev` / `*.github.io` 必須在 `wrangler.toml` 明確設 `ALLOW_PAGES_DOMAINS = "true"`，預設關閉。
-- **上傳限制**：Worker 限制 POST 圖片最大 `MAX_UPLOAD_BYTES`（預設 10 MiB），並只接受 `image/jpeg`、`image/png`、`image/webp`。
-- **前端 headers**（`build.sh` 產出 `_headers`）：
-  - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
-  - `X-Content-Type-Options: nosniff`
-  - `Referrer-Policy: strict-origin-when-cross-origin`
-  - `Content-Security-Policy-Report-Only: …`（先以觀察期 24h 收集逸出，零逸出後再改為 enforce）
-- **限流**：以 `CF-Connecting-IP` 為單位，預設 30 req / 60s。
-- **測試**：`tests/test_worker_security.py` 透過 Node 跑 `corsHeaders()` 與 `readMaxUploadBytes()` 的邊界情境。
-
-## Cloudflare Worker
-
-這個 Worker 是 PlantNet API 中繼站，不是網頁前端。
-
-```bash
-cd worker
-npx wrangler secret put PLANTNET_API_KEY
-npx wrangler deploy
-```
-
-部署後，把 Worker URL 填到 Cloudflare Pages 的 `WORKER_URL` 環境變數。
-
-如果你要讓 Worker 也連 Git 自動部署，Cloudflare Worker 的 Build 設定請使用：
-
-- Build command：`echo "No Worker build step"`
-- Deploy command：`npx wrangler deploy -c worker/wrangler.toml`
-- Version command：`npx wrangler versions upload -c worker/wrangler.toml`
-- Root directory：`/`
-- Production branch：`main`
-
-Worker 的 Variables and secrets 要新增：
-
-```text
-PLANTNET_API_KEY=你的 PlantNet API Key
-```
+- `flet_app/`：React 18、TypeScript、Vite 正式前端
+- `worker/`：Cloudflare Worker API，保護 PlantNet/Perenual secrets、處理 CORS、限流與動物資料
+- `admin/`：靜態動物管理頁面，由正式建置複製到輸出目錄
+- `flet_app_old/`：歷史 Flet 實作，只供追溯，不參與正式建置
+- `tests/`：Worker 與歷史相容性測試
 
 ## 本機開發
 
-日常開發請先在本機測到滿意，再 `git push` 交給 Cloudflare Pages 編譯上線。不要把 Cloudflare 當草稿紙，這樣會省下很多等待時間。
-
-第一次先安裝依賴：
+需要 Node.js 22。
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/install-dev.ps1
+cd flet_app
+npm ci
+$env:VITE_API_URL = "https://YOUR-WORKER.workers.dev"
+npm run dev
 ```
 
-之後每次開發：
+若未設定 `VITE_API_URL`，前端會使用同源 API，適合由本機 proxy 或整合環境提供。
+
+## 品質檢查
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/dev.ps1
+cd flet_app
+npm run lint
+npm test
+npm run build
+cd ..
+node --check worker/index.js
+python -m unittest tests.test_worker_security -v
 ```
 
-瀏覽器會開啟本機 Flet 畫面。你改程式、存檔、看畫面，確認功能完成後再推送到 GitHub。
+## Cloudflare Worker
 
-這個腳本會在 `flet_app/` 執行：
+Worker secrets：
 
 ```powershell
-flet run -d -w main.py
+cd worker
+npx wrangler secret put PLANTNET_API_KEY
+npx wrangler secret put PERENUAL_API_KEY
+npx wrangler secret put ANIMALS_ADMIN_PASSWORD
+npx wrangler deploy
 ```
 
-在 Flet 0.85 裡，`-d` 是監看資料夾並熱重載，`-w` 才是用瀏覽器開啟 Web App。
+正式環境應設定精確的 `ALLOWED_ORIGIN`。若需要接受指定 Pages/GitHub Pages 子網域，才設定 `ALLOW_PAGES_DOMAINS=true`。
 
-上線流程：
+## Cloudflare Pages
 
-```bash
-git add .
-git commit -m "Describe your change"
-git push origin main
-```
-
-Cloudflare Pages 只負責正式部署。
-
-## Cloudflare Pages 設定
-
-這裡才是網頁前端，也就是 Flet 靜態網頁。
-
-在 Cloudflare Pages 專案使用這些設定：
-
-- Framework preset：`None`
 - Root directory：`/`
 - Build command：`bash build.sh`
-- Build output directory：`flet_app/build/web`
+- Build output：`flet_app/build/web`
 - Production branch：`main`
+- 環境變數：`WORKER_URL=https://YOUR-WORKER.workers.dev`
 
-Pages 環境變數：
+`build.sh` 會將 `WORKER_URL` 映射為 Vite build-time 變數 `VITE_API_URL`，使用 `npm ci` 依照 lockfile 安裝，建置 React App，並複製管理頁與產生安全 headers。
 
-```text
-WORKER_URL=https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
-```
+## 安全邊界
 
-不要使用舊指令：
+- 第三方 API keys 只存在 Worker secrets，不進入瀏覽器 bundle。
+- Worker 驗證 Origin、圖片 MIME、上傳大小與管理端 payload。
+- 管理端密碼由 `X-Admin-Password` 傳至 Worker；公開部署仍應搭配 Cloudflare WAF 全域限流。
+- CSP 目前是 report-only；切換 enforce 前需先檢查實際違規報告。
 
-```text
-pip install flet requests opencc-python-reimplemented && flet build web
-```
+詳細規格見 [React 前端基礎重整規格](docs/spec-react-foundation.md) 與 [技術棧](docs/technical-stack.md)。
 
-這個舊指令沒有 `--yes`，Cloudflare 無互動建置環境會在 Flet 詢問是否安裝 Flutter SDK 時失敗。新版 Flet 的 `--web-renderer` 也只接受 `auto`、`canvaskit`、`skwasm`；正式站固定使用 `skwasm`，避免 CanvasKit 在 Cloudflare Pages 上觸發不相容的 WebAssembly runtime。不要搭配 `--no-wasm`，否則會產生不完整的 skwasm build metadata 並卡在載入畫面。
-
-## 本機建置
-
-```bash
-set WORKER_URL=https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
-bash build.sh
-```
-
-輸出目錄為 `flet_app/build/web`。

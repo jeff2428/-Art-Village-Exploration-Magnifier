@@ -1,11 +1,12 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb'
+import type { PlantIdentificationResult } from './api'
 
 export interface PokedexEntry {
   id: string
   name: string
   type: 'plant' | 'animal'
   captured_image?: string // hash or data url
-  metadata?: any
+  metadata?: PlantIdentificationResult
   timestamp: number
 }
 

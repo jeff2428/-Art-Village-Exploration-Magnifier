@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { identifyPlant } from '../services/api'
 import { savePokedexEntry } from '../services/storage'
+import { prepareCapture, stopMediaStream } from './cameraLifecycle'
 import './CameraView.css'
 
 interface CameraViewProps {
@@ -10,7 +11,7 @@ interface CameraViewProps {
 export default function CameraView({ onOpenGallery }: CameraViewProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [stream, setStream] = useState<MediaStream | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [organ, setOrgan] = useState('auto')
@@ -21,11 +22,11 @@ export default function CameraView({ onOpenGallery }: CameraViewProps) {
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' }
         })
-        setStream(mediaStream)
+        streamRef.current = mediaStream
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         setErrorMsg('相機權限遭拒或無法存取相機')
         console.error('Camera error', err)
       }
@@ -33,9 +34,8 @@ export default function CameraView({ onOpenGallery }: CameraViewProps) {
     setupCamera()
     
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop())
-      }
+      stopMediaStream(streamRef.current)
+      streamRef.current = null
     }
   }, [])
 
@@ -46,10 +46,12 @@ export default function CameraView({ onOpenGallery }: CameraViewProps) {
 
     const video = videoRef.current
     const canvas = canvasRef.current
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    const ctx = prepareCapture(video, canvas)
+    if (!ctx) {
+      setIsProcessing(false)
+      setErrorMsg('無法初始化影像擷取工具')
+      return
+    }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
     
     canvas.toBlob(async (blob) => {
@@ -81,8 +83,8 @@ export default function CameraView({ onOpenGallery }: CameraViewProps) {
 
           // Show success and move to gallery maybe? Or just show a toast
           onOpenGallery()
-        } catch (err: any) {
-          setErrorMsg(err.message || '辨識失敗，請重試')
+        } catch (err: unknown) {
+          setErrorMsg(err instanceof Error ? err.message : '辨識失敗，請重試')
         } finally {
           setIsProcessing(false)
         }
