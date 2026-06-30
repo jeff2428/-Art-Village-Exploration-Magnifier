@@ -196,3 +196,20 @@
 }
 
 .animal-card { cursor: pointer; }
+
+.modal-emoji-avatar {
+  font-size: 4rem;
+  text-align: center;
+  margin: var(--space-lg) 0;
+}
+
+.modal-animal-name {
+  text-align: center;
+}
+
+.modal-animal-role {
+  color: var(--primary-color);
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: var(--space-md);
+}

@@ -6,7 +6,7 @@ const projectRoot = decodeURIComponent(new URL('.', import.meta.url).pathname)
 export default defineConfig({
   root: projectRoot,
   test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
+    environment: 'jsdom',
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 })

@@ -1,152 +1,317 @@
 .camera-container {
-  position: relative;
+  --workbench-bg: #eaf2e2;
+  --forest-ink: #33463a;
+  --forest-muted: #647267;
+  --panel-border: #cad8c3;
+  --selected-bg: #dce8f8;
+  --selected-border: #8293aa;
+  --copper: #c77d4a;
   width: 100%;
   height: 100%;
-  background: #000;
+  min-height: 100dvh;
   overflow: hidden;
+  color: var(--forest-ink);
+  background: var(--workbench-bg);
+}
+
+.capture-canvas {
+  display: none;
+}
+
+.camera-workbench {
+  display: grid;
+  grid-template-rows: min(66vh, 670px) auto auto;
+  align-content: start;
+  width: 100%;
+  height: 100dvh;
+  min-height: 620px;
+  padding: 0 16px max(18px, env(safe-area-inset-bottom));
+}
+
+.magnifier-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.magnifier-tool {
+  position: absolute;
+  top: clamp(-290px, -14vw, -168px);
+  left: 50%;
+  width: clamp(430px, 34vw, 560px);
+  aspect-ratio: 946 / 1680;
+  transform: translateX(-50%);
+}
+
+.magnifier-tool-image {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+
+.lens-window {
+  position: absolute;
+  top: 12%;
+  left: 17.35%;
+  width: 65.3%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #101913;
+  box-shadow: inset 0 0 30px rgb(10 18 12 / 50%);
 }
 
 .camera-video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform: scale(1.02);
 }
 
-.magnifier-overlay {
+.tool-control {
   position: absolute;
-  top: 45%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  width: 280px;
-  height: 280px;
-  border-radius: 50%;
-  border: 8px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), inset 0 0 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,0,0,0.5);
-  pointer-events: none;
-}
-
-.magnifier-overlay::after {
-  content: '';
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 24px;
-  height: 100px;
-  background: linear-gradient(90deg, #9ca3af 0%, #f3f4f6 50%, #9ca3af 100%);
-  border-radius: 12px;
-  transform: rotate(-45deg);
-  transform-origin: top left;
-  box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
-  border: 2px solid #6b7280;
-}
-
-.magnifier-circle {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: transparent;
-}
-
-.controls-container {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  padding: 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-}
-
-.action-buttons {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 400px;
-}
-
-.capture-btn {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.3);
-  border: 4px solid white;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  cursor: pointer;
+  width: 19.3%;
+  aspect-ratio: 1;
   padding: 0;
-}
-
-.capture-btn-inner {
-  width: 56px;
-  height: 56px;
-  background: white;
+  color: #3f2116;
+  font: inherit;
+  font-size: clamp(11px, 1vw, 14px);
+  font-weight: 800;
+  line-height: 1.05;
+  border: 0;
   border-radius: 50%;
-  transition: transform 0.2s;
+  background: rgb(218 143 91 / 88%);
+  box-shadow:
+    inset 0 2px 3px rgb(255 226 194 / 70%),
+    0 4px 8px rgb(47 23 14 / 42%);
+  transform: translateX(-50%);
+  cursor: pointer;
+  transition: transform 160ms ease, filter 160ms ease;
 }
 
-.capture-btn:active .capture-btn-inner {
-  transform: scale(0.9);
+.tool-control span {
+  margin-top: 4px;
 }
 
-.pulsing {
-  animation: pulse 1s infinite alternate;
+.tool-control:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateX(-50%) translateY(-2px);
 }
 
-@keyframes pulse {
-  0% { transform: scale(0.8); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 1; }
+.tool-control:active:not(:disabled) {
+  transform: translateX(-50%) translateY(1px) scale(0.96);
 }
 
-.organ-selector select {
-  padding: 8px 16px;
-  border-radius: 99px;
-  border: none;
-  background: var(--glass-bg);
-  backdrop-filter: blur(8px);
-  color: var(--text-primary);
-  font-size: 14px;
-  outline: none;
+.tool-control:focus-visible,
+.organ-segment:focus-visible {
+  outline: 3px solid #2c658e;
+  outline-offset: 3px;
 }
 
-.loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+.tool-control:disabled {
+  cursor: wait;
+}
+
+.gallery-tool-button {
+  top: 58.75%;
+  background: rgb(166 116 81 / 82%);
+}
+
+.capture-tool-button {
+  top: 73.6%;
+}
+
+.capture-tool-button.is-processing svg {
+  animation: camera-breathe 900ms ease-in-out infinite alternate;
+}
+
+@keyframes camera-breathe {
+  from { transform: scale(0.86); opacity: 0.65; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.capture-panel {
+  width: min(646px, calc(100vw - 32px));
+  margin: 12px auto 0;
+  padding: 14px 12px 12px;
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  background: rgb(250 253 247 / 94%);
+  box-shadow: 0 8px 24px rgb(69 87 70 / 8%);
+}
+
+.capture-panel h1 {
+  margin: 0 0 10px;
+  color: var(--forest-ink);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.organ-segments {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  overflow: hidden;
+  border: 1px solid #7f8b83;
+  border-radius: 999px;
+  background: #fbfdf9;
+}
+
+.organ-segment {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  z-index: 10;
-  color: white;
-  gap: 16px;
-  font-size: 18px;
-  font-weight: bold;
+  min-width: 0;
+  min-height: 58px;
+  gap: 7px;
+  padding: 8px 6px;
+  color: #25302a;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 750;
+  border: 0;
+  border-left: 1px solid #87928b;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(255,255,255,0.3);
-  border-top-color: white;
+.organ-segment:first-child {
+  border-left: 0;
+}
+
+.organ-segment.is-selected {
+  color: #253b52;
+  background: var(--selected-bg);
+  box-shadow: inset 0 0 0 1px var(--selected-border);
+}
+
+.organ-segment:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.camera-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(680px, calc(100vw - 32px));
+  min-height: 58px;
+  margin: 8px auto 0;
+  gap: 10px;
+  color: var(--forest-muted);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.camera-status p {
+  margin: 0;
+}
+
+.status-dot {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  background: #4f8660;
+  box-shadow: 0 0 0 4px rgb(79 134 96 / 14%);
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.status-dot.has-error {
+  background: #b84e45;
+  box-shadow: 0 0 0 4px rgb(184 78 69 / 14%);
 }
 
-.error-toast {
-  background: #ef4444;
-  color: white;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 14px;
+@media (max-width: 700px) {
+  .camera-workbench {
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    align-content: stretch;
+    min-height: 600px;
+    padding-inline: 10px;
+  }
+
+  .magnifier-tool {
+    top: clamp(-70px, -8vw, -28px);
+    width: min(94vw, 390px);
+  }
+
+  .capture-panel {
+    width: min(100%, 520px);
+    margin-top: 8px;
+    padding: 10px 8px 8px;
+    border-radius: 15px;
+  }
+
+  .capture-panel h1 {
+    margin-bottom: 8px;
+    font-size: 15px;
+  }
+
+  .organ-segment {
+    min-height: 50px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 5px 3px;
+    font-size: 12px;
+  }
+
+  .organ-segment svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .camera-status {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 4px;
+    font-size: 12px;
+  }
+}
+
+@media (max-height: 720px) and (min-width: 701px) {
+  .camera-workbench {
+    grid-template-rows: min(62vh, 445px) auto auto;
+  }
+
+  .magnifier-tool {
+    top: -235px;
+    width: 420px;
+  }
+
+  .capture-panel {
+    padding-block: 9px;
+  }
+
+  .organ-segment {
+    min-height: 48px;
+  }
+
+  .camera-status {
+    min-height: 42px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-control,
+  .organ-segment {
+    transition: none;
+  }
+
+  .capture-tool-button.is-processing svg {
+    animation: none;
+  }
 }

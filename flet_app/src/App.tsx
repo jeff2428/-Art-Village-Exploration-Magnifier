@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { lazy, Suspense, useState, useEffect } from 'react'
 import './App.css'
 import CameraView from './components/CameraView'
-import Gallery from './components/Gallery'
-import Admin from './components/Admin'
+import ErrorBoundary from './components/ErrorBoundary'
 import { initDB } from './services/storage'
+
+const Gallery = lazy(() => import('./components/Gallery'))
+const Admin = lazy(() => import('./components/Admin'))
 
 function App() {
   const [view, setView] = useState<'camera' | 'gallery'>('camera')
@@ -16,17 +18,27 @@ function App() {
   if (!isDbReady) return <div className="loading-screen">載入探險工具中...</div>
 
   if (window.location.pathname === '/admin') {
-    return <Admin />
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<div className="loading-screen">載入管理頁面...</div>}>
+          <Admin />
+        </Suspense>
+      </ErrorBoundary>
+    )
   }
 
   return (
-    <div className="app-container">
-      {view === 'camera' ? (
-        <CameraView onOpenGallery={() => setView('gallery')} />
-      ) : (
-        <Gallery onClose={() => setView('camera')} />
-      )}
-    </div>
+    <ErrorBoundary>
+      <div className="app-container">
+        {view === 'camera' ? (
+          <CameraView onOpenGallery={() => setView('gallery')} />
+        ) : (
+          <Suspense fallback={<div className="loading-screen">載入圖鑑...</div>}>
+            <Gallery onClose={() => setView('camera')} />
+          </Suspense>
+        )}
+      </div>
+    </ErrorBoundary>
   )
 }
 
